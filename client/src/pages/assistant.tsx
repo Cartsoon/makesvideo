@@ -663,8 +663,8 @@ export default function AssistantPage() {
           </Collapsible>
         </div>
 
-        <div className="hidden lg:flex flex-col w-80 gap-4">
-          <Card className="flex flex-col h-[45%] overflow-hidden">
+        <div className="hidden lg:flex flex-col w-80 gap-4 h-full">
+          <Card className="flex flex-col flex-1 min-h-0 overflow-hidden">
             <div className="flex items-center gap-3 px-4 py-3 border-b bg-gradient-to-r from-amber-500/10 to-orange-500/10">
               <div className="w-8 h-8 rounded-md bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
                 <StickyNote className="h-4 w-4 text-white" />
@@ -759,7 +759,7 @@ export default function AssistantPage() {
             </div>
           </Card>
           
-          <Card className="flex flex-col flex-1 overflow-hidden">
+          <Card className="flex flex-col flex-shrink-0 overflow-hidden">
             <div className="flex items-center gap-3 px-4 py-3 border-b bg-gradient-to-r from-primary/10 to-primary/5">
               <div className="w-8 h-8 rounded-md bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
                 <FolderDown className="h-4 w-4 text-primary-foreground" />
@@ -774,34 +774,33 @@ export default function AssistantPage() {
               </div>
             </div>
             
-            <ScrollArea className="flex-1">
-              <div className="p-2 space-y-1">
-                {[
-                  { 
-                    icon: FileType, 
-                    name: language === "ru" ? "Шаблон сценария" : "Script Template",
-                    file: "script-template.txt",
-                    color: "text-blue-500"
-                  },
-                  { 
-                    icon: FileCheck, 
-                    name: language === "ru" ? "ОТК ТВ правила" : "TV QC Rules",
-                    file: "otk-tv-rules.pdf",
-                    color: "text-green-500"
-                  },
-                  { 
-                    icon: FileVideo, 
-                    name: language === "ru" ? "Проект Premiere (подкасты)" : "Premiere Project (podcasts)",
-                    file: "podcast-premiere-template.prproj",
-                    color: "text-purple-500"
-                  },
-                  { 
-                    icon: FileText, 
-                    name: language === "ru" ? "Чек-лист монтажа" : "Editing Checklist",
-                    file: "editing-checklist.pdf",
-                    color: "text-orange-500"
-                  },
-                ].map((item) => (
+            <div className="p-2 space-y-1">
+              {[
+                { 
+                  icon: FileType, 
+                  name: language === "ru" ? "Шаблон сценария" : "Script Template",
+                  file: "script-template.txt",
+                  color: "text-blue-500"
+                },
+                { 
+                  icon: FileCheck, 
+                  name: language === "ru" ? "ОТК ТВ правила" : "TV QC Rules",
+                  file: "otk-tv-rules.pdf",
+                  color: "text-green-500"
+                },
+                { 
+                  icon: FileVideo, 
+                  name: language === "ru" ? "Проект Premiere (подкасты)" : "Premiere Project (podcasts)",
+                  file: "podcast-premiere-template.prproj",
+                  color: "text-purple-500"
+                },
+                { 
+                  icon: FileText, 
+                  name: language === "ru" ? "Чек-лист монтажа" : "Editing Checklist",
+                  file: "editing-checklist.pdf",
+                  color: "text-orange-500"
+                },
+              ].map((item) => (
                   <Button
                     key={item.file}
                     variant="ghost"
@@ -818,9 +817,8 @@ export default function AssistantPage() {
                     <span className="text-sm text-left truncate">{item.name}</span>
                     <Download className="h-3.5 w-3.5 ml-auto text-muted-foreground flex-shrink-0" />
                   </Button>
-                ))}
-              </div>
-            </ScrollArea>
+              ))}
+            </div>
           </Card>
         </div>
       </div>
