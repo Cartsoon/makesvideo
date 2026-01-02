@@ -74,12 +74,16 @@ export async function registerRoutes(
 
   app.delete("/api/sources/:id", async (req, res) => {
     try {
+      // First delete all topics related to this source to avoid FK constraint
+      await storage.deleteTopicsBySourceId(req.params.id);
+      
       const deleted = await storage.deleteSource(req.params.id);
       if (!deleted) {
         return res.status(404).json({ error: "Source not found" });
       }
       res.status(204).send();
     } catch (error) {
+      console.error("Failed to delete source:", error);
       res.status(500).json({ error: "Failed to delete source" });
     }
   });
