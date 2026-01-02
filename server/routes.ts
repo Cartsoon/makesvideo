@@ -74,7 +74,8 @@ export async function registerRoutes(
 
   app.delete("/api/sources/:id", async (req, res) => {
     try {
-      // First delete all topics related to this source to avoid FK constraint
+      // Delete in order: scripts → topics → source (to respect FK constraints)
+      await storage.deleteScriptsBySourceId(req.params.id);
       await storage.deleteTopicsBySourceId(req.params.id);
       
       const deleted = await storage.deleteSource(req.params.id);

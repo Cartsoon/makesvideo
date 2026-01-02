@@ -36,6 +36,7 @@ export interface IStorage {
   updateTopic(id: string, updates: Partial<InsertTopic>): Promise<Topic | undefined>;
   deleteTopic(id: string): Promise<boolean>;
   deleteTopicsBySourceId(sourceId: string): Promise<number>;
+  deleteScriptsBySourceId(sourceId: string): Promise<number>;
 
   // Scripts
   getScripts(): Promise<Script[]>;
@@ -264,6 +265,20 @@ export class DatabaseStorage implements IStorage {
   async deleteTopicsBySourceId(sourceId: string): Promise<number> {
     const result = await db.delete(topics).where(eq(topics.sourceId, sourceId));
     return result.rowCount ?? 0;
+  }
+
+  async deleteScriptsBySourceId(sourceId: string): Promise<number> {
+    // Get all topic IDs for this source
+    const sourceTopics = await db.select({ id: topics.id }).from(topics).where(eq(topics.sourceId, sourceId));
+    if (sourceTopics.length === 0) return 0;
+    
+    const topicIds = sourceTopics.map(t => t.id);
+    let deleted = 0;
+    for (const topicId of topicIds) {
+      const result = await db.delete(scripts).where(eq(scripts.topicId, topicId));
+      deleted += result.rowCount ?? 0;
+    }
+    return deleted;
   }
 
   private mapTopic(row: any): Topic {
