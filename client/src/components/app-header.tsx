@@ -4,6 +4,7 @@ import { InfoModal } from "@/components/info-modal";
 import { ProfileModal } from "@/components/profile-modal";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Play, User } from "lucide-react";
 
 interface AppHeaderProps {
@@ -48,13 +49,21 @@ export function AppHeader({ title = "IDENGINE" }: AppHeaderProps) {
               onLogout={logout}
               trigger={
                 <Button variant="ghost" size="icon" data-testid="button-profile-mobile">
-                  <User className="h-4 w-4" />
+                  <Avatar className="h-6 w-6 border border-border">
+                    <AvatarFallback className="text-[10px] bg-accent">
+                      {user.nickname ? user.nickname.charAt(0).toUpperCase() : <User className="h-3 w-3" />}
+                    </AvatarFallback>
+                  </Avatar>
                 </Button>
               }
             />
           ) : (
             <Button variant="ghost" size="icon" data-testid="button-profile-mobile" onClick={logout}>
-              <User className="h-4 w-4" />
+              <Avatar className="h-6 w-6 border border-border">
+                <AvatarFallback className="text-[10px] bg-accent">
+                  <User className="h-3 w-3" />
+                </AvatarFallback>
+              </Avatar>
             </Button>
           )}
           <InfoModal variant="icon" />

@@ -7,6 +7,7 @@ import { ProfileModal } from "@/components/profile-modal";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function DesktopSidebar() {
   const [location] = useLocation();
@@ -75,21 +76,28 @@ export function DesktopSidebar() {
 
         <div className="p-3 border-t border-sidebar-border space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wide">{t("profile.title")}</span>
+            <div className="flex items-center gap-2">
+              <Avatar className="h-6 w-6 border border-sidebar-border">
+                <AvatarFallback className="text-[10px] bg-sidebar-accent">
+                  {user?.nickname ? user.nickname.charAt(0).toUpperCase() : <User className="h-3 w-3" />}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wide">{t("profile.title")}</span>
+            </div>
             {user ? (
               <ProfileModal
                 user={user}
                 onUserUpdate={setUser}
                 onLogout={logout}
                 trigger={
-                  <Button variant="ghost" size="icon" data-testid="button-profile">
-                    <User className="h-4 w-4" />
+                  <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" data-testid="button-profile">
+                    {user.nickname || t("profile.title")}
                   </Button>
                 }
               />
             ) : (
-              <Button variant="ghost" size="icon" data-testid="button-profile" onClick={logout}>
-                <User className="h-4 w-4" />
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" data-testid="button-profile" onClick={logout}>
+                {t("profile.title")}
               </Button>
             )}
           </div>
