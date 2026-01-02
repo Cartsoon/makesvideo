@@ -21,13 +21,16 @@ import {
   Sparkles,
   Download,
   MessageSquare,
-  Clapperboard
+  Clapperboard,
+  Volume2,
+  VolumeX
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { AssistantChat } from "@shared/schema";
 import { format } from "date-fns";
 import { ru, enUS } from "date-fns/locale";
+import { playSendSound, playReceiveSound } from "@/hooks/use-sound";
 
 interface OptimisticMessage {
   id: string;
@@ -43,8 +46,16 @@ export default function AssistantPage() {
   const [streamingContent, setStreamingContent] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [optimisticMessages, setOptimisticMessages] = useState<OptimisticMessage[]>([]);
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    const saved = localStorage.getItem("assistant-sound-enabled");
+    return saved !== "false";
+  });
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    localStorage.setItem("assistant-sound-enabled", String(soundEnabled));
+  }, [soundEnabled]);
 
   const { data: messages = [], isLoading } = useQuery<AssistantChat[]>({
     queryKey: ["/api/assistant/chat"],
@@ -88,6 +99,10 @@ export default function AssistantPage() {
 
     const userMessage = input.trim();
     const tempId = `temp-user-${Date.now()}`;
+    
+    if (soundEnabled) {
+      playSendSound();
+    }
     
     setOptimisticMessages(prev => [...prev, {
       id: tempId,
@@ -138,6 +153,9 @@ export default function AssistantPage() {
                 setStreamingContent(accumulated);
               }
               if (data.done) {
+                if (soundEnabled) {
+                  playReceiveSound();
+                }
                 assistantTempId = `temp-assistant-${Date.now()}`;
                 setOptimisticMessages(prev => [...prev, {
                   id: assistantTempId,
@@ -240,28 +258,47 @@ export default function AssistantPage() {
           </div>
         </div>
         
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" data-testid="button-chat-menu">
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={exportChat} disabled={allMessages.length === 0}>
-              <Download className="h-4 w-4 mr-2" />
-              {language === "ru" ? "Экспорт чата" : "Export chat"}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem 
-              onClick={() => clearMutation.mutate()}
-              disabled={clearMutation.isPending || allMessages.length === 0}
-              className="text-destructive focus:text-destructive"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              {language === "ru" ? "Очистить историю" : "Clear history"}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSoundEnabled(!soundEnabled)}
+            data-testid="button-toggle-sound"
+            title={soundEnabled 
+              ? (language === "ru" ? "Выключить звук" : "Mute sounds")
+              : (language === "ru" ? "Включить звук" : "Enable sounds")
+            }
+          >
+            {soundEnabled ? (
+              <Volume2 className="h-4 w-4" />
+            ) : (
+              <VolumeX className="h-4 w-4 text-muted-foreground" />
+            )}
+          </Button>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" data-testid="button-chat-menu">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={exportChat} disabled={allMessages.length === 0}>
+                <Download className="h-4 w-4 mr-2" />
+                {language === "ru" ? "Экспорт чата" : "Export chat"}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={() => clearMutation.mutate()}
+                disabled={clearMutation.isPending || allMessages.length === 0}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                {language === "ru" ? "Очистить историю" : "Clear history"}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       <ScrollArea className="flex-1" ref={scrollRef}>
