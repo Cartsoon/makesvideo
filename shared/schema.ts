@@ -1,6 +1,194 @@
 import { z } from "zod";
+import { pgTable, text, integer, boolean, timestamp, jsonb, serial, varchar, pgEnum } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 
-// ============ ENUMS ============
+// ============ DRIZZLE TABLES ============
+
+// Settings table
+export const settings = pgTable("settings", {
+  key: varchar("key", { length: 255 }).primaryKey(),
+  value: text("value").notNull(),
+});
+
+// Users table
+export const users = pgTable("users", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  personalNumber: serial("personal_number"),
+  passwordHash: varchar("password_hash", { length: 255 }).notNull(),
+  nickname: varchar("nickname", { length: 100 }),
+  language: varchar("language", { length: 10 }).default("ru").notNull(),
+  theme: varchar("theme", { length: 10 }).default("dark").notNull(),
+  subscriptionExpiresAt: timestamp("subscription_expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Sessions table
+export const sessions = pgTable("sessions", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  userId: varchar("user_id", { length: 36 }).references(() => users.id).notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Auth passwords table
+export const authPasswords = pgTable("auth_passwords", {
+  password: varchar("password", { length: 100 }).primaryKey(),
+  userId: varchar("user_id", { length: 36 }).references(() => users.id),
+});
+
+// Sources table
+export const sources = pgTable("sources", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  type: varchar("type", { length: 50 }).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  categoryId: varchar("category_id", { length: 50 }),
+  config: jsonb("config").default({}).notNull(),
+  isEnabled: boolean("is_enabled").default(true).notNull(),
+  priority: integer("priority").default(3).notNull(),
+  health: jsonb("health").default({}).notNull(),
+  lastCheckAt: timestamp("last_check_at"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Topics table
+export const topics = pgTable("topics", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  sourceId: varchar("source_id", { length: 36 }).references(() => sources.id).notNull(),
+  title: text("title").notNull(),
+  generatedTitle: text("generated_title"),
+  translatedTitle: text("translated_title"),
+  translatedTitleEn: text("translated_title_en"),
+  url: text("url"),
+  rawText: text("raw_text"),
+  fullContent: text("full_content"),
+  insights: jsonb("insights"),
+  extractionStatus: varchar("extraction_status", { length: 20 }).default("pending").notNull(),
+  language: varchar("language", { length: 10 }).default("ru").notNull(),
+  score: integer("score").default(0).notNull(),
+  status: varchar("status", { length: 20 }).default("new").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Scripts table
+export const scripts = pgTable("scripts", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  topicId: varchar("topic_id", { length: 36 }).references(() => topics.id).notNull(),
+  scriptNumber: serial("script_number"),
+  displayName: varchar("display_name", { length: 255 }),
+  language: varchar("language", { length: 10 }).default("ru").notNull(),
+  durationSec: varchar("duration_sec", { length: 10 }).default("30").notNull(),
+  stylePreset: varchar("style_preset", { length: 50 }).default("classic").notNull(),
+  voiceStylePreset: varchar("voice_style_preset", { length: 50 }).default("classic").notNull(),
+  accent: varchar("accent", { length: 50 }).default("classic").notNull(),
+  platform: varchar("platform", { length: 50 }).default("youtube_shorts").notNull(),
+  keywords: jsonb("keywords").default([]).notNull(),
+  constraints: jsonb("constraints"),
+  seo: jsonb("seo"),
+  hook: text("hook"),
+  voiceText: text("voice_text"),
+  onScreenText: text("on_screen_text"),
+  transcriptRich: jsonb("transcript_rich"),
+  storyboard: jsonb("storyboard"),
+  music: jsonb("music"),
+  assets: jsonb("assets"),
+  status: varchar("status", { length: 20 }).default("draft").notNull(),
+  error: text("error"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Jobs table
+export const jobs = pgTable("jobs", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  kind: varchar("kind", { length: 50 }).notNull(),
+  payload: jsonb("payload").default({}).notNull(),
+  status: varchar("status", { length: 20 }).default("queued").notNull(),
+  progress: integer("progress").default(0).notNull(),
+  error: text("error"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Trend signals table
+export const trendSignals = pgTable("trend_signals", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  platform: varchar("platform", { length: 50 }).notNull(),
+  categoryId: varchar("category_id", { length: 50 }),
+  topicClusterId: varchar("topic_cluster_id", { length: 36 }),
+  keywords: jsonb("keywords").default([]).notNull(),
+  angles: jsonb("angles").default([]).notNull(),
+  hookPatterns: jsonb("hook_patterns").default([]).notNull(),
+  pacingHints: varchar("pacing_hints", { length: 20 }),
+  durationModes: jsonb("duration_modes").default([]),
+  exampleRefs: jsonb("example_refs").default([]),
+  score: integer("score").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Trend topics table
+export const trendTopics = pgTable("trend_topics", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  categoryId: varchar("category_id", { length: 50 }),
+  clusterLabel: varchar("cluster_label", { length: 255 }),
+  seedTitles: jsonb("seed_titles").default([]).notNull(),
+  contextSnippets: jsonb("context_snippets").default([]).notNull(),
+  entities: jsonb("entities").default([]),
+  keywords: jsonb("keywords").default([]).notNull(),
+  angles: jsonb("angles").default([]).notNull(),
+  hookPatterns: jsonb("hook_patterns").default([]),
+  pacingHints: varchar("pacing_hints", { length: 20 }),
+  refs: jsonb("refs").default([]),
+  trendSignalIds: jsonb("trend_signal_ids").default([]),
+  score: integer("score").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Form state table for persisting form data across navigation
+export const formStates = pgTable("form_states", {
+  id: varchar("id", { length: 100 }).primaryKey(), // e.g., "userId:pageName" or just "pageName" for anonymous
+  userId: varchar("user_id", { length: 36 }),
+  pageName: varchar("page_name", { length: 100 }).notNull(),
+  state: jsonb("state").default({}).notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// ============ RELATIONS ============
+
+export const usersRelations = relations(users, ({ many }) => ({
+  sessions: many(sessions),
+}));
+
+export const sessionsRelations = relations(sessions, ({ one }) => ({
+  user: one(users, {
+    fields: [sessions.userId],
+    references: [users.id],
+  }),
+}));
+
+export const sourcesRelations = relations(sources, ({ many }) => ({
+  topics: many(topics),
+}));
+
+export const topicsRelations = relations(topics, ({ one, many }) => ({
+  source: one(sources, {
+    fields: [topics.sourceId],
+    references: [sources.id],
+  }),
+  scripts: many(scripts),
+}));
+
+export const scriptsRelations = relations(scripts, ({ one }) => ({
+  topic: one(topics, {
+    fields: [scripts.topicId],
+    references: [topics.id],
+  }),
+}));
+
+// ============ ZOD ENUMS ============
 
 export const SourceType = z.enum([
   "rss",
@@ -59,26 +247,26 @@ export const JobKind = z.enum([
 export type JobKind = z.infer<typeof JobKind>;
 
 export const StylePreset = z.enum([
-  "news",           // 1. Новостной (Breaking/Новости)
-  "crime",          // 2. Криминал (True Crime)
-  "detective",      // 3. Детектив
-  "storytelling",   // 4. Сторителлинг (личная история/кейс)
-  "comedy",         // 5. Комедия
-  "classic",        // 6. Классический (универсальный)
-  "tarantino",      // 7. Тарантино (стилизация)
-  "anime",          // 8. Манга/Аниме
-  "brainrot",       // 9. Брейнрот (тренд/хаос/fast-cut)
-  "adult",          // 10. 18+ с изюминкой
-  "howto",          // 11. How-to за 60 секунд
-  "mythbusting",    // 12. Мифы и факты
-  "top5",           // 13. Топ-5/Рейтинг
-  "hottakes",       // 14. Red flags / Hot takes
-  "pov",            // 15. POV/Ситуация
-  "cinematic",      // 16. Режиссерский/Кинематографичный
-  "science",        // 17. Научпоп
-  "motivation",     // 18. Мотивационный
-  "versus",         // 19. Сравнение/VS
-  "mistake"         // 20. История одной ошибки
+  "news",           
+  "crime",          
+  "detective",      
+  "storytelling",   
+  "comedy",         
+  "classic",        
+  "tarantino",      
+  "anime",          
+  "brainrot",       
+  "adult",          
+  "howto",          
+  "mythbusting",    
+  "top5",           
+  "hottakes",       
+  "pov",            
+  "cinematic",      
+  "science",        
+  "motivation",     
+  "versus",         
+  "mistake"         
 ]);
 export type StylePreset = z.infer<typeof StylePreset>;
 
@@ -88,16 +276,15 @@ export type Platform = z.infer<typeof Platform>;
 export const Duration = z.enum(["30", "45", "60", "120"]);
 export type Duration = z.infer<typeof Duration>;
 
-// Accent presets (replaces voiceStylePreset)
 export const AccentPreset = z.enum([
-  "classic",      // Классический - нейтрально, четко
-  "news",         // Официально-новостной - сухо, формально
-  "military",     // Военный-официальный - кратко, приказно
-  "blogger",      // Дружеский блогер - просто, как другу
-  "meme",         // Мемный - легкие мемные обороты
-  "dramatic",     // Драматический - паузы, напряжение
-  "ironic",       // *Ироничный комментатор - сарказм
-  "streamer"      // *Чат-стример - живо, с реакциями
+  "classic",
+  "news",
+  "military",
+  "blogger",
+  "meme",
+  "dramatic",
+  "ironic",
+  "streamer"
 ]);
 export type AccentPreset = z.infer<typeof AccentPreset>;
 
@@ -115,7 +302,7 @@ export const accentLabels: Record<AccentPreset, { ru: string; en: string; desc: 
 export const Language = z.enum(["ru", "en"]);
 export type Language = z.infer<typeof Language>;
 
-// ============ SOURCE ============
+// ============ SOURCE SCHEMAS ============
 
 export const sourceHealthSchema = z.object({
   status: SourceHealthStatus.default("pending"),
@@ -297,7 +484,7 @@ export const insertTopicSchema = z.object({
 
 export type InsertTopic = z.infer<typeof insertTopicSchema>;
 
-// ============ STORYBOARD SCENE (Enhanced) ============
+// ============ STORYBOARD SCENE ============
 
 export const storyboardSceneSchema = z.object({
   sceneId: z.number(),
@@ -482,7 +669,22 @@ export const insertSettingSchema = z.object({
 
 export type InsertSetting = z.infer<typeof insertSettingSchema>;
 
-// ============ STYLE PRESET LABELS ============
+// ============ FORM STATE ============
+
+export interface FormState {
+  id: string;
+  userId: string | null;
+  pageName: string;
+  state: Record<string, unknown>;
+  updatedAt: string;
+}
+
+export const insertFormStateSchema = z.object({
+  pageName: z.string(),
+  state: z.record(z.unknown()).default({}),
+});
+
+export type InsertFormState = z.infer<typeof insertFormStateSchema>;
 
 // ============ STYLE LIBRARY ============
 
