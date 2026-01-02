@@ -24,10 +24,12 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { 
   Send, 
   Trash2, 
@@ -43,15 +45,16 @@ import {
   VolumeX,
   ChevronLeft,
   ChevronRight,
-  ChevronUp,
-  ChevronDown,
   StickyNote,
   Save,
   FileText,
   FolderDown,
   FileVideo,
   FileType,
-  FileCheck
+  FileCheck,
+  Film,
+  Scissors,
+  X
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -89,6 +92,9 @@ export default function AssistantPage() {
     return saved !== "false";
   });
   const [mobileNotesOpen, setMobileNotesOpen] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(() => {
+    return !localStorage.getItem("assistant-welcome-seen");
+  });
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const notesTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -346,8 +352,82 @@ export default function AssistantPage() {
     "Best transitions for Shorts",
   ];
 
+  const closeWelcome = () => {
+    localStorage.setItem("assistant-welcome-seen", "true");
+    setShowWelcome(false);
+  };
+
   return (
     <Layout title={language === "ru" ? "AI-Ассистент" : "AI Assistant"}>
+      {/* Welcome Modal */}
+      <Dialog open={showWelcome} onOpenChange={(open) => !open && closeWelcome()}>
+        <DialogContent className="max-w-sm p-0 gap-0 overflow-hidden border-0">
+          <div className="bg-gradient-to-br from-primary/10 via-amber-500/5 to-orange-500/10 p-6">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-md bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
+                <Clapperboard className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <div className="w-10 h-10 rounded-md bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+                <Film className="h-5 w-5 text-white" />
+              </div>
+              <div className="w-10 h-10 rounded-md bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                <Scissors className="h-5 w-5 text-white" />
+              </div>
+            </div>
+            <DialogHeader className="text-center space-y-2">
+              <DialogTitle className="text-lg">
+                {language === "ru" ? "AI-Ассистент" : "AI Assistant"}
+              </DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground leading-relaxed">
+                {language === "ru" 
+                  ? "Это ваш помощник в сфере съемки, монтажа и создания видео. Мы обучаем его, чтобы он давал качественные ответы в нашей сфере."
+                  : "Your assistant for filming, editing, and video creation. We train it to provide quality answers in our field."
+                }
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+          <div className="p-4 space-y-3 bg-card">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-md bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                <StickyNote className="h-4 w-4 text-amber-500" />
+              </div>
+              <div>
+                <p className="text-xs font-medium">
+                  {language === "ru" ? "Заметки" : "Notes"}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  {language === "ru" 
+                    ? "Сохраняйте важные идеи из чата"
+                    : "Save important ideas from chat"
+                  }
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <FolderDown className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs font-medium">
+                  {language === "ru" ? "Полезные файлы" : "Useful Files"}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  {language === "ru" 
+                    ? "Шаблоны, чек-листы и ресурсы"
+                    : "Templates, checklists and resources"
+                  }
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="p-4 pt-0 bg-card">
+            <Button onClick={closeWelcome} className="w-full" data-testid="button-close-welcome">
+              {language === "ru" ? "Начать" : "Get Started"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="flex gap-4 h-[calc(100vh-10rem)] md:h-[calc(100vh-6rem)] mx-4 md:mx-6 md:my-4">
         <div className="flex flex-col flex-1 bg-background rounded-md border overflow-hidden">
           <div className="flex items-center justify-between gap-2 px-4 py-3 border-b bg-card/50 backdrop-blur-sm flex-shrink-0">
@@ -584,83 +664,105 @@ export default function AssistantPage() {
             </div>
           </div>
           
-          {/* Mobile Notes Panel */}
-          <Collapsible 
-            open={mobileNotesOpen} 
-            onOpenChange={setMobileNotesOpen}
-            className="lg:hidden mt-2 mx-2 mb-2 rounded-lg border overflow-hidden"
-          >
-            <CollapsibleTrigger asChild>
-              <Button
-                variant="ghost"
-                className="w-full flex items-center justify-between gap-2 px-4 py-3 h-auto rounded-none bg-gradient-to-r from-amber-500/10 to-orange-500/10"
-                data-testid="button-mobile-notes-toggle"
+          {/* Mobile Bottom Panel with Tabs */}
+          <div className="lg:hidden border-t bg-card/50">
+            {/* Tab Buttons */}
+            <div className="flex border-b">
+              <button
+                onClick={() => setMobileNotesOpen(true)}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium transition-colors ${
+                  mobileNotesOpen 
+                    ? "text-amber-500 border-b-2 border-amber-500 bg-amber-500/5" 
+                    : "text-muted-foreground"
+                }`}
+                data-testid="button-mobile-tab-notes"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-7 h-7 rounded-md bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
-                    <StickyNote className="h-3.5 w-3.5 text-white" />
-                  </div>
-                  <div className="text-left">
-                    <span className="text-sm font-medium">
-                      {language === "ru" ? "Заметки" : "Notes"}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground ml-2">
-                      {notes.length > 0 
-                        ? (language === "ru" ? `${notes.length} симв.` : `${notes.length} chars`)
-                        : (language === "ru" ? "Пусто" : "Empty")
-                      }
-                    </span>
-                  </div>
-                </div>
-                {mobileNotesOpen ? (
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                ) : (
-                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                <StickyNote className="h-3.5 w-3.5" />
+                {language === "ru" ? "Заметки" : "Notes"}
+                {notes.length > 0 && (
+                  <span className="text-[9px] bg-amber-500/20 text-amber-600 dark:text-amber-400 px-1 rounded">
+                    {notes.length}
+                  </span>
                 )}
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="relative h-40 border-t">
-                <div className="absolute inset-0 bg-gradient-to-b from-amber-500/5 via-transparent to-orange-500/5 pointer-events-none z-0" />
-                <Textarea
-                  value={notes}
-                  onChange={(e) => handleNotesChange(e.target.value)}
-                  placeholder={language === "ru" 
-                    ? "Записывайте важные идеи из чата..."
-                    : "Write down important ideas from the chat..."
-                  }
-                  className="h-full w-full resize-none border-0 rounded-none bg-transparent focus-visible:ring-0 text-sm leading-relaxed relative z-10"
-                  data-testid="input-notes-mobile"
-                />
-              </div>
-              <div className="flex items-center justify-between px-4 py-2 border-t bg-muted/30">
-                <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                  {notesSaved ? (
-                    <>
-                      <Save className="h-2.5 w-2.5" />
-                      {language === "ru" ? "Сохранено" : "Saved"}
-                    </>
-                  ) : (
-                    <>
-                      <Loader2 className="h-2.5 w-2.5 animate-spin" />
-                      {language === "ru" ? "Сохранение..." : "Saving..."}
-                    </>
-                  )}
+              </button>
+              <button
+                onClick={() => setMobileNotesOpen(false)}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium transition-colors ${
+                  !mobileNotesOpen 
+                    ? "text-primary border-b-2 border-primary bg-primary/5" 
+                    : "text-muted-foreground"
+                }`}
+                data-testid="button-mobile-tab-files"
+              >
+                <FolderDown className="h-3.5 w-3.5" />
+                {language === "ru" ? "Файлы" : "Files"}
+              </button>
+            </div>
+            
+            {/* Tab Content */}
+            {mobileNotesOpen ? (
+              <div className="p-2">
+                <div className="relative">
+                  <Textarea
+                    value={notes}
+                    onChange={(e) => handleNotesChange(e.target.value)}
+                    placeholder={language === "ru" 
+                      ? "Записывайте важные идеи..."
+                      : "Write down ideas..."
+                    }
+                    className="min-h-[80px] max-h-[80px] w-full resize-none text-xs bg-muted/30 rounded-md"
+                    data-testid="input-notes-mobile"
+                  />
+                  <div className="absolute bottom-1 right-1 flex items-center gap-1">
+                    <span className="text-[9px] text-muted-foreground px-1">
+                      {notesSaved ? (language === "ru" ? "OK" : "OK") : "..."}
+                    </span>
+                    {notes.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleNotesChange("")}
+                        className="h-5 w-5"
+                        data-testid="button-clear-notes-mobile"
+                      >
+                        <Trash2 className="h-2.5 w-2.5 text-muted-foreground" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleNotesChange("")}
-                  disabled={notes.length === 0}
-                  className="h-7 text-xs text-muted-foreground"
-                  data-testid="button-clear-notes-mobile"
-                >
-                  <Trash2 className="h-3 w-3 mr-1" />
-                  {language === "ru" ? "Очистить" : "Clear"}
-                </Button>
               </div>
-            </CollapsibleContent>
-          </Collapsible>
+            ) : (
+              <div className="p-2">
+                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                  {[
+                    { icon: FileType, name: language === "ru" ? "Шаблон" : "Template", file: "script-template.txt", color: "from-blue-500 to-blue-600" },
+                    { icon: FileCheck, name: language === "ru" ? "ОТК" : "QC", file: "otk-tv-rules.pdf", color: "from-green-500 to-green-600" },
+                    { icon: FileVideo, name: "Premiere", file: "podcast-premiere-template.prproj", color: "from-purple-500 to-purple-600" },
+                    { icon: FileText, name: language === "ru" ? "Чек-лист" : "Checklist", file: "editing-checklist.pdf", color: "from-orange-500 to-orange-600" },
+                  ].map((item) => (
+                    <button
+                      key={item.file}
+                      onClick={() => {
+                        const link = document.createElement("a");
+                        link.href = `/files/${item.file}`;
+                        link.download = item.file;
+                        link.click();
+                      }}
+                      className="flex-shrink-0 flex flex-col items-center gap-1 p-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors min-w-[60px]"
+                      data-testid={`button-download-mobile-${item.file}`}
+                    >
+                      <div className={`w-8 h-8 rounded-md bg-gradient-to-br ${item.color} flex items-center justify-center`}>
+                        <item.icon className="h-4 w-4 text-white" />
+                      </div>
+                      <span className="text-[10px] text-muted-foreground text-center leading-tight">
+                        {item.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="hidden lg:flex flex-col w-80 gap-4 h-full">
