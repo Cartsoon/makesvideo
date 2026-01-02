@@ -130,19 +130,32 @@ export default function TextToVideo() {
   
   const generateMutation = useMutation({
     mutationFn: async (data: { text: string; language: Language; style: StylePreset; duration: number }) => {
-      const res = await fetch("/api/generate/text-to-video", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-        credentials: "include",
-      });
-      const json = await res.json();
-      if (!res.ok) {
-        const error = new Error(json.error || "Generation failed") as any;
-        error.code = json.code;
-        throw error;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes timeout
+      
+      try {
+        const res = await fetch("/api/generate/text-to-video", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+          credentials: "include",
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        const json = await res.json();
+        if (!res.ok) {
+          const error = new Error(json.error || "Generation failed") as any;
+          error.code = json.code;
+          throw error;
+        }
+        return json;
+      } catch (err: any) {
+        clearTimeout(timeoutId);
+        if (err.name === 'AbortError') {
+          throw new Error('Превышено время ожидания. Попробуйте снова.');
+        }
+        throw err;
       }
-      return json;
     },
     onSuccess: (data: GenerationResult) => {
       setResult(data);
