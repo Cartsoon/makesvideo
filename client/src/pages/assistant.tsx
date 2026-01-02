@@ -23,6 +23,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { 
   Send, 
   Trash2, 
@@ -38,6 +43,8 @@ import {
   VolumeX,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
+  ChevronDown,
   StickyNote,
   Save,
   FileText,
@@ -81,6 +88,7 @@ export default function AssistantPage() {
     const saved = localStorage.getItem("assistant-sound-enabled");
     return saved !== "false";
   });
+  const [mobileNotesOpen, setMobileNotesOpen] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const notesTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -575,6 +583,84 @@ export default function AssistantPage() {
               </Button>
             </div>
           </div>
+          
+          {/* Mobile Notes Panel */}
+          <Collapsible 
+            open={mobileNotesOpen} 
+            onOpenChange={setMobileNotesOpen}
+            className="lg:hidden border-t"
+          >
+            <CollapsibleTrigger asChild>
+              <Button
+                variant="ghost"
+                className="w-full flex items-center justify-between gap-2 px-4 py-3 h-auto rounded-none bg-gradient-to-r from-amber-500/10 to-orange-500/10"
+                data-testid="button-mobile-notes-toggle"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-md bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+                    <StickyNote className="h-3.5 w-3.5 text-white" />
+                  </div>
+                  <div className="text-left">
+                    <span className="text-sm font-medium">
+                      {language === "ru" ? "Заметки" : "Notes"}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground ml-2">
+                      {notes.length > 0 
+                        ? (language === "ru" ? `${notes.length} симв.` : `${notes.length} chars`)
+                        : (language === "ru" ? "Пусто" : "Empty")
+                      }
+                    </span>
+                  </div>
+                </div>
+                {mobileNotesOpen ? (
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                )}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="relative h-40 border-t">
+                <div className="absolute inset-0 bg-gradient-to-b from-amber-500/5 via-transparent to-orange-500/5 pointer-events-none z-0" />
+                <Textarea
+                  value={notes}
+                  onChange={(e) => handleNotesChange(e.target.value)}
+                  placeholder={language === "ru" 
+                    ? "Записывайте важные идеи из чата..."
+                    : "Write down important ideas from the chat..."
+                  }
+                  className="h-full w-full resize-none border-0 rounded-none bg-transparent focus-visible:ring-0 text-sm leading-relaxed relative z-10"
+                  data-testid="input-notes-mobile"
+                />
+              </div>
+              <div className="flex items-center justify-between px-4 py-2 border-t bg-muted/30">
+                <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                  {notesSaved ? (
+                    <>
+                      <Save className="h-2.5 w-2.5" />
+                      {language === "ru" ? "Сохранено" : "Saved"}
+                    </>
+                  ) : (
+                    <>
+                      <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                      {language === "ru" ? "Сохранение..." : "Saving..."}
+                    </>
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleNotesChange("")}
+                  disabled={notes.length === 0}
+                  className="h-7 text-xs text-muted-foreground"
+                  data-testid="button-clear-notes-mobile"
+                >
+                  <Trash2 className="h-3 w-3 mr-1" />
+                  {language === "ru" ? "Очистить" : "Clear"}
+                </Button>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </div>
 
         <div className="hidden lg:flex flex-col w-80 gap-4">
