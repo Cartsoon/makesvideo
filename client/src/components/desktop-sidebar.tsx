@@ -77,32 +77,55 @@ export function DesktopSidebar() {
 
         <div className="p-3 border-t border-sidebar-border space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Avatar className="h-6 w-6 border border-sidebar-border">
-                {user?.avatarId && user.avatarId > 0 ? (
-                  <AvatarImage src={getAvatarById(user.avatarId)} alt={user.nickname || "User"} className="object-cover" />
-                ) : null}
-                <AvatarFallback className="text-[10px] bg-sidebar-accent">
-                  {user?.nickname ? user.nickname.charAt(0).toUpperCase() : <User className="h-3 w-3" />}
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-[10px] text-muted-foreground uppercase tracking-wide">{t("profile.title")}</span>
-            </div>
             {user ? (
               <ProfileModal
                 user={user}
                 onUserUpdate={setUser}
                 onLogout={logout}
                 trigger={
-                  <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" data-testid="button-profile">
-                    {user.nickname || t("profile.title")}
-                  </Button>
+                  <button 
+                    className="text-[10px] text-muted-foreground uppercase tracking-wide hover-elevate active-elevate-2 rounded-sm px-1 py-0.5 -mx-1 cursor-pointer"
+                    data-testid="button-profile-label"
+                  >
+                    {t("profile.title")}
+                  </button>
                 }
               />
             ) : (
-              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" data-testid="button-profile" onClick={logout}>
+              <button 
+                className="text-[10px] text-muted-foreground uppercase tracking-wide hover-elevate active-elevate-2 rounded-sm px-1 py-0.5 -mx-1 cursor-pointer"
+                data-testid="button-profile-label"
+                onClick={logout}
+              >
                 {t("profile.title")}
-              </Button>
+              </button>
+            )}
+            {user ? (
+              <ProfileModal
+                user={user}
+                onUserUpdate={setUser}
+                onLogout={logout}
+                trigger={
+                  <button className="hover-elevate active-elevate-2 rounded-sm cursor-pointer" data-testid="button-profile-avatar">
+                    <Avatar className="h-6 w-6 border border-sidebar-border">
+                      {user.avatarId > 0 ? (
+                        <AvatarImage src={getAvatarById(user.avatarId)} alt={user.nickname || "User"} className="object-cover" />
+                      ) : null}
+                      <AvatarFallback className="text-[10px] bg-sidebar-accent">
+                        {user.nickname ? user.nickname.charAt(0).toUpperCase() : <User className="h-3 w-3" />}
+                      </AvatarFallback>
+                    </Avatar>
+                  </button>
+                }
+              />
+            ) : (
+              <button className="hover-elevate active-elevate-2 rounded-sm cursor-pointer" data-testid="button-profile-avatar" onClick={logout}>
+                <Avatar className="h-6 w-6 border border-sidebar-border">
+                  <AvatarFallback className="text-[10px] bg-sidebar-accent">
+                    <User className="h-3 w-3" />
+                  </AvatarFallback>
+                </Avatar>
+              </button>
             )}
           </div>
           <div className="flex items-center justify-between gap-2">
