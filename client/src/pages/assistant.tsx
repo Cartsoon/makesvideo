@@ -30,6 +30,13 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { 
   Send, 
   Trash2, 
@@ -54,7 +61,11 @@ import {
   FileCheck,
   Film,
   Scissors,
-  X
+  X,
+  Play,
+  Square,
+  Layers,
+  ChevronUp
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -92,6 +103,8 @@ export default function AssistantPage() {
     return saved !== "false";
   });
   const [mobileNotesOpen, setMobileNotesOpen] = useState(false);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [mobileDrawerTab, setMobileDrawerTab] = useState<"notes" | "files">("notes");
   const [showWelcome, setShowWelcome] = useState(() => {
     return !localStorage.getItem("assistant-welcome-seen");
   });
@@ -428,7 +441,287 @@ export default function AssistantPage() {
         </DialogContent>
       </Dialog>
 
-      <div className="flex gap-4 h-[calc(100vh-10rem)] md:h-[calc(100vh-6rem)] mx-4 md:mx-6 md:my-4">
+      {/* MOBILE CONSOLE LAYOUT */}
+      <div className="lg:hidden flex flex-col h-[calc(100vh-4rem)] bg-background">
+        {/* Console Header - Timeline Style */}
+        <div className="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-background via-card to-background border-b border-border/50 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+              <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+              <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+            </div>
+            <div className="h-4 w-px bg-border mx-1" />
+            <div className="flex items-center gap-1.5">
+              <Play className="h-3.5 w-3.5 text-primary" />
+              <span className="text-xs font-mono text-muted-foreground">
+                {totalMessages > 0 ? String(totalMessages).padStart(3, '0') : "000"}
+              </span>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-1.5">
+            <div className="px-2 py-0.5 rounded bg-primary/10 border border-primary/20">
+              <span className="text-[10px] font-mono text-primary">AI ONLINE</span>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              data-testid="button-toggle-sound-mobile"
+            >
+              {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4 text-muted-foreground" />}
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8" data-testid="button-chat-menu-mobile">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={exportChat} disabled={totalMessages === 0}>
+                  <Download className="h-4 w-4 mr-2" />
+                  {language === "ru" ? "Экспорт" : "Export"}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={() => clearMutation.mutate()}
+                  disabled={clearMutation.isPending || totalMessages === 0}
+                  className="text-destructive"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  {language === "ru" ? "Очистить" : "Clear"}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+
+        {/* Timeline Track Ruler */}
+        <div className="flex items-center h-5 px-3 bg-muted/30 border-b border-border/30 flex-shrink-0">
+          <div className="flex-1 flex items-center gap-3">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="flex items-center gap-1">
+                <div className="w-px h-2 bg-muted-foreground/30" />
+                <span className="text-[8px] font-mono text-muted-foreground/50">{i + 1}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 px-3 py-1.5 bg-muted/20 border-b border-border/30 flex-shrink-0">
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))} disabled={currentPage >= totalPages}>
+              <ChevronLeft className="h-3 w-3" />
+            </Button>
+            <span className="text-[10px] font-mono text-muted-foreground">{currentPage}/{totalPages}</span>
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage <= 1}>
+              <ChevronRight className="h-3 w-3" />
+            </Button>
+          </div>
+        )}
+
+        {/* Chat Area - Track Style */}
+        <ScrollArea className="flex-1" ref={scrollAreaRef}>
+          <div className="p-3 space-y-3">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-primary/50" />
+              </div>
+            ) : allMessages.length === 0 && !streamingContent ? (
+              <div className="flex flex-col items-center justify-center py-8 px-4">
+                <div className="w-14 h-14 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mb-3 border border-primary/20">
+                  <Clapperboard className="h-7 w-7 text-primary" />
+                </div>
+                <h3 className="font-medium text-sm mb-1">
+                  {language === "ru" ? "Видео Ассистент" : "Video Assistant"}
+                </h3>
+                <p className="text-xs text-muted-foreground text-center mb-4">
+                  {language === "ru" ? "Спросите о монтаже, съемке или кино" : "Ask about editing, filming, or cinema"}
+                </p>
+                <div className="flex flex-wrap gap-1.5 justify-center">
+                  {quickPrompts.slice(0, 2).map((prompt, i) => (
+                    <Button key={i} variant="outline" size="sm" className="text-[10px] h-7" onClick={() => { setInput(prompt); textareaRef.current?.focus(); }} data-testid={`button-quick-prompt-mobile-${i}`}>
+                      {prompt.slice(0, 25)}...
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <>
+                {allMessages.map((msg, idx) => (
+                  <div key={msg.id || idx} className={`flex gap-2 ${msg.role === "user" ? "flex-row-reverse" : ""}`} data-testid={`chat-message-mobile-${msg.id || idx}`}>
+                    <div className={`w-6 h-6 rounded flex-shrink-0 flex items-center justify-center ${msg.role === "user" ? "bg-accent" : "bg-primary/20"}`}>
+                      {msg.role === "user" ? <User className="h-3 w-3" /> : <Bot className="h-3 w-3 text-primary" />}
+                    </div>
+                    <div className={`flex flex-col max-w-[85%] ${msg.role === "user" ? "items-end" : "items-start"}`}>
+                      <div className={`px-3 py-2 rounded-lg text-sm ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted/80 border border-border/50"}`}>
+                        {msg.role === "assistant" ? (
+                          <div className="prose prose-sm dark:prose-invert max-w-none text-xs">{formatContent(msg.content)}</div>
+                        ) : (
+                          <p className="whitespace-pre-wrap text-xs">{msg.content}</p>
+                        )}
+                      </div>
+                      <span className="text-[9px] text-muted-foreground mt-0.5 px-1 font-mono">{formatTime(msg.createdAt)}</span>
+                    </div>
+                  </div>
+                ))}
+                {streamingContent && (
+                  <div className="flex gap-2">
+                    <div className="w-6 h-6 rounded flex-shrink-0 flex items-center justify-center bg-primary/20 animate-pulse">
+                      <Bot className="h-3 w-3 text-primary" />
+                    </div>
+                    <div className="flex flex-col max-w-[85%]">
+                      <div className="px-3 py-2 rounded-lg text-sm bg-muted/80 border border-primary/30">
+                        <div className="prose prose-sm dark:prose-invert max-w-none text-xs">{formatContent(streamingContent)}</div>
+                      </div>
+                      <span className="text-[9px] text-primary mt-0.5 px-1 font-mono flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                        {language === "ru" ? "печатает" : "typing"}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </ScrollArea>
+
+        {/* Console Bottom - Input & Dock */}
+        <div className="flex-shrink-0 border-t border-border/50 bg-gradient-to-t from-muted/50 to-transparent safe-bottom">
+          {/* Input Area */}
+          <div className="px-3 py-2">
+            <div className="flex gap-2 items-end">
+              <Textarea
+                ref={textareaRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={language === "ru" ? "Сообщение..." : "Message..."}
+                className="min-h-[40px] max-h-24 resize-none text-sm bg-muted/50 border-border/50 rounded-lg"
+                disabled={isStreaming}
+                data-testid="input-chat-message-mobile"
+              />
+              <Button onClick={sendMessage} disabled={!input.trim() || isStreaming} size="icon" className="h-10 w-10 rounded-lg flex-shrink-0" data-testid="button-send-message-mobile">
+                {isStreaming ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              </Button>
+            </div>
+          </div>
+
+          {/* Dock Bar */}
+          <div className="flex items-center justify-between px-3 py-2 border-t border-border/30 bg-card/30">
+            <Sheet open={mobileDrawerOpen} onOpenChange={setMobileDrawerOpen}>
+              <SheetTrigger asChild>
+                <button className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 hover:border-amber-500/40 transition-colors" data-testid="button-open-notes-drawer">
+                  <StickyNote className="h-3.5 w-3.5 text-amber-500" />
+                  <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
+                    {language === "ru" ? "Заметки" : "Notes"}
+                  </span>
+                  {notes.length > 0 && (
+                    <span className="text-[9px] bg-amber-500/30 text-amber-700 dark:text-amber-300 px-1.5 rounded-full">{notes.length}</span>
+                  )}
+                </button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="h-[70vh] rounded-t-xl p-0">
+                {/* Drawer Tabs */}
+                <div className="flex border-b">
+                  <button
+                    onClick={() => setMobileDrawerTab("notes")}
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors ${mobileDrawerTab === "notes" ? "text-amber-500 border-b-2 border-amber-500 bg-amber-500/5" : "text-muted-foreground"}`}
+                    data-testid="button-drawer-tab-notes"
+                  >
+                    <StickyNote className="h-4 w-4" />
+                    {language === "ru" ? "Заметки" : "Notes"}
+                  </button>
+                  <button
+                    onClick={() => setMobileDrawerTab("files")}
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors ${mobileDrawerTab === "files" ? "text-primary border-b-2 border-primary bg-primary/5" : "text-muted-foreground"}`}
+                    data-testid="button-drawer-tab-files"
+                  >
+                    <FolderDown className="h-4 w-4" />
+                    {language === "ru" ? "Файлы" : "Files"}
+                  </button>
+                </div>
+
+                {mobileDrawerTab === "notes" ? (
+                  <div className="flex flex-col h-[calc(70vh-48px)]">
+                    <div className="flex items-center justify-between px-4 py-2 bg-gradient-to-r from-amber-500/5 to-orange-500/5">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        {notesSaved ? <><Save className="h-3 w-3 text-green-500" />{language === "ru" ? "Сохранено" : "Saved"}</> : <><Loader2 className="h-3 w-3 animate-spin" />{language === "ru" ? "Сохранение..." : "Saving..."}</>}
+                      </div>
+                      <Button variant="ghost" size="sm" onClick={() => handleNotesChange("")} disabled={notes.length === 0} className="h-7 text-xs" data-testid="button-clear-notes-drawer">
+                        <Trash2 className="h-3 w-3 mr-1" />
+                        {language === "ru" ? "Очистить" : "Clear"}
+                      </Button>
+                    </div>
+                    <Textarea
+                      value={notes}
+                      onChange={(e) => handleNotesChange(e.target.value)}
+                      placeholder={language === "ru" ? "Записывайте важные идеи из чата здесь..." : "Write down important ideas from chat here..."}
+                      className="flex-1 resize-none border-0 rounded-none bg-gradient-to-b from-amber-500/5 via-transparent to-orange-500/5 focus-visible:ring-0 text-sm leading-relaxed px-4"
+                      data-testid="input-notes-drawer"
+                    />
+                  </div>
+                ) : (
+                  <div className="p-4 space-y-3">
+                    <p className="text-xs text-muted-foreground mb-3">
+                      {language === "ru" ? "Полезные шаблоны и ресурсы" : "Useful templates and resources"}
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { icon: FileType, name: language === "ru" ? "Шаблон сценария" : "Script Template", file: "script-template.txt", color: "from-blue-500 to-blue-600", desc: language === "ru" ? "Структура для Shorts" : "Structure for Shorts" },
+                        { icon: FileCheck, name: language === "ru" ? "Правила ОТК" : "QC Rules", file: "otk-tv-rules.pdf", color: "from-green-500 to-green-600", desc: language === "ru" ? "Проверка качества" : "Quality check" },
+                        { icon: FileVideo, name: "Premiere Pro", file: "podcast-premiere-template.prproj", color: "from-purple-500 to-purple-600", desc: language === "ru" ? "Проект подкаста" : "Podcast project" },
+                        { icon: FileText, name: language === "ru" ? "Чек-лист монтажа" : "Edit Checklist", file: "editing-checklist.pdf", color: "from-orange-500 to-orange-600", desc: language === "ru" ? "Пошаговая проверка" : "Step-by-step check" },
+                      ].map((item) => (
+                        <button
+                          key={item.file}
+                          onClick={() => { const link = document.createElement("a"); link.href = `/files/${item.file}`; link.download = item.file; link.click(); }}
+                          className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors text-left"
+                          data-testid={`button-download-drawer-${item.file}`}
+                        >
+                          <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${item.color} flex items-center justify-center flex-shrink-0`}>
+                            <item.icon className="h-5 w-5 text-white" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">{item.name}</p>
+                            <p className="text-[10px] text-muted-foreground">{item.desc}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </SheetContent>
+            </Sheet>
+
+            <div className="flex items-center gap-2">
+              {[
+                { icon: FileType, file: "script-template.txt", color: "text-blue-500", label: language === "ru" ? "Шаблон" : "Template" },
+                { icon: FileCheck, file: "otk-tv-rules.pdf", color: "text-green-500", label: language === "ru" ? "ОТК" : "QC" },
+              ].map((item) => (
+                <button
+                  key={item.file}
+                  onClick={() => { const link = document.createElement("a"); link.href = `/files/${item.file}`; link.download = item.file; link.click(); }}
+                  className="flex items-center gap-1 px-2 py-1 rounded bg-muted/50 hover:bg-muted transition-colors"
+                  title={item.label}
+                  data-testid={`button-quick-file-${item.file}`}
+                >
+                  <item.icon className={`h-3.5 w-3.5 ${item.color}`} />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* DESKTOP LAYOUT */}
+      <div className="hidden lg:flex gap-4 h-[calc(100vh-6rem)] mx-6 my-4">
         <div className="flex flex-col flex-1 bg-background rounded-md border overflow-hidden">
           <div className="flex items-center justify-between gap-2 px-4 py-3 border-b bg-card/50 backdrop-blur-sm flex-shrink-0">
             <div className="flex items-center gap-3">
@@ -632,7 +925,7 @@ export default function AssistantPage() {
             </div>
           </ScrollArea>
 
-          <div className="p-3 border-t bg-card/50 backdrop-blur-sm flex-shrink-0 safe-bottom">
+          <div className="p-3 border-t bg-card/50 backdrop-blur-sm flex-shrink-0">
             <div className="flex gap-2 items-end">
               <Textarea
                 ref={textareaRef}
@@ -663,109 +956,9 @@ export default function AssistantPage() {
               </Button>
             </div>
           </div>
-          
-          {/* Mobile Bottom Panel with Tabs */}
-          <div className="lg:hidden border-t bg-card/50">
-            {/* Tab Buttons */}
-            <div className="flex border-b">
-              <button
-                onClick={() => setMobileNotesOpen(true)}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium transition-colors ${
-                  mobileNotesOpen 
-                    ? "text-amber-500 border-b-2 border-amber-500 bg-amber-500/5" 
-                    : "text-muted-foreground"
-                }`}
-                data-testid="button-mobile-tab-notes"
-              >
-                <StickyNote className="h-3.5 w-3.5" />
-                {language === "ru" ? "Заметки" : "Notes"}
-                {notes.length > 0 && (
-                  <span className="text-[9px] bg-amber-500/20 text-amber-600 dark:text-amber-400 px-1 rounded">
-                    {notes.length}
-                  </span>
-                )}
-              </button>
-              <button
-                onClick={() => setMobileNotesOpen(false)}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium transition-colors ${
-                  !mobileNotesOpen 
-                    ? "text-primary border-b-2 border-primary bg-primary/5" 
-                    : "text-muted-foreground"
-                }`}
-                data-testid="button-mobile-tab-files"
-              >
-                <FolderDown className="h-3.5 w-3.5" />
-                {language === "ru" ? "Файлы" : "Files"}
-              </button>
-            </div>
-            
-            {/* Tab Content */}
-            {mobileNotesOpen ? (
-              <div className="p-2">
-                <div className="relative">
-                  <Textarea
-                    value={notes}
-                    onChange={(e) => handleNotesChange(e.target.value)}
-                    placeholder={language === "ru" 
-                      ? "Записывайте важные идеи..."
-                      : "Write down ideas..."
-                    }
-                    className="min-h-[80px] max-h-[80px] w-full resize-none text-xs bg-muted/30 rounded-md"
-                    data-testid="input-notes-mobile"
-                  />
-                  <div className="absolute bottom-1 right-1 flex items-center gap-1">
-                    <span className="text-[9px] text-muted-foreground px-1">
-                      {notesSaved ? (language === "ru" ? "OK" : "OK") : "..."}
-                    </span>
-                    {notes.length > 0 && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleNotesChange("")}
-                        className="h-5 w-5"
-                        data-testid="button-clear-notes-mobile"
-                      >
-                        <Trash2 className="h-2.5 w-2.5 text-muted-foreground" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="p-2">
-                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-                  {[
-                    { icon: FileType, name: language === "ru" ? "Шаблон" : "Template", file: "script-template.txt", color: "from-blue-500 to-blue-600" },
-                    { icon: FileCheck, name: language === "ru" ? "ОТК" : "QC", file: "otk-tv-rules.pdf", color: "from-green-500 to-green-600" },
-                    { icon: FileVideo, name: "Premiere", file: "podcast-premiere-template.prproj", color: "from-purple-500 to-purple-600" },
-                    { icon: FileText, name: language === "ru" ? "Чек-лист" : "Checklist", file: "editing-checklist.pdf", color: "from-orange-500 to-orange-600" },
-                  ].map((item) => (
-                    <button
-                      key={item.file}
-                      onClick={() => {
-                        const link = document.createElement("a");
-                        link.href = `/files/${item.file}`;
-                        link.download = item.file;
-                        link.click();
-                      }}
-                      className="flex-shrink-0 flex flex-col items-center gap-1 p-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors min-w-[60px]"
-                      data-testid={`button-download-mobile-${item.file}`}
-                    >
-                      <div className={`w-8 h-8 rounded-md bg-gradient-to-br ${item.color} flex items-center justify-center`}>
-                        <item.icon className="h-4 w-4 text-white" />
-                      </div>
-                      <span className="text-[10px] text-muted-foreground text-center leading-tight">
-                        {item.name}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
         </div>
 
-        <div className="hidden lg:flex flex-col w-80 gap-4 h-full">
+        <div className="flex flex-col w-80 gap-4 h-full">
           <Card className="flex flex-col flex-1 min-h-0 overflow-hidden">
             <div className="flex items-center gap-3 px-4 py-3 border-b bg-gradient-to-r from-amber-500/10 to-orange-500/10">
               <div className="w-8 h-8 rounded-md bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
