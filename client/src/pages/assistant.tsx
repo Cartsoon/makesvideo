@@ -50,7 +50,7 @@ export default function AssistantPage() {
     const saved = localStorage.getItem("assistant-sound-enabled");
     return saved !== "false";
   });
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -70,16 +70,12 @@ export default function AssistantPage() {
   });
 
   const scrollToBottom = () => {
-    if (scrollRef.current) {
-      const scrollContainer = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (scrollContainer) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
-      }
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   useEffect(() => {
-    scrollToBottom();
+    const timer = setTimeout(scrollToBottom, 100);
+    return () => clearTimeout(timer);
   }, [messages, streamingContent, optimisticMessages]);
 
   useEffect(() => {
@@ -301,7 +297,7 @@ export default function AssistantPage() {
         </div>
       </div>
 
-      <ScrollArea className="flex-1" ref={scrollRef}>
+      <ScrollArea className="flex-1">
         <div className="p-4 space-y-4 pb-6">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
@@ -406,6 +402,7 @@ export default function AssistantPage() {
                   </div>
                 </div>
               )}
+              <div ref={messagesEndRef} />
             </>
           )}
         </div>
