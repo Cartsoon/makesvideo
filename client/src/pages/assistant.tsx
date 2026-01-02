@@ -12,6 +12,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { 
   Send, 
   Trash2, 
@@ -585,23 +596,63 @@ export default function AssistantPage() {
                 )}
               </p>
             </div>
+            
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  disabled={notes.length === 0}
+                  data-testid="button-clear-notes"
+                >
+                  <Trash2 className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    {language === "ru" ? "Очистить заметки?" : "Clear notes?"}
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {language === "ru" 
+                      ? "Все ваши заметки будут удалены. Это действие нельзя отменить."
+                      : "All your notes will be deleted. This action cannot be undone."
+                    }
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel data-testid="button-cancel-clear-notes">
+                    {language === "ru" ? "Отмена" : "Cancel"}
+                  </AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={() => handleNotesChange("")}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    data-testid="button-confirm-clear-notes"
+                  >
+                    {language === "ru" ? "Очистить" : "Clear"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
           
           <div className="flex-1 relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-b from-amber-500/5 via-transparent to-orange-500/5 pointer-events-none" />
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-amber-500/10 to-transparent rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-orange-500/10 to-transparent rounded-full translate-y-1/2 -translate-x-1/2 pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-b from-amber-500/5 via-transparent to-orange-500/5 pointer-events-none z-0" />
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-amber-500/10 to-transparent rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none z-0" />
+            <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-orange-500/10 to-transparent rounded-full translate-y-1/2 -translate-x-1/2 pointer-events-none z-0" />
             
-            <Textarea
-              value={notes}
-              onChange={(e) => handleNotesChange(e.target.value)}
-              placeholder={language === "ru" 
-                ? "Записывайте важные идеи, ссылки, советы из чата..."
-                : "Write down important ideas, links, tips from the chat..."
-              }
-              className="h-full w-full resize-none border-0 rounded-none bg-transparent focus-visible:ring-0 text-sm leading-relaxed"
-              data-testid="input-notes"
-            />
+            <ScrollArea className="h-full w-full [&_[data-radix-scroll-area-thumb]]:bg-gradient-to-b [&_[data-radix-scroll-area-thumb]]:from-amber-500 [&_[data-radix-scroll-area-thumb]]:to-orange-500 [&_[data-radix-scroll-area-thumb]]:rounded-full [&_[data-radix-scroll-area-scrollbar]]:w-2 [&_[data-radix-scroll-area-scrollbar]]:bg-amber-500/10">
+              <Textarea
+                value={notes}
+                onChange={(e) => handleNotesChange(e.target.value)}
+                placeholder={language === "ru" 
+                  ? "Записывайте важные идеи, ссылки, советы из чата..."
+                  : "Write down important ideas, links, tips from the chat..."
+                }
+                className="min-h-full w-full resize-none border-0 rounded-none bg-transparent focus-visible:ring-0 text-sm leading-relaxed relative z-10"
+                data-testid="input-notes"
+              />
+            </ScrollArea>
           </div>
           
           <div className="px-4 py-2 border-t bg-muted/30">
