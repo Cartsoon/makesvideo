@@ -14,9 +14,10 @@ interface RatingStats {
 
 interface InfoModalProps {
   variant?: "default" | "icon";
+  trigger?: React.ReactNode;
 }
 
-export function InfoModal({ variant = "default" }: InfoModalProps) {
+export function InfoModal({ variant = "default", trigger }: InfoModalProps) {
   const { t, language } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
   const [userRating, setUserRating] = useState<"like" | "dislike" | null>(null);
@@ -68,7 +69,7 @@ export function InfoModal({ variant = "default" }: InfoModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        {variant === "icon" ? (
+        {trigger ? trigger : variant === "icon" ? (
           <Button 
             variant="ghost" 
             size="icon"

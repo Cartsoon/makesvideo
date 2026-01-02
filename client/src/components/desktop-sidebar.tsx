@@ -106,30 +106,39 @@ export function DesktopSidebar() {
                 onUserUpdate={setUser}
                 onLogout={logout}
                 trigger={
-                  <button className="hover-elevate active-elevate-2 rounded-sm cursor-pointer" data-testid="button-profile-avatar">
-                    <Avatar className="h-6 w-6 border border-sidebar-border">
+                  <Button variant="ghost" size="icon" data-testid="button-profile-avatar">
+                    <Avatar className="h-5 w-5 border border-sidebar-border">
                       {user.avatarId > 0 ? (
                         <AvatarImage src={getAvatarById(user.avatarId)} alt={user.nickname || "User"} className="object-cover" />
                       ) : null}
-                      <AvatarFallback className="text-[10px] bg-sidebar-accent">
+                      <AvatarFallback className="text-[9px] bg-sidebar-accent">
                         {user.nickname ? user.nickname.charAt(0).toUpperCase() : <User className="h-3 w-3" />}
                       </AvatarFallback>
                     </Avatar>
-                  </button>
+                  </Button>
                 }
               />
             ) : (
-              <button className="hover-elevate active-elevate-2 rounded-sm cursor-pointer" data-testid="button-profile-avatar" onClick={logout}>
-                <Avatar className="h-6 w-6 border border-sidebar-border">
-                  <AvatarFallback className="text-[10px] bg-sidebar-accent">
+              <Button variant="ghost" size="icon" data-testid="button-profile-avatar" onClick={logout}>
+                <Avatar className="h-5 w-5 border border-sidebar-border">
+                  <AvatarFallback className="text-[9px] bg-sidebar-accent">
                     <User className="h-3 w-3" />
                   </AvatarFallback>
                 </Avatar>
-              </button>
+              </Button>
             )}
           </div>
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wide">{t("nav.info")}</span>
+            <InfoModal 
+              trigger={
+                <button 
+                  className="text-[10px] text-muted-foreground uppercase tracking-wide hover-elevate active-elevate-2 rounded-sm px-1 py-0.5 -mx-1 cursor-pointer"
+                  data-testid="button-info-label"
+                >
+                  {t("nav.info")}
+                </button>
+              }
+            />
             <InfoModal variant="icon" />
           </div>
           <div className="flex items-center justify-between gap-2">
