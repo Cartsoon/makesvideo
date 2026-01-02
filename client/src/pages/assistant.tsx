@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,6 +31,7 @@ import type { AssistantChat } from "@shared/schema";
 import { format } from "date-fns";
 import { ru, enUS } from "date-fns/locale";
 import { playSendSound, playReceiveSound } from "@/hooks/use-sound";
+import { Layout } from "@/components/layout";
 
 interface OptimisticMessage {
   id: string;
@@ -50,7 +51,7 @@ export default function AssistantPage() {
     const saved = localStorage.getItem("assistant-sound-enabled");
     return saved !== "false";
   });
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -69,14 +70,20 @@ export default function AssistantPage() {
     },
   });
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  const scrollToBottom = useCallback(() => {
+    if (scrollAreaRef.current) {
+      const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (viewport) {
+        requestAnimationFrame(() => {
+          viewport.scrollTop = viewport.scrollHeight;
+        });
+      }
+    }
+  }, []);
 
   useEffect(() => {
-    const timer = setTimeout(scrollToBottom, 100);
-    return () => clearTimeout(timer);
-  }, [messages, streamingContent, optimisticMessages]);
+    scrollToBottom();
+  }, [messages, streamingContent, optimisticMessages, scrollToBottom]);
 
   useEffect(() => {
     if (messages.length > 0 && optimisticMessages.length > 0) {
@@ -235,24 +242,25 @@ export default function AssistantPage() {
   ];
 
   return (
-    <div className="flex flex-col h-full max-h-[calc(100vh-4rem)] md:max-h-screen bg-background">
-      <div className="flex items-center justify-between gap-2 px-4 py-3 border-b bg-card/50 backdrop-blur-sm flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <div className="w-9 h-9 rounded-md bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
-              <Clapperboard className="h-5 w-5 text-primary-foreground" />
+    <Layout title={language === "ru" ? "AI-Ассистент" : "AI Assistant"}>
+      <div className="flex flex-col h-[calc(100vh-10rem)] md:h-[calc(100vh-4rem)] bg-background mx-4 md:mx-6 rounded-md border overflow-hidden">
+        <div className="flex items-center justify-between gap-2 px-4 py-3 border-b bg-card/50 backdrop-blur-sm flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="w-9 h-9 rounded-md bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
+                <Clapperboard className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-card" />
             </div>
-            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-card" />
+            <div>
+              <h1 className="text-sm font-semibold leading-tight">
+                {language === "ru" ? "AI-Ассистент" : "AI Assistant"}
+              </h1>
+              <p className="text-[10px] text-muted-foreground">
+                {language === "ru" ? "Эксперт по видеопроизводству" : "Video production expert"}
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-sm font-semibold leading-tight">
-              {language === "ru" ? "AI-Ассистент" : "AI Assistant"}
-            </h1>
-            <p className="text-[10px] text-muted-foreground">
-              {language === "ru" ? "Эксперт по видеопроизводству" : "Video production expert"}
-            </p>
-          </div>
-        </div>
         
         <div className="flex items-center gap-1">
           <Button
@@ -297,7 +305,7 @@ export default function AssistantPage() {
         </div>
       </div>
 
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1" ref={scrollAreaRef}>
         <div className="p-4 space-y-4 pb-6">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
@@ -402,7 +410,6 @@ export default function AssistantPage() {
                   </div>
                 </div>
               )}
-              <div ref={messagesEndRef} />
             </>
           )}
         </div>
@@ -445,5 +452,6 @@ export default function AssistantPage() {
         </p>
       </div>
     </div>
+  </Layout>
   );
 }
