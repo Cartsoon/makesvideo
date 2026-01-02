@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { z } from "zod";
 import { storage } from "./storage";
 import { startJobWorker } from "./job-worker";
 import { ensureProviderInitialized } from "./providers";
