@@ -64,6 +64,7 @@ export const topics = pgTable("topics", {
   rawText: text("raw_text"),
   fullContent: text("full_content"),
   insights: jsonb("insights"),
+  tags: text("tags").array().default([]),
   extractionStatus: varchar("extraction_status", { length: 20 }).default("pending").notNull(),
   language: varchar("language", { length: 10 }).default("ru").notNull(),
   score: integer("score").default(0).notNull(),
@@ -459,6 +460,7 @@ export interface Topic {
   rawText: string | null;
   fullContent: string | null;
   insights: TopicInsights | null;
+  tags: string[];
   extractionStatus: ExtractionStatus;
   language: Language;
   score: number;
@@ -476,6 +478,7 @@ export const insertTopicSchema = z.object({
   rawText: z.string().nullable().optional(),
   fullContent: z.string().nullable().optional(),
   insights: topicInsightsSchema.nullable().optional(),
+  tags: z.array(z.string()).default([]),
   extractionStatus: ExtractionStatus.default("pending"),
   language: Language.default("ru"),
   score: z.number().default(0),

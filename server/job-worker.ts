@@ -2,6 +2,50 @@ import { storage } from "./storage";
 import { providers, TopicContext } from "./providers";
 import type { Job, JobKind, Topic, TopicInsights } from "@shared/schema";
 
+// Common stop words to filter out when extracting tags
+const STOP_WORDS_RU = new Set(['и', 'в', 'на', 'с', 'по', 'для', 'от', 'из', 'как', 'что', 'это', 'не', 'но', 'к', 'за', 'о', 'об', 'при', 'из-за', 'а', 'или', 'так', 'уже', 'все', 'его', 'её', 'их', 'мы', 'вы', 'они', 'он', 'она', 'оно', 'был', 'была', 'было', 'были', 'быть', 'есть', 'будет', 'того', 'этого', 'которые', 'который', 'которая', 'которое', 'также', 'более', 'самый', 'только', 'можно', 'нужно', 'надо', 'даже', 'ещё', 'когда', 'если', 'чтобы', 'после', 'перед', 'между', 'через', 'под', 'над', 'около', 'против', 'вместо', 'кроме', 'благодаря', 'несмотря', 'года', 'году', 'год', 'лет', 'время', 'день', 'дней', 'час', 'часов', 'минут', 'сегодня', 'вчера', 'завтра', 'теперь', 'потом', 'сначала', 'затем']);
+const STOP_WORDS_EN = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'as', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'must', 'can', 'this', 'that', 'these', 'those', 'it', 'its', 'they', 'them', 'their', 'he', 'she', 'his', 'her', 'we', 'you', 'your', 'our', 'who', 'which', 'what', 'when', 'where', 'why', 'how', 'all', 'each', 'every', 'both', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'not', 'only', 'same', 'so', 'than', 'too', 'very', 'just', 'also', 'now', 'here', 'there', 'about', 'after', 'before', 'between', 'into', 'through', 'during', 'under', 'over', 'above', 'below', 'out', 'off', 'up', 'down', 'again', 'further', 'then', 'once', 'new', 'first', 'last', 'year', 'years', 'day', 'days', 'time', 'today', 'yesterday', 'tomorrow']);
+
+/**
+ * Extracts 2-5 relevant tags from title and content
+ * Tags are short keywords that describe the topic's subject matter
+ */
+function extractTopicTags(title: string, content: string | null, language: string): string[] {
+  const text = `${title} ${content || ''}`.toLowerCase();
+  const stopWords = language === 'ru' ? STOP_WORDS_RU : STOP_WORDS_EN;
+  
+  // Extract words and their frequencies
+  const wordFreq = new Map<string, number>();
+  const words = text.match(/[\p{L}]+/gu) || [];
+  
+  for (const word of words) {
+    if (word.length < 3 || word.length > 25) continue;
+    if (stopWords.has(word)) continue;
+    if (/^\d+$/.test(word)) continue; // Skip pure numbers
+    
+    wordFreq.set(word, (wordFreq.get(word) || 0) + 1);
+  }
+  
+  // Sort by frequency and get top words
+  const sortedWords = Array.from(wordFreq.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([word]) => word);
+  
+  // Extract meaningful n-grams from title (more likely to be relevant)
+  const titleWords = title.toLowerCase().match(/[\p{L}]+/gu) || [];
+  const titleKeywords = titleWords
+    .filter(w => w.length >= 3 && !stopWords.has(w) && !/^\d+$/.test(w))
+    .slice(0, 3);
+  
+  // Combine title keywords with frequent words, deduplicating
+  const tagCandidates = [...new Set([...titleKeywords, ...sortedWords])];
+  
+  // Return 2-5 tags, capitalizing first letter
+  return tagCandidates
+    .slice(0, 5)
+    .map(tag => tag.charAt(0).toUpperCase() + tag.slice(1));
+}
+
 let isProcessing = false;
 const MAX_CONCURRENT_JOBS = 1;
 
@@ -165,6 +209,7 @@ async function processFetchTopics(job: Job): Promise<void> {
     ];
 
     for (let i = 0; i < demoTopics.length; i++) {
+      const tags = extractTopicTags(demoTopics[i].title, demoTopics[i].desc, "en");
       await storage.createTopic({
         sourceId: "demo",
         title: demoTopics[i].title,
@@ -172,6 +217,7 @@ async function processFetchTopics(job: Job): Promise<void> {
         translatedTitleEn: demoTopics[i].title,
         rawText: demoTopics[i].desc,
         insights: { summary: demoTopics[i].descRu },
+        tags,
         score: Math.floor(Math.random() * 50) + 50,
         language: "en",
         status: "new",
@@ -214,11 +260,13 @@ async function processFetchTopics(job: Job): Promise<void> {
             const rawTitle = item.title;
             const rawDescription = item.description.slice(0, 500); // Limit description length
             
+            const tags = extractTopicTags(rawTitle, rawDescription, language);
             await storage.createTopic({
               sourceId: source.id,
               title: rawTitle,
               rawText: rawDescription || null,
               url: item.link || null,
+              tags,
               score: Math.floor(Math.random() * 30) + 70, // 70-100 score for real content
               language: language,
               status: "new",
@@ -228,12 +276,14 @@ async function processFetchTopics(job: Job): Promise<void> {
         } else if (source.type === "manual" || source.type === "url") {
           // For manual/URL sources, create topic from config description
           const manualContent = config.description || `Content from ${source.name}`;
+          const tags = extractTopicTags(source.name, manualContent, language);
           
           await storage.createTopic({
             sourceId: source.id,
             title: source.name,
             rawText: manualContent,
             url: config.url || null,
+            tags,
             score: Math.floor(Math.random() * 30) + 70,
             language: language,
             status: "new",

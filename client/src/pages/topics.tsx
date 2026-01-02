@@ -200,6 +200,20 @@ export default function Topics() {
                         </h3>
                         <StatusBadge status={topic.status} className="flex-shrink-0" />
                       </div>
+                      {topic.tags && topic.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {topic.tags.slice(0, 5).map((tag, idx) => (
+                            <Badge
+                              key={idx}
+                              variant="secondary"
+                              className="text-[9px] h-4 px-1.5 no-default-hover-elevate no-default-active-elevate"
+                              data-testid={`tag-${topic.id}-${idx}`}
+                            >
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                       {(topic.insights?.summary || topic.rawText || topic.fullContent) && (
                         <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-2 mt-1">
                           {topic.insights?.summary || (topic.rawText || topic.fullContent || "").slice(0, 150)}
