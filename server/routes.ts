@@ -1930,6 +1930,76 @@ Distribute time evenly: scenes 3-7 seconds each. Only JSON array.`;
       res.status(500).json({ error: "Failed to clear chat" });
     }
   });
+  
+  // Get paginated chat history
+  app.get("/api/assistant/chat/page/:page", async (req, res) => {
+    try {
+      const sessionId = req.cookies?.session_id;
+      if (!sessionId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const session = await storage.getSession(sessionId);
+      if (!session) {
+        return res.status(401).json({ error: "Session expired" });
+      }
+      
+      const page = parseInt(req.params.page) || 1;
+      const perPage = 50;
+      const result = await storage.getAssistantChatsPaginated(session.userId, page, perPage);
+      res.json(result);
+    } catch (error) {
+      console.error("Failed to get paginated chat:", error);
+      res.status(500).json({ error: "Failed to get chat history" });
+    }
+  });
+  
+  // Get user's notes
+  app.get("/api/assistant/notes", async (req, res) => {
+    try {
+      const sessionId = req.cookies?.session_id;
+      if (!sessionId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const session = await storage.getSession(sessionId);
+      if (!session) {
+        return res.status(401).json({ error: "Session expired" });
+      }
+      
+      const note = await storage.getAssistantNote(session.userId);
+      res.json(note || { content: "" });
+    } catch (error) {
+      console.error("Failed to get notes:", error);
+      res.status(500).json({ error: "Failed to get notes" });
+    }
+  });
+  
+  // Save user's notes
+  app.post("/api/assistant/notes", async (req, res) => {
+    try {
+      const sessionId = req.cookies?.session_id;
+      if (!sessionId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const session = await storage.getSession(sessionId);
+      if (!session) {
+        return res.status(401).json({ error: "Session expired" });
+      }
+      
+      const { content } = req.body;
+      if (typeof content !== "string") {
+        return res.status(400).json({ error: "Content must be a string" });
+      }
+      
+      const note = await storage.saveAssistantNote(session.userId, content);
+      res.json(note);
+    } catch (error) {
+      console.error("Failed to save notes:", error);
+      res.status(500).json({ error: "Failed to save notes" });
+    }
+  });
 
   return httpServer;
 }

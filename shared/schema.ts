@@ -888,3 +888,20 @@ export const insertAssistantChatSchema = createInsertSchema(assistantChats).omit
 
 export type AssistantChat = typeof assistantChats.$inferSelect;
 export type InsertAssistantChat = z.infer<typeof insertAssistantChatSchema>;
+
+// ============ ASSISTANT NOTES ============
+
+export const assistantNotes = pgTable("assistant_notes", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id", { length: 36 }).references(() => users.id).notNull(),
+  content: text("content").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertAssistantNoteSchema = createInsertSchema(assistantNotes).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export type AssistantNote = typeof assistantNotes.$inferSelect;
+export type InsertAssistantNote = z.infer<typeof insertAssistantNoteSchema>;

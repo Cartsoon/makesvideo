@@ -3,7 +3,7 @@ import { eq, desc, and, lt, sql } from "drizzle-orm";
 import { db } from "./db";
 import {
   settings, users, sessions, authPasswords, sources, topics, scripts, jobs,
-  trendSignals, trendTopics, formStates, assistantChats
+  trendSignals, trendTopics, formStates, assistantChats, assistantNotes
 } from "@shared/schema";
 import type {
   Source, InsertSource, SourceHealth, CategoryId,
@@ -15,7 +15,7 @@ import type {
   TrendTopic, InsertTrendTopic,
   TopicStatus, ScriptStatus, JobStatus,
   User, InsertUser, UpdateUser, Session, AuthPassword,
-  FormState, InsertFormState, AssistantChat
+  FormState, InsertFormState, AssistantChat, AssistantNote
 } from "@shared/schema";
 
 export interface IStorage {
@@ -92,8 +92,13 @@ export interface IStorage {
   
   // Assistant chat
   getAssistantChats(userId: string, limit?: number): Promise<AssistantChat[]>;
+  getAssistantChatsPaginated(userId: string, page: number, perPage: number): Promise<{ messages: AssistantChat[]; total: number; totalPages: number }>;
   addAssistantChat(userId: string, role: "user" | "assistant", content: string): Promise<AssistantChat>;
   clearAssistantChats(userId: string): Promise<void>;
+  
+  // Assistant notes
+  getAssistantNote(userId: string): Promise<AssistantNote | undefined>;
+  saveAssistantNote(userId: string, content: string): Promise<AssistantNote>;
 }
 
 // Helper to convert Date to ISO string
@@ -762,25 +767,39 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
+  async getAssistantChatsPaginated(userId: string, page: number, perPage: number): Promise<{ messages: AssistantChat[]; total: number; totalPages: number }> {
+    const [countResult] = await db.select({ count: sql<number>`count(*)::int` })
+      .from(assistantChats)
+      .where(eq(assistantChats.userId, userId));
+    
+    const total = countResult?.count || 0;
+    const totalPages = Math.ceil(total / perPage);
+    
+    const offset = (page - 1) * perPage;
+    const rows = await db.select()
+      .from(assistantChats)
+      .where(eq(assistantChats.userId, userId))
+      .orderBy(desc(assistantChats.createdAt))
+      .limit(perPage)
+      .offset(offset);
+    
+    const messages = rows.reverse().map(row => ({
+      id: row.id,
+      userId: row.userId,
+      role: row.role as "user" | "assistant",
+      content: row.content,
+      createdAt: row.createdAt.toISOString(),
+    }));
+    
+    return { messages, total, totalPages };
+  }
+
   async addAssistantChat(userId: string, role: "user" | "assistant", content: string): Promise<AssistantChat> {
     const [row] = await db.insert(assistantChats).values({
       userId,
       role,
       content,
     }).returning();
-    
-    // Clean up old messages to keep only last 50
-    const allChats = await db.select({ id: assistantChats.id })
-      .from(assistantChats)
-      .where(eq(assistantChats.userId, userId))
-      .orderBy(desc(assistantChats.createdAt));
-    
-    if (allChats.length > 50) {
-      const idsToDelete = allChats.slice(50).map(c => c.id);
-      for (const id of idsToDelete) {
-        await db.delete(assistantChats).where(eq(assistantChats.id, id));
-      }
-    }
     
     return {
       id: row.id,
@@ -793,6 +812,53 @@ export class DatabaseStorage implements IStorage {
 
   async clearAssistantChats(userId: string): Promise<void> {
     await db.delete(assistantChats).where(eq(assistantChats.userId, userId));
+  }
+  
+  // ============ ASSISTANT NOTES ============
+  
+  async getAssistantNote(userId: string): Promise<AssistantNote | undefined> {
+    const [row] = await db.select()
+      .from(assistantNotes)
+      .where(eq(assistantNotes.userId, userId));
+    
+    if (!row) return undefined;
+    
+    return {
+      id: row.id,
+      userId: row.userId,
+      content: row.content,
+      updatedAt: row.updatedAt.toISOString(),
+    };
+  }
+  
+  async saveAssistantNote(userId: string, content: string): Promise<AssistantNote> {
+    const existing = await this.getAssistantNote(userId);
+    
+    if (existing) {
+      const [row] = await db.update(assistantNotes)
+        .set({ content, updatedAt: new Date() })
+        .where(eq(assistantNotes.userId, userId))
+        .returning();
+      
+      return {
+        id: row.id,
+        userId: row.userId,
+        content: row.content,
+        updatedAt: row.updatedAt.toISOString(),
+      };
+    } else {
+      const [row] = await db.insert(assistantNotes).values({
+        userId,
+        content,
+      }).returning();
+      
+      return {
+        id: row.id,
+        userId: row.userId,
+        content: row.content,
+        updatedAt: row.updatedAt.toISOString(),
+      };
+    }
   }
 }
 

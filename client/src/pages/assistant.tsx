@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Card } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,7 +24,12 @@ import {
   MessageSquare,
   Clapperboard,
   Volume2,
-  VolumeX
+  VolumeX,
+  ChevronLeft,
+  ChevronRight,
+  StickyNote,
+  Save,
+  FileText
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -41,32 +47,90 @@ interface OptimisticMessage {
   isOptimistic?: boolean;
 }
 
+interface PaginatedResponse {
+  messages: AssistantChat[];
+  total: number;
+  totalPages: number;
+}
+
 export default function AssistantPage() {
   const { language } = useI18n();
   const [input, setInput] = useState("");
   const [streamingContent, setStreamingContent] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [optimisticMessages, setOptimisticMessages] = useState<OptimisticMessage[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [notes, setNotes] = useState("");
+  const [notesSaved, setNotesSaved] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(() => {
     const saved = localStorage.getItem("assistant-sound-enabled");
     return saved !== "false";
   });
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const notesTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (notesTimeoutRef.current) {
+        clearTimeout(notesTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("assistant-sound-enabled", String(soundEnabled));
   }, [soundEnabled]);
 
-  const { data: messages = [], isLoading } = useQuery<AssistantChat[]>({
-    queryKey: ["/api/assistant/chat"],
+  const { data: paginatedData, isLoading } = useQuery<PaginatedResponse>({
+    queryKey: ["/api/assistant/chat/page", currentPage],
+    queryFn: async () => {
+      const res = await fetch(`/api/assistant/chat/page/${currentPage}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch");
+      return res.json();
+    },
   });
+
+  const { data: notesData } = useQuery<{ content: string }>({
+    queryKey: ["/api/assistant/notes"],
+  });
+
+  useEffect(() => {
+    if (notesData?.content !== undefined && notes === "") {
+      setNotes(notesData.content);
+    }
+  }, [notesData]);
+
+  const saveNotesMutation = useMutation({
+    mutationFn: (content: string) => apiRequest("POST", "/api/assistant/notes", { content }),
+    onSuccess: () => {
+      setNotesSaved(true);
+      queryClient.invalidateQueries({ queryKey: ["/api/assistant/notes"] });
+    },
+  });
+
+  const handleNotesChange = (value: string) => {
+    setNotes(value);
+    setNotesSaved(false);
+    
+    if (notesTimeoutRef.current) {
+      clearTimeout(notesTimeoutRef.current);
+    }
+    notesTimeoutRef.current = setTimeout(() => {
+      saveNotesMutation.mutate(value);
+    }, 1500);
+  };
+
+  const messages = paginatedData?.messages || [];
+  const totalPages = paginatedData?.totalPages || 1;
+  const totalMessages = paginatedData?.total || 0;
 
   const clearMutation = useMutation({
     mutationFn: () => apiRequest("DELETE", "/api/assistant/chat"),
     onSuccess: () => {
       setOptimisticMessages([]);
-      queryClient.invalidateQueries({ queryKey: ["/api/assistant/chat"] });
+      setCurrentPage(1);
+      queryClient.invalidateQueries({ queryKey: ["/api/assistant/chat/page", 1] });
     },
   });
 
@@ -82,8 +146,10 @@ export default function AssistantPage() {
   }, []);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, streamingContent, optimisticMessages, scrollToBottom]);
+    if (currentPage === 1) {
+      scrollToBottom();
+    }
+  }, [messages, streamingContent, optimisticMessages, scrollToBottom, currentPage]);
 
   useEffect(() => {
     if (messages.length > 0 && optimisticMessages.length > 0) {
@@ -95,13 +161,17 @@ export default function AssistantPage() {
     }
   }, [messages]);
 
-  const allMessages = [...messages, ...optimisticMessages];
+  const allMessages = currentPage === 1 ? [...messages, ...optimisticMessages] : messages;
 
   const sendMessage = async () => {
     if (!input.trim() || isStreaming) return;
 
     const userMessage = input.trim();
     const tempId = `temp-user-${Date.now()}`;
+    
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
     
     if (soundEnabled) {
       playSendSound();
@@ -118,8 +188,6 @@ export default function AssistantPage() {
     setInput("");
     setIsStreaming(true);
     setStreamingContent("");
-
-    let assistantTempId = "";
 
     try {
       const response = await fetch("/api/assistant/chat", {
@@ -159,7 +227,7 @@ export default function AssistantPage() {
                 if (soundEnabled) {
                   playReceiveSound();
                 }
-                assistantTempId = `temp-assistant-${Date.now()}`;
+                const assistantTempId = `temp-assistant-${Date.now()}`;
                 setOptimisticMessages(prev => [...prev, {
                   id: assistantTempId,
                   role: "assistant",
@@ -169,7 +237,7 @@ export default function AssistantPage() {
                 }]);
                 setStreamingContent("");
                 setIsStreaming(false);
-                queryClient.invalidateQueries({ queryKey: ["/api/assistant/chat"] });
+                queryClient.invalidateQueries({ queryKey: ["/api/assistant/chat/page", 1] });
               }
             } catch {}
           }
@@ -217,8 +285,22 @@ export default function AssistantPage() {
     }
   };
 
-  const exportChat = () => {
-    const content = allMessages.map(m => 
+  const exportChat = async () => {
+    const allExportMessages: AssistantChat[] = [];
+    let page = 1;
+    let hasMore = true;
+    
+    while (hasMore) {
+      const res = await fetch(`/api/assistant/chat/page/${page}`, { credentials: "include" });
+      const data = await res.json();
+      allExportMessages.push(...data.messages);
+      hasMore = page < data.totalPages;
+      page++;
+    }
+    
+    allExportMessages.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    
+    const content = allExportMessages.map((m: AssistantChat) => 
       `[${formatTime(m.createdAt)}] ${m.role === "user" ? "Вы" : "AI"}: ${m.content}`
     ).join("\n\n");
     
@@ -243,215 +325,298 @@ export default function AssistantPage() {
 
   return (
     <Layout title={language === "ru" ? "AI-Ассистент" : "AI Assistant"}>
-      <div className="flex flex-col h-[calc(100vh-10rem)] md:h-[calc(100vh-4rem)] bg-background mx-4 md:mx-6 rounded-md border overflow-hidden">
-        <div className="flex items-center justify-between gap-2 px-4 py-3 border-b bg-card/50 backdrop-blur-sm flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <div className="w-9 h-9 rounded-md bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
-                <Clapperboard className="h-5 w-5 text-primary-foreground" />
+      <div className="flex gap-4 h-[calc(100vh-10rem)] md:h-[calc(100vh-4rem)] mx-4 md:mx-6">
+        <div className="flex flex-col flex-1 bg-background rounded-md border overflow-hidden">
+          <div className="flex items-center justify-between gap-2 px-4 py-3 border-b bg-card/50 backdrop-blur-sm flex-shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <div className="w-9 h-9 rounded-md bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
+                  <Clapperboard className="h-5 w-5 text-primary-foreground" />
+                </div>
+                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-card" />
               </div>
-              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-card" />
-            </div>
-            <div>
-              <h1 className="text-sm font-semibold leading-tight">
-                {language === "ru" ? "AI-Ассистент" : "AI Assistant"}
-              </h1>
-              <p className="text-[10px] text-muted-foreground">
-                {language === "ru" ? "Эксперт по видеопроизводству" : "Video production expert"}
-              </p>
-            </div>
-          </div>
-        
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setSoundEnabled(!soundEnabled)}
-            data-testid="button-toggle-sound"
-            title={soundEnabled 
-              ? (language === "ru" ? "Выключить звук" : "Mute sounds")
-              : (language === "ru" ? "Включить звук" : "Enable sounds")
-            }
-          >
-            {soundEnabled ? (
-              <Volume2 className="h-4 w-4" />
-            ) : (
-              <VolumeX className="h-4 w-4 text-muted-foreground" />
-            )}
-          </Button>
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" data-testid="button-chat-menu">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={exportChat} disabled={allMessages.length === 0}>
-                <Download className="h-4 w-4 mr-2" />
-                {language === "ru" ? "Экспорт чата" : "Export chat"}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={() => clearMutation.mutate()}
-                disabled={clearMutation.isPending || allMessages.length === 0}
-                className="text-destructive focus:text-destructive"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                {language === "ru" ? "Очистить историю" : "Clear history"}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-
-      <ScrollArea className="flex-1" ref={scrollAreaRef}>
-        <div className="p-4 space-y-4 pb-6">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="flex flex-col items-center gap-3">
-                <Loader2 className="h-8 w-8 animate-spin text-primary/50" />
-                <p className="text-sm text-muted-foreground">
-                  {language === "ru" ? "Загрузка..." : "Loading..."}
+              <div>
+                <h1 className="text-sm font-semibold leading-tight">
+                  {language === "ru" ? "AI-Ассистент" : "AI Assistant"}
+                </h1>
+                <p className="text-[10px] text-muted-foreground">
+                  {totalMessages > 0 
+                    ? (language === "ru" ? `${totalMessages} сообщений` : `${totalMessages} messages`)
+                    : (language === "ru" ? "Эксперт по видеопроизводству" : "Video production expert")
+                  }
                 </p>
               </div>
             </div>
-          ) : allMessages.length === 0 && !streamingContent ? (
-            <div className="flex flex-col items-center justify-center py-8 px-4">
-              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mb-4">
-                <Sparkles className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="font-semibold text-lg mb-2 text-center">
-                {language === "ru" ? "Привет! Я ваш видео-ассистент" : "Hi! I'm your video assistant"}
-              </h3>
-              <p className="text-sm text-muted-foreground text-center max-w-sm mb-6">
-                {language === "ru"
-                  ? "Спросите меня о видеомонтаже, съемке, истории кино или создании контента"
-                  : "Ask me about video editing, filmmaking, cinema history, or content creation"}
-              </p>
-              
-              <div className="flex flex-wrap gap-2 justify-center">
-                {quickPrompts.map((prompt, i) => (
-                  <Button
-                    key={i}
-                    variant="outline"
-                    size="sm"
-                    className="text-xs"
-                    onClick={() => {
-                      setInput(prompt);
-                      textareaRef.current?.focus();
-                    }}
-                    data-testid={`button-quick-prompt-${i}`}
-                  >
-                    <MessageSquare className="h-3 w-3 mr-1.5" />
-                    {prompt}
+          
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSoundEnabled(!soundEnabled)}
+                data-testid="button-toggle-sound"
+                title={soundEnabled 
+                  ? (language === "ru" ? "Выключить звук" : "Mute sounds")
+                  : (language === "ru" ? "Включить звук" : "Enable sounds")
+                }
+              >
+                {soundEnabled ? (
+                  <Volume2 className="h-4 w-4" />
+                ) : (
+                  <VolumeX className="h-4 w-4 text-muted-foreground" />
+                )}
+              </Button>
+            
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" data-testid="button-chat-menu">
+                    <MoreVertical className="h-4 w-4" />
                   </Button>
-                ))}
-              </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={exportChat} disabled={totalMessages === 0}>
+                    <Download className="h-4 w-4 mr-2" />
+                    {language === "ru" ? "Экспорт чата" : "Export chat"}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={() => clearMutation.mutate()}
+                    disabled={clearMutation.isPending || totalMessages === 0}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    {language === "ru" ? "Очистить историю" : "Clear history"}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-          ) : (
-            <>
-              {allMessages.map((msg, idx) => (
-                <div
-                  key={msg.id || idx}
-                  className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}
-                  data-testid={`chat-message-${msg.id || idx}`}
-                >
-                  <Avatar className="w-8 h-8 flex-shrink-0">
-                    <AvatarFallback className={msg.role === "user" 
-                      ? "bg-accent text-accent-foreground" 
-                      : "bg-gradient-to-br from-primary to-primary/70 text-primary-foreground"
-                    }>
-                      {msg.role === "user" ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
-                    </AvatarFallback>
-                  </Avatar>
-                  
-                  <div className={`flex flex-col max-w-[80%] ${msg.role === "user" ? "items-end" : "items-start"}`}>
-                    <div
-                      className={`px-4 py-2.5 rounded-2xl text-sm ${
-                        msg.role === "user"
-                          ? "bg-primary text-primary-foreground rounded-br-md"
-                          : "bg-muted rounded-bl-md"
-                      }`}
-                    >
-                      {msg.role === "assistant" ? (
-                        <div className="prose prose-sm dark:prose-invert max-w-none">
-                          {formatContent(msg.content)}
-                        </div>
-                      ) : (
-                        <p className="whitespace-pre-wrap">{msg.content}</p>
-                      )}
-                    </div>
-                    <span className="text-[10px] text-muted-foreground mt-1 px-1">
-                      {formatTime(msg.createdAt)}
-                    </span>
+          </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 px-4 py-2 border-b bg-muted/30">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+                disabled={currentPage >= totalPages}
+                data-testid="button-older-messages"
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                {language === "ru" ? "Старые" : "Older"}
+              </Button>
+              <span className="text-xs text-muted-foreground px-2">
+                {language === "ru" ? `Стр. ${currentPage} из ${totalPages}` : `Page ${currentPage} of ${totalPages}`}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+                disabled={currentPage <= 1}
+                data-testid="button-newer-messages"
+              >
+                {language === "ru" ? "Новые" : "Newer"}
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          )}
+
+          <ScrollArea className="flex-1" ref={scrollAreaRef}>
+            <div className="p-4 space-y-4 pb-6">
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="flex flex-col items-center gap-3">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary/50" />
+                    <p className="text-sm text-muted-foreground">
+                      {language === "ru" ? "Загрузка..." : "Loading..."}
+                    </p>
                   </div>
                 </div>
-              ))}
-              
-              {streamingContent && (
-                <div className="flex gap-3 flex-row">
-                  <Avatar className="w-8 h-8 flex-shrink-0">
-                    <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 text-primary-foreground">
-                      <Bot className="h-4 w-4" />
-                    </AvatarFallback>
-                  </Avatar>
+              ) : allMessages.length === 0 && !streamingContent ? (
+                <div className="flex flex-col items-center justify-center py-8 px-4">
+                  <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mb-4">
+                    <Sparkles className="h-8 w-8 text-primary" />
+                  </div>
+                  <h3 className="font-semibold text-lg mb-2 text-center">
+                    {language === "ru" ? "Привет! Я ваш видео-ассистент" : "Hi! I'm your video assistant"}
+                  </h3>
+                  <p className="text-sm text-muted-foreground text-center max-w-sm mb-6">
+                    {language === "ru"
+                      ? "Спросите меня о видеомонтаже, съемке, истории кино или создании контента"
+                      : "Ask me about video editing, filmmaking, cinema history, or content creation"}
+                  </p>
                   
-                  <div className="flex flex-col max-w-[80%] items-start">
-                    <div className="px-4 py-2.5 rounded-2xl rounded-bl-md text-sm bg-muted">
-                      <div className="prose prose-sm dark:prose-invert max-w-none">
-                        {formatContent(streamingContent)}
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {quickPrompts.map((prompt, i) => (
+                      <Button
+                        key={i}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                        onClick={() => {
+                          setInput(prompt);
+                          textareaRef.current?.focus();
+                        }}
+                        data-testid={`button-quick-prompt-${i}`}
+                      >
+                        <MessageSquare className="h-3 w-3 mr-1.5" />
+                        {prompt}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {allMessages.map((msg, idx) => (
+                    <div
+                      key={msg.id || idx}
+                      className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}
+                      data-testid={`chat-message-${msg.id || idx}`}
+                    >
+                      <Avatar className="w-8 h-8 flex-shrink-0">
+                        <AvatarFallback className={msg.role === "user" 
+                          ? "bg-accent text-accent-foreground" 
+                          : "bg-gradient-to-br from-primary to-primary/70 text-primary-foreground"
+                        }>
+                          {msg.role === "user" ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+                        </AvatarFallback>
+                      </Avatar>
+                      
+                      <div className={`flex flex-col max-w-[80%] ${msg.role === "user" ? "items-end" : "items-start"}`}>
+                        <div
+                          className={`px-4 py-2.5 rounded-2xl text-sm ${
+                            msg.role === "user"
+                              ? "bg-primary text-primary-foreground rounded-br-md"
+                              : "bg-muted rounded-bl-md"
+                          }`}
+                        >
+                          {msg.role === "assistant" ? (
+                            <div className="prose prose-sm dark:prose-invert max-w-none">
+                              {formatContent(msg.content)}
+                            </div>
+                          ) : (
+                            <p className="whitespace-pre-wrap">{msg.content}</p>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-muted-foreground mt-1 px-1">
+                          {formatTime(msg.createdAt)}
+                        </span>
                       </div>
                     </div>
-                    <span className="text-[10px] text-muted-foreground mt-1 px-1 flex items-center gap-1">
-                      <Loader2 className="h-2.5 w-2.5 animate-spin" />
-                      {language === "ru" ? "Печатает..." : "Typing..."}
-                    </span>
-                  </div>
-                </div>
+                  ))}
+                  
+                  {streamingContent && (
+                    <div className="flex gap-3 flex-row">
+                      <Avatar className="w-8 h-8 flex-shrink-0">
+                        <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 text-primary-foreground">
+                          <Bot className="h-4 w-4" />
+                        </AvatarFallback>
+                      </Avatar>
+                      
+                      <div className="flex flex-col max-w-[80%] items-start">
+                        <div className="px-4 py-2.5 rounded-2xl rounded-bl-md text-sm bg-muted">
+                          <div className="prose prose-sm dark:prose-invert max-w-none">
+                            {formatContent(streamingContent)}
+                          </div>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground mt-1 px-1 flex items-center gap-1">
+                          <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                          {language === "ru" ? "Печатает..." : "Typing..."}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
-            </>
-          )}
-        </div>
-      </ScrollArea>
+            </div>
+          </ScrollArea>
 
-      <div className="p-3 border-t bg-card/50 backdrop-blur-sm flex-shrink-0 safe-bottom">
-        <div className="flex gap-2 items-end">
-          <Textarea
-            ref={textareaRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={
-              language === "ru"
-                ? "Напишите сообщение..."
-                : "Type a message..."
-            }
-            className="min-h-[44px] max-h-32 resize-none rounded-xl"
-            disabled={isStreaming}
-            data-testid="input-chat-message"
-          />
-          <Button
-            onClick={sendMessage}
-            disabled={!input.trim() || isStreaming}
-            size="icon"
-            className="rounded-xl flex-shrink-0"
-            data-testid="button-send-message"
-          >
-            {isStreaming ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </Button>
+          <div className="p-3 border-t bg-card/50 backdrop-blur-sm flex-shrink-0 safe-bottom">
+            <div className="flex gap-2 items-end">
+              <Textarea
+                ref={textareaRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={
+                  language === "ru"
+                    ? "Напишите сообщение..."
+                    : "Type a message..."
+                }
+                className="min-h-[44px] max-h-32 resize-none rounded-xl"
+                disabled={isStreaming}
+                data-testid="input-chat-message"
+              />
+              <Button
+                onClick={sendMessage}
+                disabled={!input.trim() || isStreaming}
+                size="icon"
+                className="rounded-xl flex-shrink-0"
+                data-testid="button-send-message"
+              >
+                {isStreaming ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </div>
         </div>
-        <p className="text-[10px] text-muted-foreground mt-2 text-center">
-          {language === "ru"
-            ? "История сохраняется автоматически"
-            : "History is saved automatically"}
-        </p>
+
+        <Card className="hidden lg:flex flex-col w-80 overflow-hidden">
+          <div className="flex items-center gap-3 px-4 py-3 border-b bg-gradient-to-r from-amber-500/10 to-orange-500/10">
+            <div className="w-8 h-8 rounded-md bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+              <StickyNote className="h-4 w-4 text-white" />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-sm font-semibold">
+                {language === "ru" ? "Заметки" : "Notes"}
+              </h2>
+              <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                {notesSaved ? (
+                  <>
+                    <Save className="h-2.5 w-2.5" />
+                    {language === "ru" ? "Сохранено" : "Saved"}
+                  </>
+                ) : (
+                  <>
+                    <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                    {language === "ru" ? "Сохранение..." : "Saving..."}
+                  </>
+                )}
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex-1 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-b from-amber-500/5 via-transparent to-orange-500/5 pointer-events-none" />
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-amber-500/10 to-transparent rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-orange-500/10 to-transparent rounded-full translate-y-1/2 -translate-x-1/2 pointer-events-none" />
+            
+            <Textarea
+              value={notes}
+              onChange={(e) => handleNotesChange(e.target.value)}
+              placeholder={language === "ru" 
+                ? "Записывайте важные идеи, ссылки, советы из чата..."
+                : "Write down important ideas, links, tips from the chat..."
+              }
+              className="h-full w-full resize-none border-0 rounded-none bg-transparent focus-visible:ring-0 text-sm leading-relaxed"
+              data-testid="input-notes"
+            />
+          </div>
+          
+          <div className="px-4 py-2 border-t bg-muted/30">
+            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+              <FileText className="h-3 w-3" />
+              <span>
+                {notes.length > 0 
+                  ? (language === "ru" ? `${notes.length} символов` : `${notes.length} characters`)
+                  : (language === "ru" ? "Пусто" : "Empty")
+                }
+              </span>
+            </div>
+          </div>
+        </Card>
       </div>
-    </div>
-  </Layout>
+    </Layout>
   );
 }
