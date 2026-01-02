@@ -462,7 +462,7 @@ export default function AssistantPage() {
           
           <div className="flex items-center gap-1.5">
             <div className="px-2 py-0.5 rounded bg-primary/10 border border-primary/20">
-              <span className="text-[10px] font-mono text-primary">AI ONLINE</span>
+              <span className="text-[10px] font-mono text-primary">VIDEO AI</span>
             </div>
           </div>
           
@@ -593,24 +593,22 @@ export default function AssistantPage() {
         </ScrollArea>
 
         {/* Console Bottom - Input & Dock */}
-        <div className="flex-shrink-0 border-t border-border/50 bg-gradient-to-t from-muted/50 to-transparent safe-bottom">
-          {/* Input Area */}
-          <div className="px-3 py-2">
-            <div className="flex gap-2 items-end">
-              <Textarea
-                ref={textareaRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={language === "ru" ? "Сообщение..." : "Message..."}
-                className="min-h-[40px] max-h-24 resize-none text-sm bg-muted/50 border-border/50 rounded-lg"
-                disabled={isStreaming}
-                data-testid="input-chat-message-mobile"
-              />
-              <Button onClick={sendMessage} disabled={!input.trim() || isStreaming} size="icon" className="h-10 w-10 rounded-lg flex-shrink-0" data-testid="button-send-message-mobile">
-                {isStreaming ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              </Button>
-            </div>
+        <div className="flex-shrink-0 border-t border-border/30 safe-bottom">
+          {/* Minimal Input Area */}
+          <div className="flex gap-2 items-center px-3 py-2">
+            <Textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={language === "ru" ? "Сообщение..." : "Message..."}
+              className="min-h-[36px] max-h-20 resize-none text-sm bg-transparent border-0 focus-visible:ring-0 py-2"
+              disabled={isStreaming}
+              data-testid="input-chat-message-mobile"
+            />
+            <Button onClick={sendMessage} disabled={!input.trim() || isStreaming} size="icon" variant="ghost" className="h-9 w-9 flex-shrink-0" data-testid="button-send-message-mobile">
+              {isStreaming ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            </Button>
           </div>
 
           {/* Dock Bar */}
