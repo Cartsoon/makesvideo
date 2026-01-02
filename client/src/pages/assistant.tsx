@@ -40,7 +40,11 @@ import {
   ChevronRight,
   StickyNote,
   Save,
-  FileText
+  FileText,
+  FolderDown,
+  FileVideo,
+  FileType,
+  FileCheck
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -336,7 +340,7 @@ export default function AssistantPage() {
 
   return (
     <Layout title={language === "ru" ? "AI-Ассистент" : "AI Assistant"}>
-      <div className="flex gap-4 h-[calc(100vh-10rem)] md:h-[calc(100vh-4rem)] mx-4 md:mx-6">
+      <div className="flex gap-4 h-[calc(100vh-10rem)] md:h-[calc(100vh-6rem)] mx-4 md:mx-6 md:my-4">
         <div className="flex flex-col flex-1 bg-background rounded-md border overflow-hidden">
           <div className="flex items-center justify-between gap-2 px-4 py-3 border-b bg-card/50 backdrop-blur-sm flex-shrink-0">
             <div className="flex items-center gap-3">
@@ -573,100 +577,166 @@ export default function AssistantPage() {
           </div>
         </div>
 
-        <Card className="hidden lg:flex flex-col w-80 overflow-hidden">
-          <div className="flex items-center gap-3 px-4 py-3 border-b bg-gradient-to-r from-amber-500/10 to-orange-500/10">
-            <div className="w-8 h-8 rounded-md bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
-              <StickyNote className="h-4 w-4 text-white" />
-            </div>
-            <div className="flex-1">
-              <h2 className="text-sm font-semibold">
-                {language === "ru" ? "Заметки" : "Notes"}
-              </h2>
-              <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                {notesSaved ? (
-                  <>
-                    <Save className="h-2.5 w-2.5" />
-                    {language === "ru" ? "Сохранено" : "Saved"}
-                  </>
-                ) : (
-                  <>
-                    <Loader2 className="h-2.5 w-2.5 animate-spin" />
-                    {language === "ru" ? "Сохранение..." : "Saving..."}
-                  </>
-                )}
-              </p>
-            </div>
-            
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  disabled={notes.length === 0}
-                  data-testid="button-clear-notes"
-                >
-                  <Trash2 className="h-4 w-4 text-muted-foreground" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>
-                    {language === "ru" ? "Очистить заметки?" : "Clear notes?"}
-                  </AlertDialogTitle>
-                  <AlertDialogDescription>
-                    {language === "ru" 
-                      ? "Все ваши заметки будут удалены. Это действие нельзя отменить."
-                      : "All your notes will be deleted. This action cannot be undone."
-                    }
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel data-testid="button-cancel-clear-notes">
-                    {language === "ru" ? "Отмена" : "Cancel"}
-                  </AlertDialogCancel>
-                  <AlertDialogAction 
-                    onClick={() => handleNotesChange("")}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    data-testid="button-confirm-clear-notes"
+        <div className="hidden lg:flex flex-col w-80 gap-4">
+          <Card className="flex flex-col h-[45%] overflow-hidden">
+            <div className="flex items-center gap-3 px-4 py-3 border-b bg-gradient-to-r from-amber-500/10 to-orange-500/10">
+              <div className="w-8 h-8 rounded-md bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+                <StickyNote className="h-4 w-4 text-white" />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-sm font-semibold">
+                  {language === "ru" ? "Заметки" : "Notes"}
+                </h2>
+                <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                  {notesSaved ? (
+                    <>
+                      <Save className="h-2.5 w-2.5" />
+                      {language === "ru" ? "Сохранено" : "Saved"}
+                    </>
+                  ) : (
+                    <>
+                      <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                      {language === "ru" ? "Сохранение..." : "Saving..."}
+                    </>
+                  )}
+                </p>
+              </div>
+              
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    disabled={notes.length === 0}
+                    data-testid="button-clear-notes"
                   >
-                    {language === "ru" ? "Очистить" : "Clear"}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-          
-          <div className="flex-1 relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-b from-amber-500/5 via-transparent to-orange-500/5 pointer-events-none z-0" />
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-amber-500/10 to-transparent rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none z-0" />
-            <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-orange-500/10 to-transparent rounded-full translate-y-1/2 -translate-x-1/2 pointer-events-none z-0" />
-            
-            <ScrollArea className="h-full w-full [&_[data-radix-scroll-area-thumb]]:bg-gradient-to-b [&_[data-radix-scroll-area-thumb]]:from-amber-500 [&_[data-radix-scroll-area-thumb]]:to-orange-500 [&_[data-radix-scroll-area-thumb]]:rounded-full [&_[data-radix-scroll-area-scrollbar]]:w-2 [&_[data-radix-scroll-area-scrollbar]]:bg-amber-500/10">
-              <Textarea
-                value={notes}
-                onChange={(e) => handleNotesChange(e.target.value)}
-                placeholder={language === "ru" 
-                  ? "Записывайте важные идеи, ссылки, советы из чата..."
-                  : "Write down important ideas, links, tips from the chat..."
-                }
-                className="min-h-full w-full resize-none border-0 rounded-none bg-transparent focus-visible:ring-0 text-sm leading-relaxed relative z-10"
-                data-testid="input-notes"
-              />
-            </ScrollArea>
-          </div>
-          
-          <div className="px-4 py-2 border-t bg-muted/30">
-            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-              <FileText className="h-3 w-3" />
-              <span>
-                {notes.length > 0 
-                  ? (language === "ru" ? `${notes.length} символов` : `${notes.length} characters`)
-                  : (language === "ru" ? "Пусто" : "Empty")
-                }
-              </span>
+                    <Trash2 className="h-4 w-4 text-muted-foreground" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      {language === "ru" ? "Очистить заметки?" : "Clear notes?"}
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {language === "ru" 
+                        ? "Все ваши заметки будут удалены. Это действие нельзя отменить."
+                        : "All your notes will be deleted. This action cannot be undone."
+                      }
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel data-testid="button-cancel-clear-notes">
+                      {language === "ru" ? "Отмена" : "Cancel"}
+                    </AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={() => handleNotesChange("")}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      data-testid="button-confirm-clear-notes"
+                    >
+                      {language === "ru" ? "Очистить" : "Clear"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
-          </div>
-        </Card>
+            
+            <div className="flex-1 relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-b from-amber-500/5 via-transparent to-orange-500/5 pointer-events-none z-0" />
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-amber-500/10 to-transparent rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none z-0" />
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-orange-500/10 to-transparent rounded-full translate-y-1/2 -translate-x-1/2 pointer-events-none z-0" />
+              
+              <ScrollArea className="h-full w-full [&_[data-radix-scroll-area-thumb]]:bg-gradient-to-b [&_[data-radix-scroll-area-thumb]]:from-amber-500 [&_[data-radix-scroll-area-thumb]]:to-orange-500 [&_[data-radix-scroll-area-thumb]]:rounded-full [&_[data-radix-scroll-area-scrollbar]]:w-2 [&_[data-radix-scroll-area-scrollbar]]:bg-amber-500/10">
+                <Textarea
+                  value={notes}
+                  onChange={(e) => handleNotesChange(e.target.value)}
+                  placeholder={language === "ru" 
+                    ? "Записывайте важные идеи, ссылки, советы из чата..."
+                    : "Write down important ideas, links, tips from the chat..."
+                  }
+                  className="min-h-full w-full resize-none border-0 rounded-none bg-transparent focus-visible:ring-0 text-sm leading-relaxed relative z-10"
+                  data-testid="input-notes"
+                />
+              </ScrollArea>
+            </div>
+            
+            <div className="px-4 py-2 border-t bg-muted/30">
+              <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                <FileText className="h-3 w-3" />
+                <span>
+                  {notes.length > 0 
+                    ? (language === "ru" ? `${notes.length} символов` : `${notes.length} characters`)
+                    : (language === "ru" ? "Пусто" : "Empty")
+                  }
+                </span>
+              </div>
+            </div>
+          </Card>
+          
+          <Card className="flex flex-col flex-1 overflow-hidden">
+            <div className="flex items-center gap-3 px-4 py-3 border-b bg-gradient-to-r from-primary/10 to-primary/5">
+              <div className="w-8 h-8 rounded-md bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
+                <FolderDown className="h-4 w-4 text-primary-foreground" />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-sm font-semibold">
+                  {language === "ru" ? "Полезные файлы" : "Useful Files"}
+                </h2>
+                <p className="text-[10px] text-muted-foreground">
+                  {language === "ru" ? "Шаблоны и ресурсы" : "Templates & resources"}
+                </p>
+              </div>
+            </div>
+            
+            <ScrollArea className="flex-1">
+              <div className="p-2 space-y-1">
+                {[
+                  { 
+                    icon: FileType, 
+                    name: language === "ru" ? "Шаблон сценария" : "Script Template",
+                    file: "script-template.txt",
+                    color: "text-blue-500"
+                  },
+                  { 
+                    icon: FileCheck, 
+                    name: language === "ru" ? "ОТК ТВ правила" : "TV QC Rules",
+                    file: "otk-tv-rules.pdf",
+                    color: "text-green-500"
+                  },
+                  { 
+                    icon: FileVideo, 
+                    name: language === "ru" ? "Проект Premiere (подкасты)" : "Premiere Project (podcasts)",
+                    file: "podcast-premiere-template.prproj",
+                    color: "text-purple-500"
+                  },
+                  { 
+                    icon: FileText, 
+                    name: language === "ru" ? "Чек-лист монтажа" : "Editing Checklist",
+                    file: "editing-checklist.pdf",
+                    color: "text-orange-500"
+                  },
+                ].map((item) => (
+                  <Button
+                    key={item.file}
+                    variant="ghost"
+                    className="w-full justify-start gap-3 h-auto py-2.5 px-3"
+                    onClick={() => {
+                      const link = document.createElement("a");
+                      link.href = `/files/${item.file}`;
+                      link.download = item.file;
+                      link.click();
+                    }}
+                    data-testid={`button-download-${item.file}`}
+                  >
+                    <item.icon className={`h-4 w-4 flex-shrink-0 ${item.color}`} />
+                    <span className="text-sm text-left truncate">{item.name}</span>
+                    <Download className="h-3.5 w-3.5 ml-auto text-muted-foreground flex-shrink-0" />
+                  </Button>
+                ))}
+              </div>
+            </ScrollArea>
+          </Card>
+        </div>
       </div>
     </Layout>
   );

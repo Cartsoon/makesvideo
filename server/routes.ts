@@ -8,6 +8,8 @@ import { insertSourceSchema, insertTopicSchema, insertScriptSchema, updateScript
 import type { StylePreset, Duration, JobKind } from "@shared/schema";
 import { EdgeTTS, listVoices } from "edge-tts-universal";
 import OpenAI from "openai";
+import express from "express";
+import path from "path";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -18,6 +20,9 @@ export async function registerRoutes(
   
   // Start the job worker
   startJobWorker();
+  
+  // Serve static files from public/files directory
+  app.use("/files", express.static(path.join(process.cwd(), "public/files")));
 
   // ============ SOURCES ============
 
