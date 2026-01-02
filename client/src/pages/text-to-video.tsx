@@ -1,6 +1,6 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -127,6 +127,49 @@ export default function TextToVideo() {
   
   // Editable script state
   const [editingScript, setEditingScript] = useState<string | null>(null);
+  
+  // Load saved form state on mount
+  const { data: savedFormState } = useQuery<{ inputText?: string; genLanguage?: Language; stylePreset?: StylePreset; duration?: number }>({
+    queryKey: ['/api/form-state', 'text-to-video'],
+  });
+  
+  // Apply saved form state when loaded
+  useEffect(() => {
+    if (savedFormState) {
+      if (savedFormState.inputText && !inputText) setInputText(savedFormState.inputText);
+      if (savedFormState.genLanguage) setGenLanguage(savedFormState.genLanguage);
+      if (savedFormState.stylePreset) setStylePreset(savedFormState.stylePreset);
+      if (savedFormState.duration) setDuration(savedFormState.duration);
+    }
+  }, [savedFormState]);
+  
+  // Debounced save function
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  const saveFormState = useCallback((newState: { inputText?: string; genLanguage?: Language; stylePreset?: StylePreset; duration?: number }) => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    saveTimeoutRef.current = setTimeout(async () => {
+      try {
+        await fetch('/api/form-state/text-to-video', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ state: newState }),
+        });
+      } catch (e) {
+        // Silently ignore save errors
+      }
+    }, 1000); // Save after 1 second of inactivity
+  }, []);
+  
+  // Save form state when values change
+  useEffect(() => {
+    if (inputText || genLanguage !== 'ru' || stylePreset !== 'news' || duration !== 60) {
+      saveFormState({ inputText, genLanguage, stylePreset, duration });
+    }
+  }, [inputText, genLanguage, stylePreset, duration, saveFormState]);
   
   const generateMutation = useMutation({
     mutationFn: async (data: { text: string; language: Language; style: StylePreset; duration: number }) => {

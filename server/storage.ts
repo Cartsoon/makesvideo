@@ -1,4 +1,10 @@
 import { randomUUID } from "crypto";
+import { eq, desc, and, lt, sql } from "drizzle-orm";
+import { db } from "./db";
+import {
+  settings, users, sessions, authPasswords, sources, topics, scripts, jobs,
+  trendSignals, trendTopics, formStates
+} from "@shared/schema";
 import type {
   Source, InsertSource, SourceHealth, CategoryId,
   Topic, InsertTopic,
@@ -8,7 +14,8 @@ import type {
   TrendSignal, InsertTrendSignal,
   TrendTopic, InsertTrendTopic,
   TopicStatus, ScriptStatus, JobStatus,
-  User, InsertUser, UpdateUser, Session, AuthPassword
+  User, InsertUser, UpdateUser, Session, AuthPassword,
+  FormState, InsertFormState
 } from "@shared/schema";
 
 export interface IStorage {
@@ -78,49 +85,36 @@ export interface IStorage {
   // Auth passwords (valid passwords that can create/link accounts)
   getAuthPasswords(): Promise<AuthPassword[]>;
   validatePassword(password: string): Promise<boolean>;
+  
+  // Form state
+  getFormState(pageName: string, userId?: string): Promise<FormState | undefined>;
+  saveFormState(pageName: string, state: Record<string, unknown>, userId?: string): Promise<FormState>;
 }
 
-export class MemStorage implements IStorage {
-  private sources: Map<string, Source> = new Map();
-  private topics: Map<string, Topic> = new Map();
-  private scripts: Map<string, Script> = new Map();
-  private jobs: Map<string, Job> = new Map();
-  private settings: Map<string, Setting> = new Map();
-  private trendSignals: Map<string, TrendSignal> = new Map();
-  private trendTopics: Map<string, TrendTopic> = new Map();
-  private users: Map<string, User> = new Map();
-  private sessions: Map<string, Session> = new Map();
-  private authPasswords: Map<string, AuthPassword> = new Map();
-  private nextPersonalNumber: number = 4473;
+// Helper to convert Date to ISO string
+function toISOString(date: Date | null): string | null {
+  return date ? date.toISOString() : null;
+}
 
-  constructor() {
-    // Initialize with some default settings
-    this.settings.set("fallbackMode", { key: "fallbackMode", value: "true" });
-    this.settings.set("defaultDuration", { key: "defaultDuration", value: "30" });
-    this.settings.set("defaultStylePreset", { key: "defaultStylePreset", value: "cinematic" });
-    this.settings.set("nextScriptNumber", { key: "nextScriptNumber", value: "1" });
-    
-    // Initialize valid auth passwords (without linked users initially)
-    this.authPasswords.set("Holzid56", { password: "Holzid56", userId: null });
-    this.authPasswords.set("Lerochka", { password: "Lerochka", userId: null });
-    this.authPasswords.set("Test", { password: "Test", userId: null });
-  }
-
-  // Sources
+export class DatabaseStorage implements IStorage {
+  
+  // ============ SOURCES ============
+  
   async getSources(): Promise<Source[]> {
-    return Array.from(this.sources.values()).sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+    const rows = await db.select().from(sources).orderBy(desc(sources.createdAt));
+    return rows.map(this.mapSource);
   }
 
   async getSourcesByCategory(categoryId: CategoryId): Promise<Source[]> {
-    return Array.from(this.sources.values())
-      .filter(s => s.categoryId === categoryId)
-      .sort((a, b) => b.priority - a.priority);
+    const rows = await db.select().from(sources)
+      .where(eq(sources.categoryId, categoryId))
+      .orderBy(desc(sources.priority));
+    return rows.map(this.mapSource);
   }
 
   async getSource(id: string): Promise<Source | undefined> {
-    return this.sources.get(id);
+    const [row] = await db.select().from(sources).where(eq(sources.id, id));
+    return row ? this.mapSource(row) : undefined;
   }
 
   async createSource(source: InsertSource): Promise<Source> {
@@ -135,75 +129,93 @@ export class MemStorage implements IStorage {
       lastError: null,
       itemCount: null,
     };
-    const newSource: Source = {
+    
+    const [row] = await db.insert(sources).values({
       id,
       type: source.type,
       name: source.name,
-      categoryId: (source.categoryId as CategoryId) ?? null,
+      categoryId: source.categoryId ?? null,
       config: source.config,
       isEnabled: source.isEnabled ?? true,
       priority: source.priority ?? 3,
       health: source.health ?? defaultHealth,
-      lastCheckAt: null,
       notes: source.notes ?? null,
-      createdAt: new Date().toISOString(),
-    };
-    this.sources.set(id, newSource);
-    return newSource;
+    }).returning();
+    
+    return this.mapSource(row);
   }
 
   async updateSource(id: string, updates: Partial<InsertSource>): Promise<Source | undefined> {
-    const source = this.sources.get(id);
-    if (!source) return undefined;
+    const existing = await this.getSource(id);
+    if (!existing) return undefined;
 
-    const updated: Source = {
-      ...source,
-      ...updates,
-      categoryId: updates.categoryId !== undefined ? (updates.categoryId as CategoryId) : source.categoryId,
-      config: updates.config ? { ...source.config, ...updates.config } : source.config,
-      health: updates.health ? { ...source.health, ...updates.health } : source.health,
-    };
-    this.sources.set(id, updated);
-    return updated;
+    const [row] = await db.update(sources)
+      .set({
+        ...updates,
+        config: updates.config ? { ...existing.config, ...updates.config } : undefined,
+        health: updates.health ? { ...existing.health, ...updates.health } : undefined,
+      })
+      .where(eq(sources.id, id))
+      .returning();
+    
+    return row ? this.mapSource(row) : undefined;
   }
 
   async updateSourceHealth(id: string, health: SourceHealth): Promise<Source | undefined> {
-    const source = this.sources.get(id);
-    if (!source) return undefined;
-
-    const updated: Source = {
-      ...source,
-      health,
-      lastCheckAt: new Date().toISOString(),
-    };
-    this.sources.set(id, updated);
-    return updated;
+    const [row] = await db.update(sources)
+      .set({ health, lastCheckAt: new Date() })
+      .where(eq(sources.id, id))
+      .returning();
+    
+    return row ? this.mapSource(row) : undefined;
   }
 
   async deleteSource(id: string): Promise<boolean> {
-    return this.sources.delete(id);
+    const result = await db.delete(sources).where(eq(sources.id, id));
+    return (result.rowCount ?? 0) > 0;
   }
 
   async getSourcesNeedingHealthCheck(): Promise<Source[]> {
-    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
-    return Array.from(this.sources.values())
-      .filter(s => s.isEnabled && (!s.lastCheckAt || s.lastCheckAt < sixHoursAgo));
+    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
+    const rows = await db.select().from(sources)
+      .where(and(
+        eq(sources.isEnabled, true),
+        sql`${sources.lastCheckAt} IS NULL OR ${sources.lastCheckAt} < ${sixHoursAgo}`
+      ));
+    return rows.map(this.mapSource);
   }
 
-  // Topics
+  private mapSource(row: any): Source {
+    return {
+      id: row.id,
+      type: row.type,
+      name: row.name,
+      categoryId: row.categoryId,
+      config: row.config || {},
+      isEnabled: row.isEnabled,
+      priority: row.priority,
+      health: row.health || { status: "pending", failuresCount: 0 },
+      lastCheckAt: toISOString(row.lastCheckAt),
+      notes: row.notes,
+      createdAt: row.createdAt.toISOString(),
+    };
+  }
+
+  // ============ TOPICS ============
+
   async getTopics(): Promise<Topic[]> {
-    return Array.from(this.topics.values()).sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+    const rows = await db.select().from(topics).orderBy(desc(topics.createdAt));
+    return rows.map(this.mapTopic);
   }
 
   async getTopic(id: string): Promise<Topic | undefined> {
-    return this.topics.get(id);
+    const [row] = await db.select().from(topics).where(eq(topics.id, id));
+    return row ? this.mapTopic(row) : undefined;
   }
 
   async createTopic(topic: InsertTopic): Promise<Topic> {
     const id = randomUUID();
-    const newTopic: Topic = {
+    const [row] = await db.insert(topics).values({
       id,
       sourceId: topic.sourceId,
       title: topic.title,
@@ -218,57 +230,76 @@ export class MemStorage implements IStorage {
       language: topic.language ?? "ru",
       score: topic.score ?? 0,
       status: topic.status ?? "new",
-      createdAt: new Date().toISOString(),
-    };
-    this.topics.set(id, newTopic);
-    return newTopic;
+    }).returning();
+    
+    return this.mapTopic(row);
   }
 
   async updateTopic(id: string, updates: Partial<InsertTopic>): Promise<Topic | undefined> {
-    const topic = this.topics.get(id);
-    if (!topic) return undefined;
-
-    const updated: Topic = { ...topic, ...updates };
-    this.topics.set(id, updated);
-    return updated;
+    const [row] = await db.update(topics)
+      .set(updates)
+      .where(eq(topics.id, id))
+      .returning();
+    
+    return row ? this.mapTopic(row) : undefined;
   }
 
   async deleteTopic(id: string): Promise<boolean> {
-    return this.topics.delete(id);
+    const result = await db.delete(topics).where(eq(topics.id, id));
+    return (result.rowCount ?? 0) > 0;
   }
 
-  // Scripts
+  private mapTopic(row: any): Topic {
+    return {
+      id: row.id,
+      sourceId: row.sourceId,
+      title: row.title,
+      generatedTitle: row.generatedTitle,
+      translatedTitle: row.translatedTitle,
+      translatedTitleEn: row.translatedTitleEn,
+      url: row.url,
+      rawText: row.rawText,
+      fullContent: row.fullContent,
+      insights: row.insights,
+      extractionStatus: row.extractionStatus,
+      language: row.language,
+      score: row.score,
+      status: row.status,
+      createdAt: row.createdAt.toISOString(),
+    };
+  }
+
+  // ============ SCRIPTS ============
+
   async getScripts(): Promise<Script[]> {
-    return Array.from(this.scripts.values()).sort(
-      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-    );
+    const rows = await db.select().from(scripts).orderBy(desc(scripts.updatedAt));
+    return rows.map(this.mapScript);
   }
 
   async getScript(id: string): Promise<Script | undefined> {
-    return this.scripts.get(id);
+    const [row] = await db.select().from(scripts).where(eq(scripts.id, id));
+    return row ? this.mapScript(row) : undefined;
   }
 
   async createScript(script: InsertScript): Promise<Script> {
     const id = randomUUID();
-    const now = new Date().toISOString();
     
-    // Get and increment script number
-    const numSetting = this.settings.get("nextScriptNumber");
+    // Get next script number
+    const numSetting = await this.getSetting("nextScriptNumber");
     const scriptNumber = script.scriptNumber ?? parseInt(numSetting?.value ?? "1", 10);
     const lang = script.language ?? "ru";
     const displayName = script.displayName ?? (lang === "ru" 
       ? `Скрипт #${String(scriptNumber).padStart(2, "0")}`
       : `Script #${String(scriptNumber).padStart(2, "0")}`);
     
-    // Update counter if we used it
+    // Update counter
     if (!script.scriptNumber) {
-      this.settings.set("nextScriptNumber", { key: "nextScriptNumber", value: String(scriptNumber + 1) });
+      await this.setSetting("nextScriptNumber", String(scriptNumber + 1));
     }
     
-    const newScript: Script = {
+    const [row] = await db.insert(scripts).values({
       id,
       topicId: script.topicId,
-      scriptNumber,
       displayName,
       language: lang,
       durationSec: script.durationSec ?? "30",
@@ -288,111 +319,152 @@ export class MemStorage implements IStorage {
       assets: script.assets ?? null,
       status: script.status ?? "draft",
       error: script.error ?? null,
-      createdAt: now,
-      updatedAt: now,
-    };
-    this.scripts.set(id, newScript);
-    return newScript;
+    }).returning();
+    
+    return this.mapScript(row);
   }
 
   async updateScript(id: string, updates: UpdateScript): Promise<Script | undefined> {
-    const script = this.scripts.get(id);
-    if (!script) return undefined;
-
-    const updated: Script = {
-      ...script,
-      ...updates,
-      updatedAt: new Date().toISOString(),
-    };
-    this.scripts.set(id, updated);
-    return updated;
+    const [row] = await db.update(scripts)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(scripts.id, id))
+      .returning();
+    
+    return row ? this.mapScript(row) : undefined;
   }
 
   async deleteScript(id: string): Promise<boolean> {
-    return this.scripts.delete(id);
+    const result = await db.delete(scripts).where(eq(scripts.id, id));
+    return (result.rowCount ?? 0) > 0;
   }
 
-  // Jobs
+  private mapScript(row: any): Script {
+    return {
+      id: row.id,
+      topicId: row.topicId,
+      scriptNumber: row.scriptNumber,
+      displayName: row.displayName,
+      language: row.language,
+      durationSec: row.durationSec,
+      stylePreset: row.stylePreset,
+      voiceStylePreset: row.voiceStylePreset,
+      accent: row.accent,
+      platform: row.platform,
+      keywords: row.keywords || [],
+      constraints: row.constraints,
+      seo: row.seo,
+      hook: row.hook,
+      voiceText: row.voiceText,
+      onScreenText: row.onScreenText,
+      transcriptRich: row.transcriptRich,
+      storyboard: row.storyboard,
+      music: row.music,
+      assets: row.assets,
+      status: row.status,
+      error: row.error,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
+    };
+  }
+
+  // ============ JOBS ============
+
   async getJobs(): Promise<Job[]> {
-    return Array.from(this.jobs.values()).sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+    const rows = await db.select().from(jobs).orderBy(desc(jobs.createdAt));
+    return rows.map(this.mapJob);
   }
 
   async getJob(id: string): Promise<Job | undefined> {
-    return this.jobs.get(id);
+    const [row] = await db.select().from(jobs).where(eq(jobs.id, id));
+    return row ? this.mapJob(row) : undefined;
   }
 
   async createJob(job: InsertJob): Promise<Job> {
     const id = randomUUID();
-    const now = new Date().toISOString();
-    const newJob: Job = {
+    const [row] = await db.insert(jobs).values({
       id,
       kind: job.kind,
       payload: job.payload ?? {},
       status: job.status ?? "queued",
       progress: job.progress ?? 0,
       error: job.error ?? null,
-      createdAt: now,
-      updatedAt: now,
-    };
-    this.jobs.set(id, newJob);
-    return newJob;
+    }).returning();
+    
+    return this.mapJob(row);
   }
 
   async updateJob(id: string, updates: Partial<Job>): Promise<Job | undefined> {
-    const job = this.jobs.get(id);
-    if (!job) return undefined;
-
-    const updated: Job = {
-      ...job,
-      ...updates,
-      updatedAt: new Date().toISOString(),
-    };
-    this.jobs.set(id, updated);
-    return updated;
+    const [row] = await db.update(jobs)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(jobs.id, id))
+      .returning();
+    
+    return row ? this.mapJob(row) : undefined;
   }
 
   async getQueuedJobs(): Promise<Job[]> {
-    return Array.from(this.jobs.values())
-      .filter((j) => j.status === "queued")
-      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    const rows = await db.select().from(jobs)
+      .where(eq(jobs.status, "queued"))
+      .orderBy(jobs.createdAt);
+    return rows.map(this.mapJob);
   }
 
-  // Settings
+  private mapJob(row: any): Job {
+    return {
+      id: row.id,
+      kind: row.kind,
+      payload: row.payload || {},
+      status: row.status,
+      progress: row.progress,
+      error: row.error,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
+    };
+  }
+
+  // ============ SETTINGS ============
+
   async getSettings(): Promise<Setting[]> {
-    return Array.from(this.settings.values());
+    const rows = await db.select().from(settings);
+    return rows;
   }
 
   async getSetting(key: string): Promise<Setting | undefined> {
-    return this.settings.get(key);
+    const [row] = await db.select().from(settings).where(eq(settings.key, key));
+    return row || undefined;
   }
 
   async setSetting(key: string, value: string): Promise<Setting> {
-    const setting: Setting = { key, value };
-    this.settings.set(key, setting);
-    return setting;
+    const [row] = await db.insert(settings)
+      .values({ key, value })
+      .onConflictDoUpdate({
+        target: settings.key,
+        set: { value }
+      })
+      .returning();
+    return row;
   }
 
   async deleteSetting(key: string): Promise<boolean> {
-    return this.settings.delete(key);
+    const result = await db.delete(settings).where(eq(settings.key, key));
+    return (result.rowCount ?? 0) > 0;
   }
 
-  // TrendSignals
+  // ============ TREND SIGNALS ============
+
   async getTrendSignals(): Promise<TrendSignal[]> {
-    return Array.from(this.trendSignals.values()).sort(
-      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-    );
+    const rows = await db.select().from(trendSignals).orderBy(desc(trendSignals.updatedAt));
+    return rows.map(this.mapTrendSignal);
   }
 
   async getTrendSignal(id: string): Promise<TrendSignal | undefined> {
-    return this.trendSignals.get(id);
+    const [row] = await db.select().from(trendSignals).where(eq(trendSignals.id, id));
+    return row ? this.mapTrendSignal(row) : undefined;
   }
 
   async createTrendSignal(signal: InsertTrendSignal): Promise<TrendSignal> {
     const id = randomUUID();
-    const now = new Date().toISOString();
-    const newSignal: TrendSignal = {
+    const [row] = await db.insert(trendSignals).values({
       id,
       platform: signal.platform,
       categoryId: signal.categoryId ?? null,
@@ -404,179 +476,291 @@ export class MemStorage implements IStorage {
       durationModes: signal.durationModes ?? [],
       exampleRefs: signal.exampleRefs ?? [],
       score: signal.score ?? 0,
-      createdAt: now,
-      updatedAt: now,
-    };
-    this.trendSignals.set(id, newSignal);
-    return newSignal;
+    }).returning();
+    
+    return this.mapTrendSignal(row);
   }
 
   async updateTrendSignal(id: string, updates: Partial<InsertTrendSignal>): Promise<TrendSignal | undefined> {
-    const signal = this.trendSignals.get(id);
-    if (!signal) return undefined;
-
-    const updated: TrendSignal = {
-      ...signal,
-      ...updates,
-      updatedAt: new Date().toISOString(),
-    };
-    this.trendSignals.set(id, updated);
-    return updated;
+    const [row] = await db.update(trendSignals)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(trendSignals.id, id))
+      .returning();
+    
+    return row ? this.mapTrendSignal(row) : undefined;
   }
 
   async deleteTrendSignal(id: string): Promise<boolean> {
-    return this.trendSignals.delete(id);
+    const result = await db.delete(trendSignals).where(eq(trendSignals.id, id));
+    return (result.rowCount ?? 0) > 0;
   }
 
-  // TrendTopics
+  private mapTrendSignal(row: any): TrendSignal {
+    return {
+      id: row.id,
+      platform: row.platform,
+      categoryId: row.categoryId,
+      topicClusterId: row.topicClusterId,
+      keywords: row.keywords || [],
+      angles: row.angles || [],
+      hookPatterns: row.hookPatterns || [],
+      pacingHints: row.pacingHints,
+      durationModes: row.durationModes || [],
+      exampleRefs: row.exampleRefs || [],
+      score: row.score,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
+    };
+  }
+
+  // ============ TREND TOPICS ============
+
   async getTrendTopics(): Promise<TrendTopic[]> {
-    return Array.from(this.trendTopics.values()).sort(
-      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-    );
+    const rows = await db.select().from(trendTopics).orderBy(desc(trendTopics.updatedAt));
+    return rows.map(this.mapTrendTopic);
   }
 
   async getTrendTopic(id: string): Promise<TrendTopic | undefined> {
-    return this.trendTopics.get(id);
+    const [row] = await db.select().from(trendTopics).where(eq(trendTopics.id, id));
+    return row ? this.mapTrendTopic(row) : undefined;
   }
 
   async createTrendTopic(topic: InsertTrendTopic): Promise<TrendTopic> {
     const id = randomUUID();
-    const now = new Date().toISOString();
-    const newTopic: TrendTopic = {
+    const [row] = await db.insert(trendTopics).values({
       id,
       categoryId: topic.categoryId ?? null,
+      clusterLabel: topic.clusterLabel,
       seedTitles: topic.seedTitles,
       contextSnippets: topic.contextSnippets,
       entities: topic.entities ?? [],
       keywords: topic.keywords,
       angles: topic.angles,
+      hookPatterns: topic.hookPatterns ?? [],
+      pacingHints: topic.pacingHints ?? null,
+      refs: topic.refs ?? [],
       trendSignalIds: topic.trendSignalIds ?? [],
       score: topic.score ?? 0,
-      createdAt: now,
-      updatedAt: now,
-    };
-    this.trendTopics.set(id, newTopic);
-    return newTopic;
+    }).returning();
+    
+    return this.mapTrendTopic(row);
   }
 
   async deleteTrendTopic(id: string): Promise<boolean> {
-    return this.trendTopics.delete(id);
+    const result = await db.delete(trendTopics).where(eq(trendTopics.id, id));
+    return (result.rowCount ?? 0) > 0;
   }
 
-  // Users
+  private mapTrendTopic(row: any): TrendTopic {
+    return {
+      id: row.id,
+      categoryId: row.categoryId,
+      clusterLabel: row.clusterLabel,
+      seedTitles: row.seedTitles || [],
+      contextSnippets: row.contextSnippets || [],
+      entities: row.entities || [],
+      keywords: row.keywords || [],
+      angles: row.angles || [],
+      hookPatterns: row.hookPatterns || [],
+      pacingHints: row.pacingHints,
+      refs: row.refs || [],
+      trendSignalIds: row.trendSignalIds || [],
+      score: row.score,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
+    };
+  }
+
+  // ============ USERS ============
+
   async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+    const [row] = await db.select().from(users).where(eq(users.id, id));
+    return row ? this.mapUser(row) : undefined;
   }
 
   async getUserByPassword(password: string): Promise<User | undefined> {
-    const authPwd = this.authPasswords.get(password);
+    const [authPwd] = await db.select().from(authPasswords).where(eq(authPasswords.password, password));
     if (!authPwd || !authPwd.userId) return undefined;
-    return this.users.get(authPwd.userId);
+    return this.getUser(authPwd.userId);
   }
 
   async createUser(user: InsertUser): Promise<User> {
     const id = randomUUID();
-    const now = new Date();
-    const subscriptionExpires = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
+    const subscriptionExpires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     
-    const newUser: User = {
+    const [row] = await db.insert(users).values({
       id,
-      personalNumber: this.nextPersonalNumber++,
       passwordHash: user.passwordHash,
       nickname: user.nickname ?? null,
       language: user.language ?? "ru",
       theme: user.theme ?? "dark",
-      subscriptionExpiresAt: subscriptionExpires.toISOString(),
-      createdAt: now.toISOString(),
-    };
-    this.users.set(id, newUser);
+      subscriptionExpiresAt: subscriptionExpires,
+    }).returning();
     
     // Link password to user
-    const authPwd = this.authPasswords.get(user.passwordHash);
-    if (authPwd) {
-      authPwd.userId = id;
-    }
+    await db.update(authPasswords)
+      .set({ userId: id })
+      .where(eq(authPasswords.password, user.passwordHash));
     
-    return newUser;
+    return this.mapUser(row);
   }
 
   async updateUser(id: string, updates: UpdateUser): Promise<User | undefined> {
-    const user = this.users.get(id);
-    if (!user) return undefined;
-
-    const updated: User = {
-      ...user,
-      ...updates,
-    };
-    this.users.set(id, updated);
-    return updated;
+    const [row] = await db.update(users)
+      .set(updates)
+      .where(eq(users.id, id))
+      .returning();
+    
+    return row ? this.mapUser(row) : undefined;
   }
 
   async resetUserSettings(id: string): Promise<User | undefined> {
-    const user = this.users.get(id);
-    if (!user) return undefined;
-
-    const updated: User = {
-      ...user,
-      nickname: null,
-      language: "ru",
-      theme: "dark",
-    };
-    this.users.set(id, updated);
-    return updated;
+    const [row] = await db.update(users)
+      .set({ nickname: null, language: "ru", theme: "dark" })
+      .where(eq(users.id, id))
+      .returning();
+    
+    return row ? this.mapUser(row) : undefined;
   }
 
-  // Sessions
+  private mapUser(row: any): User {
+    return {
+      id: row.id,
+      personalNumber: row.personalNumber,
+      passwordHash: row.passwordHash,
+      nickname: row.nickname,
+      language: row.language,
+      theme: row.theme,
+      subscriptionExpiresAt: row.subscriptionExpiresAt.toISOString(),
+      createdAt: row.createdAt.toISOString(),
+    };
+  }
+
+  // ============ SESSIONS ============
+
   async getSession(id: string): Promise<Session | undefined> {
-    const session = this.sessions.get(id);
-    if (!session) return undefined;
+    const [row] = await db.select().from(sessions).where(eq(sessions.id, id));
+    if (!row) return undefined;
     
     // Check if expired
-    if (new Date(session.expiresAt) < new Date()) {
-      this.sessions.delete(id);
+    if (new Date(row.expiresAt) < new Date()) {
+      await this.deleteSession(id);
       return undefined;
     }
     
-    return session;
+    return this.mapSession(row);
   }
 
   async createSession(userId: string): Promise<Session> {
     const id = randomUUID();
-    const now = new Date();
-    const expires = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     
-    const session: Session = {
+    const [row] = await db.insert(sessions).values({
       id,
       userId,
-      expiresAt: expires.toISOString(),
-      createdAt: now.toISOString(),
-    };
-    this.sessions.set(id, session);
-    return session;
+      expiresAt: expires,
+    }).returning();
+    
+    return this.mapSession(row);
   }
 
   async deleteSession(id: string): Promise<boolean> {
-    return this.sessions.delete(id);
+    const result = await db.delete(sessions).where(eq(sessions.id, id));
+    return (result.rowCount ?? 0) > 0;
   }
 
   async cleanExpiredSessions(): Promise<void> {
-    const now = new Date();
-    const entries = Array.from(this.sessions.entries());
-    for (const [id, session] of entries) {
-      if (new Date(session.expiresAt) < now) {
-        this.sessions.delete(id);
-      }
-    }
+    await db.delete(sessions).where(lt(sessions.expiresAt, new Date()));
   }
 
-  // Auth passwords
+  private mapSession(row: any): Session {
+    return {
+      id: row.id,
+      userId: row.userId,
+      expiresAt: row.expiresAt.toISOString(),
+      createdAt: row.createdAt.toISOString(),
+    };
+  }
+
+  // ============ AUTH PASSWORDS ============
+
   async getAuthPasswords(): Promise<AuthPassword[]> {
-    return Array.from(this.authPasswords.values());
+    const rows = await db.select().from(authPasswords);
+    return rows.map(row => ({ password: row.password, userId: row.userId }));
   }
 
   async validatePassword(password: string): Promise<boolean> {
-    return this.authPasswords.has(password);
+    const [row] = await db.select().from(authPasswords).where(eq(authPasswords.password, password));
+    return !!row;
+  }
+
+  // ============ FORM STATE ============
+
+  async getFormState(pageName: string, userId?: string): Promise<FormState | undefined> {
+    const id = userId ? `${userId}:${pageName}` : `anon:${pageName}`;
+    const [row] = await db.select().from(formStates).where(eq(formStates.id, id));
+    return row ? {
+      id: row.id,
+      userId: row.userId,
+      pageName: row.pageName,
+      state: row.state as Record<string, unknown>,
+      updatedAt: row.updatedAt.toISOString(),
+    } : undefined;
+  }
+
+  async saveFormState(pageName: string, state: Record<string, unknown>, userId?: string): Promise<FormState> {
+    const id = userId ? `${userId}:${pageName}` : `anon:${pageName}`;
+    
+    const [row] = await db.insert(formStates)
+      .values({
+        id,
+        userId: userId ?? null,
+        pageName,
+        state,
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: formStates.id,
+        set: { state, updatedAt: new Date() }
+      })
+      .returning();
+    
+    return {
+      id: row.id,
+      userId: row.userId,
+      pageName: row.pageName,
+      state: row.state as Record<string, unknown>,
+      updatedAt: row.updatedAt.toISOString(),
+    };
   }
 }
 
-export const storage = new MemStorage();
+// Initialize default settings and auth passwords
+async function initializeDefaults() {
+  const storage = new DatabaseStorage();
+  
+  // Check if settings exist
+  const existingSettings = await storage.getSettings();
+  if (existingSettings.length === 0) {
+    await storage.setSetting("fallbackMode", "true");
+    await storage.setSetting("defaultDuration", "30");
+    await storage.setSetting("defaultStylePreset", "cinematic");
+    await storage.setSetting("nextScriptNumber", "1");
+  }
+  
+  // Check if auth passwords exist
+  const existingPasswords = await storage.getAuthPasswords();
+  if (existingPasswords.length === 0) {
+    await db.insert(authPasswords).values([
+      { password: "Holzid56", userId: null },
+      { password: "Lerochka", userId: null },
+      { password: "Test", userId: null },
+    ]).onConflictDoNothing();
+  }
+}
+
+// Create and export storage instance
+export const storage = new DatabaseStorage();
+
+// Initialize defaults when module loads (but don't block)
+initializeDefaults().catch(console.error);

@@ -1712,5 +1712,50 @@ Distribute time evenly: scenes 3-7 seconds each. Only JSON array.`;
     }
   });
 
+  // ============ FORM STATE PERSISTENCE ============
+  
+  app.get("/api/form-state/:pageName", async (req, res) => {
+    try {
+      const { pageName } = req.params;
+      const sessionId = req.cookies?.session_id;
+      let userId: string | undefined;
+      
+      if (sessionId) {
+        const session = await storage.getSession(sessionId);
+        if (session) {
+          userId = session.userId;
+        }
+      }
+      
+      const formState = await storage.getFormState(pageName, userId);
+      res.json(formState?.state || {});
+    } catch (error) {
+      console.error("Failed to get form state:", error);
+      res.status(500).json({ error: "Failed to get form state" });
+    }
+  });
+
+  app.post("/api/form-state/:pageName", async (req, res) => {
+    try {
+      const { pageName } = req.params;
+      const { state } = req.body;
+      const sessionId = req.cookies?.session_id;
+      let userId: string | undefined;
+      
+      if (sessionId) {
+        const session = await storage.getSession(sessionId);
+        if (session) {
+          userId = session.userId;
+        }
+      }
+      
+      const formState = await storage.saveFormState(pageName, state || {}, userId);
+      res.json(formState);
+    } catch (error) {
+      console.error("Failed to save form state:", error);
+      res.status(500).json({ error: "Failed to save form state" });
+    }
+  });
+
   return httpServer;
 }
