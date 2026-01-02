@@ -624,110 +624,107 @@ export default function AssistantPage() {
             </Button>
           </div>
 
-          {/* Dock Bar */}
-          <div className="flex items-center justify-between px-3 py-2 border-t border-border/30 bg-card/30">
-            <Sheet open={mobileDrawerOpen} onOpenChange={setMobileDrawerOpen}>
-              <SheetTrigger asChild>
-                <button className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 hover:border-amber-500/40 transition-colors" data-testid="button-open-notes-drawer">
-                  <StickyNote className="h-3.5 w-3.5 text-amber-500" />
-                  <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
-                    {language === "ru" ? "Заметки" : "Notes"}
-                  </span>
-                  {notes.length > 0 && (
-                    <span className="text-[9px] bg-amber-500/30 text-amber-700 dark:text-amber-300 px-1.5 rounded-full">{notes.length}</span>
-                  )}
-                </button>
-              </SheetTrigger>
-              <SheetContent side="bottom" className="h-[70vh] rounded-t-xl p-0">
-                {/* Drawer Tabs */}
-                <div className="flex border-b">
-                  <button
-                    onClick={() => setMobileDrawerTab("notes")}
-                    className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors ${mobileDrawerTab === "notes" ? "text-amber-500 border-b-2 border-amber-500 bg-amber-500/5" : "text-muted-foreground"}`}
-                    data-testid="button-drawer-tab-notes"
-                  >
-                    <StickyNote className="h-4 w-4" />
-                    {language === "ru" ? "Заметки" : "Notes"}
-                  </button>
-                  <button
-                    onClick={() => setMobileDrawerTab("files")}
-                    className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors ${mobileDrawerTab === "files" ? "text-primary border-b-2 border-primary bg-primary/5" : "text-muted-foreground"}`}
-                    data-testid="button-drawer-tab-files"
-                  >
-                    <FolderDown className="h-4 w-4" />
-                    {language === "ru" ? "Файлы" : "Files"}
-                  </button>
-                </div>
-
-                {mobileDrawerTab === "notes" ? (
-                  <div className="flex flex-col h-[calc(70vh-48px)]">
-                    <div className="flex items-center justify-between px-4 py-2 bg-gradient-to-r from-amber-500/5 to-orange-500/5">
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        {notesSaved ? <><Save className="h-3 w-3 text-green-500" />{language === "ru" ? "Сохранено" : "Saved"}</> : <><Loader2 className="h-3 w-3 animate-spin" />{language === "ru" ? "Сохранение..." : "Saving..."}</>}
-                      </div>
-                      <Button variant="ghost" size="sm" onClick={() => handleNotesChange("")} disabled={notes.length === 0} className="h-7 text-xs" data-testid="button-clear-notes-drawer">
-                        <Trash2 className="h-3 w-3 mr-1" />
-                        {language === "ru" ? "Очистить" : "Clear"}
-                      </Button>
-                    </div>
-                    <Textarea
-                      value={notes}
-                      onChange={(e) => handleNotesChange(e.target.value)}
-                      placeholder={language === "ru" ? "Записывайте важные идеи из чата здесь..." : "Write down important ideas from chat here..."}
-                      className="flex-1 resize-none border-0 rounded-none bg-gradient-to-b from-amber-500/5 via-transparent to-orange-500/5 focus-visible:ring-0 text-sm leading-relaxed px-4"
-                      data-testid="input-notes-drawer"
-                    />
-                  </div>
-                ) : (
-                  <div className="p-4 space-y-3">
-                    <p className="text-xs text-muted-foreground mb-3">
-                      {language === "ru" ? "Полезные шаблоны и ресурсы" : "Useful templates and resources"}
-                    </p>
-                    <div className="grid grid-cols-2 gap-3">
-                      {[
-                        { icon: FileType, name: language === "ru" ? "Шаблон сценария" : "Script Template", file: "script-template.txt", color: "from-blue-500 to-blue-600", desc: language === "ru" ? "Структура для Shorts" : "Structure for Shorts" },
-                        { icon: FileCheck, name: language === "ru" ? "Правила ОТК" : "QC Rules", file: "otk-tv-rules.pdf", color: "from-green-500 to-green-600", desc: language === "ru" ? "Проверка качества" : "Quality check" },
-                        { icon: FileVideo, name: "Premiere Pro", file: "podcast-premiere-template.prproj", color: "from-purple-500 to-purple-600", desc: language === "ru" ? "Проект подкаста" : "Podcast project" },
-                        { icon: FileText, name: language === "ru" ? "Чек-лист монтажа" : "Edit Checklist", file: "editing-checklist.pdf", color: "from-orange-500 to-orange-600", desc: language === "ru" ? "Пошаговая проверка" : "Step-by-step check" },
-                      ].map((item) => (
-                        <button
-                          key={item.file}
-                          onClick={() => { const link = document.createElement("a"); link.href = `/files/${item.file}`; link.download = item.file; link.click(); }}
-                          className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors text-left"
-                          data-testid={`button-download-drawer-${item.file}`}
-                        >
-                          <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${item.color} flex items-center justify-center flex-shrink-0`}>
-                            <item.icon className="h-5 w-5 text-white" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium truncate">{item.name}</p>
-                            <p className="text-[10px] text-muted-foreground">{item.desc}</p>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </SheetContent>
-            </Sheet>
-
-            <div className="flex items-center gap-2">
-              {[
-                { icon: FileType, file: "script-template.txt", color: "text-blue-500", label: language === "ru" ? "Шаблон" : "Template" },
-                { icon: FileCheck, file: "otk-tv-rules.pdf", color: "text-green-500", label: language === "ru" ? "ОТК" : "QC" },
-              ].map((item) => (
-                <button
-                  key={item.file}
-                  onClick={() => { const link = document.createElement("a"); link.href = `/files/${item.file}`; link.download = item.file; link.click(); }}
-                  className="flex items-center gap-1 px-2 py-1 rounded bg-muted/50 hover:bg-muted transition-colors"
-                  title={item.label}
-                  data-testid={`button-quick-file-${item.file}`}
-                >
-                  <item.icon className={`h-3.5 w-3.5 ${item.color}`} />
-                </button>
-              ))}
-            </div>
+          {/* Bottom Action Buttons */}
+          <div className="flex gap-2 px-3 py-2 border-t border-border/50 bg-card/50">
+            <button
+              onClick={() => { setMobileDrawerTab("notes"); setMobileDrawerOpen(true); }}
+              className="flex-1 flex items-center justify-center gap-2 py-2 rounded-md bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 active:scale-[0.98] transition-all"
+              data-testid="button-open-notes-mobile"
+            >
+              <StickyNote className="h-4 w-4 text-amber-500" />
+              <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
+                {language === "ru" ? "Заметки" : "Notes"}
+              </span>
+              {notes.length > 0 && (
+                <span className="text-[9px] bg-amber-500/20 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded-full font-mono">{notes.length}</span>
+              )}
+            </button>
+            <button
+              onClick={() => { setMobileDrawerTab("files"); setMobileDrawerOpen(true); }}
+              className="flex-1 flex items-center justify-center gap-2 py-2 rounded-md bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 active:scale-[0.98] transition-all"
+              data-testid="button-open-files-mobile"
+            >
+              <FolderDown className="h-4 w-4 text-primary" />
+              <span className="text-xs font-medium text-primary">
+                {language === "ru" ? "Файлы" : "Files"}
+              </span>
+            </button>
           </div>
+
+          {/* Sheet Drawer */}
+          <Sheet open={mobileDrawerOpen} onOpenChange={setMobileDrawerOpen}>
+            <SheetContent side="bottom" className="h-[70vh] rounded-t-xl p-0">
+              {/* Drawer Tabs */}
+              <div className="flex border-b">
+                <button
+                  onClick={() => setMobileDrawerTab("notes")}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors ${mobileDrawerTab === "notes" ? "text-amber-500 border-b-2 border-amber-500 bg-amber-500/5" : "text-muted-foreground"}`}
+                  data-testid="button-drawer-tab-notes"
+                >
+                  <StickyNote className="h-4 w-4" />
+                  {language === "ru" ? "Заметки" : "Notes"}
+                </button>
+                <button
+                  onClick={() => setMobileDrawerTab("files")}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors ${mobileDrawerTab === "files" ? "text-primary border-b-2 border-primary bg-primary/5" : "text-muted-foreground"}`}
+                  data-testid="button-drawer-tab-files"
+                >
+                  <FolderDown className="h-4 w-4" />
+                  {language === "ru" ? "Файлы" : "Files"}
+                </button>
+              </div>
+
+              {mobileDrawerTab === "notes" ? (
+                <div className="flex flex-col h-[calc(70vh-48px)]">
+                  <div className="flex items-center justify-between px-4 py-2 bg-gradient-to-r from-amber-500/5 to-orange-500/5">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      {notesSaved ? <><Save className="h-3 w-3 text-green-500" />{language === "ru" ? "Сохранено" : "Saved"}</> : <><Loader2 className="h-3 w-3 animate-spin" />{language === "ru" ? "Сохранение..." : "Saving..."}</>}
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => handleNotesChange("")} disabled={notes.length === 0} className="h-7 text-xs" data-testid="button-clear-notes-drawer">
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      {language === "ru" ? "Очистить" : "Clear"}
+                    </Button>
+                  </div>
+                  <Textarea
+                    value={notes}
+                    onChange={(e) => handleNotesChange(e.target.value)}
+                    placeholder={language === "ru" ? "Записывайте важные идеи из чата здесь..." : "Write down important ideas from chat here..."}
+                    className="flex-1 resize-none border-0 rounded-none bg-gradient-to-b from-amber-500/5 via-transparent to-orange-500/5 focus-visible:ring-0 text-sm leading-relaxed px-4"
+                    data-testid="input-notes-drawer"
+                  />
+                </div>
+              ) : (
+                <div className="p-4 space-y-3">
+                  <p className="text-xs text-muted-foreground mb-3">
+                    {language === "ru" ? "Полезные шаблоны и ресурсы" : "Useful templates and resources"}
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { icon: FileType, name: language === "ru" ? "Шаблон сценария" : "Script Template", file: "script-template.txt", color: "from-blue-500 to-blue-600", desc: language === "ru" ? "Структура для Shorts" : "Structure for Shorts" },
+                      { icon: FileCheck, name: language === "ru" ? "Правила ОТК" : "QC Rules", file: "otk-tv-rules.pdf", color: "from-green-500 to-green-600", desc: language === "ru" ? "Проверка качества" : "Quality check" },
+                      { icon: FileVideo, name: "Premiere Pro", file: "podcast-premiere-template.prproj", color: "from-purple-500 to-purple-600", desc: language === "ru" ? "Проект подкаста" : "Podcast project" },
+                      { icon: FileText, name: language === "ru" ? "Чек-лист монтажа" : "Edit Checklist", file: "editing-checklist.pdf", color: "from-orange-500 to-orange-600", desc: language === "ru" ? "Пошаговая проверка" : "Step-by-step check" },
+                    ].map((item) => (
+                      <button
+                        key={item.file}
+                        onClick={() => { const link = document.createElement("a"); link.href = `/files/${item.file}`; link.download = item.file; link.click(); }}
+                        className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors text-left"
+                        data-testid={`button-download-drawer-${item.file}`}
+                      >
+                        <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${item.color} flex items-center justify-center flex-shrink-0`}>
+                          <item.icon className="h-5 w-5 text-white" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{item.name}</p>
+                          <p className="text-[10px] text-muted-foreground">{item.desc}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
 
