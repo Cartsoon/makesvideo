@@ -10,7 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import { apiRequest } from "@/lib/queryClient";
 import type { AuthUser } from "@/lib/auth-context";
-import avatarImage from "@assets/channels4_profile_1767356677550.jpg";
+import { AVATARS, getAvatarById } from "@/lib/avatars";
+import { cn } from "@/lib/utils";
 
 interface ProfileModalProps {
   user: AuthUser;
@@ -26,7 +27,7 @@ export function ProfileModal({ user, onUserUpdate, onLogout, trigger }: ProfileM
   const [isEditingNickname, setIsEditingNickname] = useState(false);
   const [nicknameValue, setNicknameValue] = useState(user.nickname || "");
 
-  const updateProfileMutation = useMutation({
+  const updateNicknameMutation = useMutation({
     mutationFn: async (data: { nickname?: string }) => {
       const response = await apiRequest("PATCH", "/api/auth/profile", data);
       return response.json();
@@ -38,6 +39,32 @@ export function ProfileModal({ user, onUserUpdate, onLogout, trigger }: ProfileM
         title: t("profile.updated"),
         description: t("profile.updatedDesc"),
       });
+    },
+    onError: (error: Error) => {
+      if (error.message.includes("401")) {
+        sessionStorage.removeItem("idengine-auth");
+        onLogout();
+        toast({
+          title: t("profile.sessionExpired"),
+          description: t("profile.pleaseLogin"),
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: t("profile.updateError"),
+          variant: "destructive",
+        });
+      }
+    },
+  });
+
+  const updateAvatarMutation = useMutation({
+    mutationFn: async (avatarId: number) => {
+      const response = await apiRequest("PATCH", "/api/auth/profile", { avatarId });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      onUserUpdate(data.user);
     },
     onError: (error: Error) => {
       if (error.message.includes("401")) {
@@ -99,7 +126,7 @@ export function ProfileModal({ user, onUserUpdate, onLogout, trigger }: ProfileM
   });
 
   const handleSaveNickname = () => {
-    updateProfileMutation.mutate({ nickname: nicknameValue || undefined });
+    updateNicknameMutation.mutate({ nickname: nicknameValue || undefined });
   };
 
   const handleCancelEdit = () => {
@@ -141,12 +168,33 @@ export function ProfileModal({ user, onUserUpdate, onLogout, trigger }: ProfileM
         </DialogHeader>
 
         <div className="flex flex-col items-center gap-3 py-4">
-          <Avatar className="h-28 w-28 border-3 border-primary/30 shadow-lg">
-            <AvatarImage src={avatarImage} alt="Profile" className="object-cover" />
-            <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-primary text-4xl font-bold">
-              {user.nickname?.[0]?.toUpperCase() || "#"}
+          <Avatar className="h-20 w-20 border-2 border-primary/30 shadow-lg">
+            {user.avatarId > 0 ? (
+              <AvatarImage src={getAvatarById(user.avatarId)} alt="Profile" className="object-cover" />
+            ) : null}
+            <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-primary text-3xl font-bold">
+              {user.nickname?.[0]?.toUpperCase() || <User className="h-8 w-8" />}
             </AvatarFallback>
           </Avatar>
+
+          <div className="grid grid-cols-6 gap-2">
+            {AVATARS.map((avatar) => (
+              <button
+                key={avatar.id}
+                onClick={() => updateAvatarMutation.mutate(avatar.id)}
+                className={cn(
+                  "relative rounded-sm overflow-visible transition-all",
+                  user.avatarId === avatar.id && "ring-2 ring-primary ring-offset-2 ring-offset-background"
+                )}
+                data-testid={`button-avatar-${avatar.id}`}
+                disabled={updateAvatarMutation.isPending}
+              >
+                <Avatar className="h-10 w-10">
+                  <AvatarImage src={avatar.src} alt={avatar.name} className="object-cover" />
+                </Avatar>
+              </button>
+            ))}
+          </div>
 
           <button
             onClick={() => {
@@ -184,10 +232,10 @@ export function ProfileModal({ user, onUserUpdate, onLogout, trigger }: ProfileM
                   size="icon"
                   variant="ghost"
                   onClick={handleSaveNickname}
-                  disabled={updateProfileMutation.isPending}
+                  disabled={updateNicknameMutation.isPending}
                   data-testid="button-save-nickname"
                 >
-                  {updateProfileMutation.isPending ? (
+                  {updateNicknameMutation.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <Check className="h-4 w-4 text-green-500" />
