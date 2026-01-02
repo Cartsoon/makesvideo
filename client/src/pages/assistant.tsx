@@ -588,7 +588,7 @@ export default function AssistantPage() {
           <Collapsible 
             open={mobileNotesOpen} 
             onOpenChange={setMobileNotesOpen}
-            className="lg:hidden border-t"
+            className="lg:hidden mt-2 mx-2 mb-2 rounded-lg border overflow-hidden"
           >
             <CollapsibleTrigger asChild>
               <Button
