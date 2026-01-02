@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { User, Calendar, RotateCcw, LogOut, Check, X, Loader2, Copy } from "lucide-react";
+import { User, Calendar, RotateCcw, LogOut, Check, X, Loader2, Copy, ChevronDown } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -24,6 +25,7 @@ export function ProfileModal({ user, onUserUpdate, onLogout, trigger }: ProfileM
   const { t } = useI18n();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
+  const [avatarPopoverOpen, setAvatarPopoverOpen] = useState(false);
   const [isEditingNickname, setIsEditingNickname] = useState(false);
   const [nicknameValue, setNicknameValue] = useState(user.nickname || "");
 
@@ -65,6 +67,7 @@ export function ProfileModal({ user, onUserUpdate, onLogout, trigger }: ProfileM
     },
     onSuccess: (data) => {
       onUserUpdate(data.user);
+      setAvatarPopoverOpen(false);
     },
     onError: (error: Error) => {
       if (error.message.includes("401")) {
@@ -167,34 +170,52 @@ export function ProfileModal({ user, onUserUpdate, onLogout, trigger }: ProfileM
           <DialogTitle className="text-lg font-semibold">{t("profile.title")}</DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col items-center gap-3 py-4">
-          <Avatar className="h-20 w-20 border-2 border-primary/30 shadow-lg">
-            {user.avatarId > 0 ? (
-              <AvatarImage src={getAvatarById(user.avatarId)} alt="Profile" className="object-cover" />
-            ) : null}
-            <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-primary text-3xl font-bold">
-              {user.nickname?.[0]?.toUpperCase() || <User className="h-8 w-8" />}
-            </AvatarFallback>
-          </Avatar>
-
-          <div className="grid grid-cols-6 gap-2">
-            {AVATARS.map((avatar) => (
+        <div className="flex flex-col items-center gap-4 py-4">
+          <Popover open={avatarPopoverOpen} onOpenChange={setAvatarPopoverOpen}>
+            <PopoverTrigger asChild>
               <button
-                key={avatar.id}
-                onClick={() => updateAvatarMutation.mutate(avatar.id)}
-                className={cn(
-                  "relative rounded-sm overflow-visible transition-all",
-                  user.avatarId === avatar.id && "ring-2 ring-primary ring-offset-2 ring-offset-background"
-                )}
-                data-testid={`button-avatar-${avatar.id}`}
-                disabled={updateAvatarMutation.isPending}
+                className="relative group cursor-pointer"
+                data-testid="button-change-avatar"
               >
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src={avatar.src} alt={avatar.name} className="object-cover" />
+                <Avatar className="h-24 w-24 border-2 border-primary/30 shadow-lg transition-all group-hover:border-primary/60">
+                  {user.avatarId > 0 ? (
+                    <AvatarImage src={getAvatarById(user.avatarId)} alt="Profile" className="object-cover" />
+                  ) : null}
+                  <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-primary text-4xl font-bold">
+                    {user.nickname?.[0]?.toUpperCase() || <User className="h-10 w-10" />}
+                  </AvatarFallback>
                 </Avatar>
+                <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
+                  <ChevronDown className="h-6 w-6 text-white" />
+                </div>
               </button>
-            ))}
-          </div>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-3" align="center">
+              <div className="grid grid-cols-3 gap-2">
+                {AVATARS.map((avatar) => (
+                  <button
+                    key={avatar.id}
+                    onClick={() => updateAvatarMutation.mutate(avatar.id)}
+                    className={cn(
+                      "relative rounded-sm overflow-visible transition-all hover-elevate",
+                      user.avatarId === avatar.id && "ring-2 ring-primary ring-offset-2 ring-offset-background"
+                    )}
+                    data-testid={`button-avatar-${avatar.id}`}
+                    disabled={updateAvatarMutation.isPending}
+                  >
+                    <Avatar className="h-14 w-14">
+                      <AvatarImage src={avatar.src} alt={avatar.name} className="object-cover" />
+                    </Avatar>
+                    {user.avatarId === avatar.id && (
+                      <div className="absolute -top-1 -right-1 h-4 w-4 bg-primary rounded-full flex items-center justify-center">
+                        <Check className="h-2.5 w-2.5 text-primary-foreground" />
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
 
           <button
             onClick={() => {

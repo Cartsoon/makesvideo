@@ -828,6 +828,7 @@ export interface User {
   personalNumber: number;
   passwordHash: string;
   nickname: string | null;
+  avatarId: number;
   language: Language;
   theme: "light" | "dark";
   subscriptionExpiresAt: string;
@@ -845,6 +846,7 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 
 export const updateUserSchema = z.object({
   nickname: z.string().nullable().optional(),
+  avatarId: z.number().min(1).max(6).optional(),
   language: Language.optional(),
   theme: z.enum(["light", "dark"]).optional(),
 });

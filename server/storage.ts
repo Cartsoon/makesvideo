@@ -589,11 +589,13 @@ export class DatabaseStorage implements IStorage {
   async createUser(user: InsertUser): Promise<User> {
     const id = randomUUID();
     const subscriptionExpires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    const randomAvatarId = Math.floor(Math.random() * 6) + 1;
     
     const [row] = await db.insert(users).values({
       id,
       passwordHash: user.passwordHash,
       nickname: user.nickname ?? null,
+      avatarId: randomAvatarId,
       language: user.language ?? "ru",
       theme: user.theme ?? "dark",
       subscriptionExpiresAt: subscriptionExpires,
@@ -631,6 +633,7 @@ export class DatabaseStorage implements IStorage {
       personalNumber: row.personalNumber,
       passwordHash: row.passwordHash,
       nickname: row.nickname,
+      avatarId: row.avatarId,
       language: row.language,
       theme: row.theme,
       subscriptionExpiresAt: row.subscriptionExpiresAt.toISOString(),
