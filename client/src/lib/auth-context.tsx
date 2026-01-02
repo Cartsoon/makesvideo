@@ -4,6 +4,7 @@ export interface AuthUser {
   id: string;
   personalNumber: number;
   nickname: string | null;
+  avatarId: number;
   language: string;
   theme: string;
   subscriptionExpiresAt: string;

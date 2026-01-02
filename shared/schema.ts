@@ -17,6 +17,7 @@ export const users = pgTable("users", {
   personalNumber: serial("personal_number"),
   passwordHash: varchar("password_hash", { length: 255 }).notNull(),
   nickname: varchar("nickname", { length: 100 }),
+  avatarId: integer("avatar_id").default(0).notNull(),
   language: varchar("language", { length: 10 }).default("ru").notNull(),
   theme: varchar("theme", { length: 10 }).default("dark").notNull(),
   subscriptionExpiresAt: timestamp("subscription_expires_at").notNull(),

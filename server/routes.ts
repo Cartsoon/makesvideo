@@ -1562,6 +1562,7 @@ Distribute time evenly: scenes 3-7 seconds each. Only JSON array.`;
           id: user.id,
           personalNumber: user.personalNumber,
           nickname: user.nickname,
+          avatarId: user.avatarId,
           language: user.language,
           theme: user.theme,
           subscriptionExpiresAt: user.subscriptionExpiresAt,
@@ -1600,6 +1601,7 @@ Distribute time evenly: scenes 3-7 seconds each. Only JSON array.`;
           id: user.id,
           personalNumber: user.personalNumber,
           nickname: user.nickname,
+          avatarId: user.avatarId,
           language: user.language,
           theme: user.theme,
           subscriptionExpiresAt: user.subscriptionExpiresAt,
@@ -1646,10 +1648,11 @@ Distribute time evenly: scenes 3-7 seconds each. Only JSON array.`;
         return res.status(401).json({ error: "Session expired" });
       }
       
-      const { nickname, language, theme } = req.body;
+      const { nickname, avatarId, language, theme } = req.body;
       
       const user = await storage.updateUser(session.userId, {
         nickname,
+        avatarId,
         language,
         theme,
       });
@@ -1663,6 +1666,7 @@ Distribute time evenly: scenes 3-7 seconds each. Only JSON array.`;
           id: user.id,
           personalNumber: user.personalNumber,
           nickname: user.nickname,
+          avatarId: user.avatarId,
           language: user.language,
           theme: user.theme,
           subscriptionExpiresAt: user.subscriptionExpiresAt,
@@ -1700,6 +1704,7 @@ Distribute time evenly: scenes 3-7 seconds each. Only JSON array.`;
           id: user.id,
           personalNumber: user.personalNumber,
           nickname: user.nickname,
+          avatarId: user.avatarId,
           language: user.language,
           theme: user.theme,
           subscriptionExpiresAt: user.subscriptionExpiresAt,
