@@ -371,12 +371,27 @@ export default function AssistantPage() {
   };
 
   return (
-    <Layout title={language === "ru" ? "AI-Ассистент" : "AI Assistant"}>
+    <Layout title="VIDEO AI">
       {/* Welcome Modal */}
       <Dialog open={showWelcome} onOpenChange={(open) => !open && closeWelcome()}>
         <DialogContent className="max-w-sm p-0 gap-0 overflow-hidden border-0">
-          <div className="bg-gradient-to-br from-primary/10 via-amber-500/5 to-orange-500/10 p-6">
-            <div className="flex items-center justify-center gap-3 mb-4">
+          <div className="relative p-6 overflow-hidden">
+            {/* Stylish grid background */}
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-amber-500/10 to-orange-500/15" />
+            <div className="absolute inset-0 opacity-10" style={{
+              backgroundImage: `
+                linear-gradient(90deg, currentColor 1px, transparent 1px),
+                linear-gradient(currentColor 1px, transparent 1px)
+              `,
+              backgroundSize: '20px 20px'
+            }} />
+            {/* Corner markers */}
+            <div className="absolute top-2 left-2 w-4 h-4 border-l-2 border-t-2 border-primary/40" />
+            <div className="absolute top-2 right-2 w-4 h-4 border-r-2 border-t-2 border-primary/40" />
+            <div className="absolute bottom-2 left-2 w-4 h-4 border-l-2 border-b-2 border-primary/40" />
+            <div className="absolute bottom-2 right-2 w-4 h-4 border-r-2 border-b-2 border-primary/40" />
+            
+            <div className="relative flex items-center justify-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-md bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
                 <Clapperboard className="h-5 w-5 text-primary-foreground" />
               </div>
@@ -387,10 +402,8 @@ export default function AssistantPage() {
                 <Scissors className="h-5 w-5 text-white" />
               </div>
             </div>
-            <DialogHeader className="text-center space-y-2">
-              <DialogTitle className="text-lg">
-                {language === "ru" ? "AI-Ассистент" : "AI Assistant"}
-              </DialogTitle>
+            <DialogHeader className="relative text-center space-y-2">
+              <DialogTitle className="text-lg">VIDEO AI</DialogTitle>
               <DialogDescription className="text-sm text-muted-foreground leading-relaxed">
                 {language === "ru" 
                   ? "Это ваш помощник в сфере съемки, монтажа и создания видео. Мы обучаем его, чтобы он давал качественные ответы в нашей сфере."
@@ -721,64 +734,36 @@ export default function AssistantPage() {
       {/* DESKTOP LAYOUT */}
       <div className="hidden lg:flex gap-4 h-[calc(100vh-6rem)] mx-6 my-4">
         <div className="flex flex-col flex-1 bg-background rounded-md border overflow-hidden">
-          <div className="flex items-center justify-between gap-2 px-4 py-3 border-b bg-card/50 backdrop-blur-sm flex-shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="w-9 h-9 rounded-md bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
-                  <Clapperboard className="h-5 w-5 text-primary-foreground" />
-                </div>
-                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-card" />
+          <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border/50 flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-green-500" />
+                <span className="text-xs font-mono font-medium">VIDEO AI</span>
               </div>
-              <div>
-                <h1 className="text-sm font-semibold leading-tight">
-                  {language === "ru" ? "AI-Ассистент" : "AI Assistant"}
-                </h1>
-                <p className="text-[10px] text-muted-foreground">
-                  {totalMessages > 0 
-                    ? (language === "ru" ? `${totalMessages} сообщений` : `${totalMessages} messages`)
-                    : (language === "ru" ? "Эксперт по видеопроизводству" : "Video production expert")
-                  }
-                </p>
-              </div>
+              <span className="text-[10px] text-muted-foreground font-mono">
+                {totalMessages > 0 ? `[${String(totalMessages).padStart(3, '0')}]` : ""}
+              </span>
             </div>
           
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setSoundEnabled(!soundEnabled)}
-                data-testid="button-toggle-sound"
-                title={soundEnabled 
-                  ? (language === "ru" ? "Выключить звук" : "Mute sounds")
-                  : (language === "ru" ? "Включить звук" : "Enable sounds")
-                }
-              >
-                {soundEnabled ? (
-                  <Volume2 className="h-4 w-4" />
-                ) : (
-                  <VolumeX className="h-4 w-4 text-muted-foreground" />
-                )}
+            <div className="flex items-center gap-0.5">
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSoundEnabled(!soundEnabled)} data-testid="button-toggle-sound">
+                {soundEnabled ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5 text-muted-foreground" />}
               </Button>
-            
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" data-testid="button-chat-menu">
-                    <MoreVertical className="h-4 w-4" />
+                  <Button variant="ghost" size="icon" className="h-7 w-7" data-testid="button-chat-menu">
+                    <MoreVertical className="h-3.5 w-3.5" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={exportChat} disabled={totalMessages === 0}>
                     <Download className="h-4 w-4 mr-2" />
-                    {language === "ru" ? "Экспорт чата" : "Export chat"}
+                    {language === "ru" ? "Экспорт" : "Export"}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    onClick={() => clearMutation.mutate()}
-                    disabled={clearMutation.isPending || totalMessages === 0}
-                    className="text-destructive focus:text-destructive"
-                  >
+                  <DropdownMenuItem onClick={() => clearMutation.mutate()} disabled={clearMutation.isPending || totalMessages === 0} className="text-destructive">
                     <Trash2 className="h-4 w-4 mr-2" />
-                    {language === "ru" ? "Очистить историю" : "Clear history"}
+                    {language === "ru" ? "Очистить" : "Clear"}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -813,8 +798,16 @@ export default function AssistantPage() {
             </div>
           )}
 
-          <ScrollArea className="flex-1" ref={scrollAreaRef}>
-            <div className="p-4 space-y-4 pb-6">
+          <ScrollArea className="flex-1 relative" ref={scrollAreaRef}>
+            {/* Timeline grid background */}
+            <div className="absolute inset-0 pointer-events-none opacity-[0.03]" style={{
+              backgroundImage: `
+                linear-gradient(90deg, currentColor 1px, transparent 1px),
+                linear-gradient(currentColor 1px, transparent 1px)
+              `,
+              backgroundSize: '40px 40px'
+            }} />
+            <div className="p-4 space-y-4 pb-6 relative">
               {isLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="flex flex-col items-center gap-3">
@@ -1020,7 +1013,7 @@ export default function AssistantPage() {
               </AlertDialog>
             </div>
             
-            <ScrollArea className="flex-1 [&_[data-radix-scroll-area-thumb]]:bg-gradient-to-b [&_[data-radix-scroll-area-thumb]]:from-amber-500 [&_[data-radix-scroll-area-thumb]]:to-orange-500 [&_[data-radix-scroll-area-thumb]]:rounded-full [&_[data-radix-scroll-area-scrollbar]]:w-2 [&_[data-radix-scroll-area-scrollbar]]:bg-amber-500/10">
+            <div className="flex-1 min-h-0 overflow-hidden">
               <Textarea
                 value={notes}
                 onChange={(e) => handleNotesChange(e.target.value)}
@@ -1028,10 +1021,10 @@ export default function AssistantPage() {
                   ? "Записывайте важные идеи, ссылки, советы из чата..."
                   : "Write down important ideas, links, tips from the chat..."
                 }
-                className="min-h-[200px] w-full resize-none border-0 rounded-none bg-card focus-visible:ring-0 text-sm leading-relaxed p-3"
+                className="h-full w-full resize-none border-0 rounded-none bg-card focus-visible:ring-0 text-sm leading-relaxed p-3 overflow-y-auto"
                 data-testid="input-notes"
               />
-            </ScrollArea>
+            </div>
             
             <div className="px-4 py-2 border-t bg-muted/30">
               <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
