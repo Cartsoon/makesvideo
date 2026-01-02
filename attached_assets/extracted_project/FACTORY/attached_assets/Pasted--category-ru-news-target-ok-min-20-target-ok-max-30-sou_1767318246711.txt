@@ -1,0 +1,27 @@
+{
+  "category": "ru_news",
+  "target_ok_min": 20,
+  "target_ok_max": 30,
+  "sources": [
+    {"name":"Лента.ру - Новости","type":"rss","url":"https://lenta.ru/rss/news","language":"ru","priority":5},
+    {"name":"Лента.ру - Top7","type":"rss","url":"https://lenta.ru/rss/top7","language":"ru","priority":4},
+    {"name":"Коммерсантъ - Новости","type":"rss","url":"https://www.kommersant.ru/RSS/news.xml","language":"ru","priority":5},
+    {"name":"РБК - (fallback html)","type":"html","url":"https://www.rbc.ru/","language":"ru","priority":4},
+    {"name":"ТАСС - (fallback html)","type":"html","url":"https://tass.ru/","language":"ru","priority":4},
+    {"name":"РИА Новости - (fallback html)","type":"html","url":"https://ria.ru/","language":"ru","priority":4},
+    {"name":"Известия - (fallback html)","type":"html","url":"https://iz.ru/","language":"ru","priority":3},
+    {"name":"Ведомости - (fallback html)","type":"html","url":"https://www.vedomosti.ru/","language":"ru","priority":4},
+    {"name":"AIF - RSS","type":"rss","url":"https://aif.ru/rss/news.php","language":"ru","priority":3},
+    {"name":"Газета.ru - (fallback html)","type":"html","url":"https://www.gazeta.ru/","language":"ru","priority":3},
+    {"name":"Фонтанка - (fallback html)","type":"html","url":"https://www.fontanka.ru/","language":"ru","priority":3},
+    {"name":"МК - (fallback html)","type":"html","url":"https://www.mk.ru/","language":"ru","priority":2},
+    {"name":"Интерфакс - (fallback html)","type":"html","url":"https://www.interfax.ru/","language":"ru","priority":4},
+    {"name":"Российская газета - (fallback html)","type":"html","url":"https://rg.ru/","language":"ru","priority":2},
+    {"name":"Хабр - Все подряд (техно-пульс)","type":"rss","url":"https://habr.com/ru/rss/all/all/?fl=ru","language":"ru","priority":3},
+    {"name":"VC.ru - (fallback html)","type":"html","url":"https://vc.ru/","language":"ru","priority":3},
+    {"name":"Reddit r/russia (signal)","type":"reddit_rss","url":"https://www.reddit.com/r/russia/.rss","language":"en","priority":1},
+    {"name":"Meduza (fallback html)","type":"html","url":"https://meduza.io/","language":"ru","priority":2},
+    {"name":"The Bell (fallback html)","type":"html","url":"https://thebell.io/","language":"ru","priority":2},
+    {"name":"Новости Mail.ru (fallback html)","type":"html","url":"https://news.mail.ru/","language":"ru","priority":2}
+  ]
+}

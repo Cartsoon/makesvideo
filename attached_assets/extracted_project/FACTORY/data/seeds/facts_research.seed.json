@@ -1,0 +1,27 @@
+{
+  "category": "facts_research",
+  "target_ok_min": 20,
+  "target_ok_max": 30,
+  "sources": [
+    {"name":"Nature - News","type":"html","url":"https://www.nature.com/news","language":"en","priority":4},
+    {"name":"Science Magazine - News","type":"html","url":"https://www.science.org/news","language":"en","priority":4},
+    {"name":"arXiv","type":"html","url":"https://arxiv.org/","language":"en","priority":3},
+    {"name":"PubMed","type":"html","url":"https://pubmed.ncbi.nlm.nih.gov/","language":"en","priority":3},
+    {"name":"PLOS","type":"html","url":"https://plos.org/","language":"en","priority":3},
+    {"name":"Reddit r/science","type":"reddit_rss","url":"https://www.reddit.com/r/science/.rss","language":"en","priority":5},
+    {"name":"Reddit r/askscience","type":"reddit_rss","url":"https://www.reddit.com/r/askscience/.rss","language":"en","priority":4},
+    {"name":"Reddit r/Futurology","type":"reddit_rss","url":"https://www.reddit.com/r/Futurology/.rss","language":"en","priority":4},
+    {"name":"Reddit r/Space","type":"reddit_rss","url":"https://www.reddit.com/r/space/.rss","language":"en","priority":3},
+    {"name":"N+1","type":"html","url":"https://nplus1.ru/","language":"ru","priority":4},
+    {"name":"ПостНаука","type":"html","url":"https://postnauka.ru/","language":"ru","priority":3},
+    {"name":"Элементы","type":"html","url":"https://elementy.ru/","language":"ru","priority":3},
+    {"name":"Our World in Data","type":"html","url":"https://ourworldindata.org/","language":"en","priority":3},
+    {"name":"Google Scholar","type":"html","url":"https://scholar.google.com/","language":"en","priority":2},
+    {"name":"YouTube Shorts Trends (science)","type":"youtube_api","url":"yt:shorts_trending:topic=science","language":"multi","priority":3},
+    {"name":"Telegram science","type":"telegram_channel","url":"tg:collection:science_ru","language":"ru","priority":2},
+    {"name":"X - Nature","type":"x_user","url":"https://x.com/nature","language":"en","priority":2},
+    {"name":"X - ScienceMagazine","type":"x_user","url":"https://x.com/ScienceMagazine","language":"en","priority":2},
+    {"name":"Reddit r/dataisbeautiful","type":"reddit_rss","url":"https://www.reddit.com/r/dataisbeautiful/.rss","language":"en","priority":2},
+    {"name":"Reddit r/explainlikeimfive","type":"reddit_rss","url":"https://www.reddit.com/r/explainlikeimfive/.rss","language":"en","priority":2}
+  ]
+}

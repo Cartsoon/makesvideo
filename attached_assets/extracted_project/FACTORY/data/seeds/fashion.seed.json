@@ -1,0 +1,27 @@
+{
+  "category": "fashion",
+  "target_ok_min": 20,
+  "target_ok_max": 30,
+  "sources": [
+    {"name":"Vogue","type":"html","url":"https://www.vogue.com/","language":"en","priority":4},
+    {"name":"GQ","type":"html","url":"https://www.gq.com/","language":"en","priority":3},
+    {"name":"Hypebeast - Fashion","type":"html","url":"https://hypebeast.com/fashion","language":"en","priority":4},
+    {"name":"Highsnobiety","type":"html","url":"https://www.highsnobiety.com/","language":"en","priority":3},
+    {"name":"Business of Fashion","type":"html","url":"https://www.businessoffashion.com/","language":"en","priority":4},
+    {"name":"Reddit r/fashion","type":"reddit_rss","url":"https://www.reddit.com/r/fashion/.rss","language":"en","priority":3},
+    {"name":"Reddit r/streetwear","type":"reddit_rss","url":"https://www.reddit.com/r/streetwear/.rss","language":"en","priority":4},
+    {"name":"Reddit r/malefashionadvice","type":"reddit_rss","url":"https://www.reddit.com/r/malefashionadvice/.rss","language":"en","priority":3},
+    {"name":"Reddit r/femalefashionadvice","type":"reddit_rss","url":"https://www.reddit.com/r/femalefashionadvice/.rss","language":"en","priority":3},
+    {"name":"YouTube Shorts Trends (fashion)","type":"youtube_api","url":"yt:shorts_trending:topic=fashion","language":"multi","priority":4},
+    {"name":"TikTok Trends (fashion)","type":"api","url":"tiktok:trends:fashion","language":"multi","priority":4},
+    {"name":"The Cut","type":"html","url":"https://www.thecut.com/style/","language":"en","priority":3},
+    {"name":"Elle","type":"html","url":"https://www.elle.com/fashion/","language":"en","priority":3},
+    {"name":"Harper's Bazaar","type":"html","url":"https://www.harpersbazaar.com/fashion/","language":"en","priority":3},
+    {"name":"X - Hypebeast","type":"x_user","url":"https://x.com/HYPEBEAST","language":"en","priority":3},
+    {"name":"X - VogueRunway","type":"x_user","url":"https://x.com/VogueRunway","language":"en","priority":2},
+    {"name":"Telegram fashion","type":"telegram_channel","url":"tg:collection:fashion_ru","language":"ru","priority":3},
+    {"name":"Pinterest trends","type":"api","url":"pinterest:trends:fashion","language":"multi","priority":2},
+    {"name":"Google Trends fashion","type":"api","url":"google_trends:fashion","language":"multi","priority":3},
+    {"name":"Reddit r/sneakers","type":"reddit_rss","url":"https://www.reddit.com/r/Sneakers/.rss","language":"en","priority":3}
+  ]
+}

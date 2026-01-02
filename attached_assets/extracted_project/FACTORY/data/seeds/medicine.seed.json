@@ -1,0 +1,27 @@
+{
+  "category": "medicine",
+  "target_ok_min": 20,
+  "target_ok_max": 30,
+  "sources": [
+    {"name":"WHO - News","type":"html","url":"https://www.who.int/news","language":"en","priority":4},
+    {"name":"CDC - Newsroom","type":"html","url":"https://www.cdc.gov/media/index.html","language":"en","priority":4},
+    {"name":"NIH - News","type":"html","url":"https://www.nih.gov/news-events/news-releases","language":"en","priority":4},
+    {"name":"The Lancet","type":"html","url":"https://www.thelancet.com/","language":"en","priority":3},
+    {"name":"NEJM","type":"html","url":"https://www.nejm.org/","language":"en","priority":3},
+    {"name":"MedicalXpress","type":"html","url":"https://medicalxpress.com/","language":"en","priority":3},
+    {"name":"ScienceDaily Health","type":"html","url":"https://www.sciencedaily.com/news/health_medicine/","language":"en","priority":3},
+    {"name":"Reddit r/medicine","type":"reddit_rss","url":"https://www.reddit.com/r/medicine/.rss","language":"en","priority":3},
+    {"name":"Reddit r/Health","type":"reddit_rss","url":"https://www.reddit.com/r/Health/.rss","language":"en","priority":2},
+    {"name":"Reddit r/COVID19","type":"reddit_rss","url":"https://www.reddit.com/r/COVID19/.rss","language":"en","priority":2},
+    {"name":"Минздрав РФ","type":"html","url":"https://minzdrav.gov.ru/news","language":"ru","priority":2},
+    {"name":"Роспотребнадзор","type":"html","url":"https://rospotrebnadzor.ru/about/info/news/","language":"ru","priority":2},
+    {"name":"ТАСС здоровье","type":"html","url":"https://tass.ru/tag/zdorove","language":"ru","priority":2},
+    {"name":"PubMed","type":"html","url":"https://pubmed.ncbi.nlm.nih.gov/","language":"en","priority":3},
+    {"name":"Cochrane","type":"html","url":"https://www.cochranelibrary.com/","language":"en","priority":2},
+    {"name":"YouTube Shorts Trends (health)","type":"youtube_api","url":"yt:shorts_trending:topic=health","language":"multi","priority":3},
+    {"name":"Google Trends health","type":"api","url":"google_trends:health","language":"multi","priority":3},
+    {"name":"Telegram medicine","type":"telegram_channel","url":"tg:collection:medicine_ru","language":"ru","priority":2},
+    {"name":"X - WHO","type":"x_user","url":"https://x.com/WHO","language":"en","priority":2},
+    {"name":"X - CDCgov","type":"x_user","url":"https://x.com/CDCgov","language":"en","priority":2}
+  ]
+}

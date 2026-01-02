@@ -1,0 +1,29 @@
+{
+  "category": "interesting",
+  "target_ok_min": 20,
+  "target_ok_max": 30,
+  "sources": [
+    {"name":"Reddit r/todayilearned","type":"reddit_rss","url":"https://www.reddit.com/r/todayilearned/.rss","language":"en","priority":5},
+    {"name":"Reddit r/Damnthatsinteresting","type":"reddit_rss","url":"https://www.reddit.com/r/Damnthatsinteresting/.rss","language":"en","priority":5},
+    {"name":"Reddit r/mildlyinteresting","type":"reddit_rss","url":"https://www.reddit.com/r/mildlyinteresting/.rss","language":"en","priority":4},
+    {"name":"Reddit r/interestingasfuck","type":"reddit_rss","url":"https://www.reddit.com/r/interestingasfuck/.rss","language":"en","priority":4},
+    {"name":"Atlas Obscura (fallback html)","type":"html","url":"https://www.atlasobscura.com/","language":"en","priority":4},
+    {"name":"National Geographic (fallback html)","type":"html","url":"https://www.nationalgeographic.com/","language":"en","priority":3},
+    {"name":"The Conversation (fallback html)","type":"html","url":"https://theconversation.com/","language":"en","priority":3},
+    {"name":"Habr (ru, интересно/тех)","type":"rss","url":"https://habr.com/ru/rss/all/all/?fl=ru","language":"ru","priority":3},
+    {"name":"N+1 (fallback html)","type":"html","url":"https://nplus1.ru/","language":"ru","priority":3},
+    {"name":"Arzamas (fallback html)","type":"html","url":"https://arzamas.academy/","language":"ru","priority":2},
+
+    {"name":"YouTube Shorts Trends (interesting)","type":"youtube_api","url":"yt:shorts_trending:topic=interesting","language":"multi","priority":4},
+    {"name":"Google Trends interesting","type":"api","url":"google_trends:interesting","language":"multi","priority":3},
+
+    {"name":"Pikabu (fallback html)","type":"html","url":"https://pikabu.ru/","language":"ru","priority":3},
+    {"name":"Reddit r/ExplainLikeImFive","type":"reddit_rss","url":"https://www.reddit.com/r/explainlikeimfive/.rss","language":"en","priority":3},
+    {"name":"Reddit r/NoStupidQuestions","type":"reddit_rss","url":"https://www.reddit.com/r/NoStupidQuestions/.rss","language":"en","priority":3},
+    {"name":"Reddit r/BeAmazed","type":"reddit_rss","url":"https://www.reddit.com/r/BeAmazed/.rss","language":"en","priority":3},
+    {"name":"Telegram interesting (manual import)","type":"telegram_channel","url":"tg:collection:interesting_ru","language":"ru","priority":3},
+    {"name":"X - Interesting (signal)","type":"x_user","url":"https://x.com/search?q=interesting%20min_faves%3A500&f=live","language":"en","priority":2},
+    {"name":"Wikipedia On This Day (fallback html)","type":"html","url":"https://en.wikipedia.org/wiki/Wikipedia:On_this_day/Today","language":"en","priority":2},
+    {"name":"Reddit r/UpliftingNews","type":"reddit_rss","url":"https://www.reddit.com/r/UpliftingNews/.rss","language":"en","priority":2}
+  ]
+}

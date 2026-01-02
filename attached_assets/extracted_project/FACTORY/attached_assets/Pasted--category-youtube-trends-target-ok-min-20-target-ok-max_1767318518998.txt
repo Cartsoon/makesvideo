@@ -1,0 +1,33 @@
+{
+  "category": "youtube_trends",
+  "target_ok_min": 20,
+  "target_ok_max": 30,
+  "sources": [
+    {"name":"YouTube Trending Global","type":"youtube_api","url":"yt:trending:global","language":"multi","priority":5},
+    {"name":"YouTube Trending RU (if allowed)","type":"youtube_api","url":"yt:trending:region=RU","language":"multi","priority":4},
+    {"name":"YouTube Trending US","type":"youtube_api","url":"yt:trending:region=US","language":"en","priority":4},
+
+    {"name":"YouTube Shorts Trending Global","type":"youtube_api","url":"yt:shorts_trending:global","language":"multi","priority":5},
+    {"name":"YouTube Shorts Search #shorts","type":"youtube_api","url":"yt:search:#shorts","language":"multi","priority":4},
+    {"name":"YouTube Shorts Search #viral","type":"youtube_api","url":"yt:search:#viral","language":"multi","priority":3},
+
+    {"name":"YouTube - Gaming trending","type":"youtube_api","url":"yt:trending:category=gaming","language":"multi","priority":4},
+    {"name":"YouTube - Music trending","type":"youtube_api","url":"yt:trending:category=music","language":"multi","priority":4},
+
+    {"name":"YouTube channel RSS (template)","type":"youtube_channel_rss","url":"yt:channel_rss:LIST_FROM_USER_OR_SEED","language":"multi","priority":2},
+
+    {"name":"Reddit r/youtube","type":"reddit_rss","url":"https://www.reddit.com/r/youtube/.rss","language":"en","priority":2},
+    {"name":"Reddit r/NewTubers","type":"reddit_rss","url":"https://www.reddit.com/r/NewTubers/.rss","language":"en","priority":2},
+
+    {"name":"Google Trends (YouTube)","type":"api","url":"google_trends:youtube","language":"multi","priority":3},
+    {"name":"X - YouTube (signal)","type":"x_user","url":"https://x.com/YouTube","language":"en","priority":2},
+    {"name":"Telegram YouTube trends (manual)","type":"telegram_channel","url":"tg:collection:youtube_trends_ru","language":"ru","priority":2},
+
+    {"name":"YouTube Shorts Trends - games","type":"youtube_api","url":"yt:shorts_trending:topic=gaming","language":"multi","priority":4},
+    {"name":"YouTube Shorts Trends - memes","type":"youtube_api","url":"yt:shorts_trending:topic=memes","language":"multi","priority":4},
+    {"name":"YouTube Shorts Trends - fashion","type":"youtube_api","url":"yt:shorts_trending:topic=fashion","language":"multi","priority":3},
+    {"name":"YouTube Shorts Trends - science","type":"youtube_api","url":"yt:shorts_trending:topic=science","language":"multi","priority":3},
+    {"name":"YouTube Shorts Trends - movies","type":"youtube_api","url":"yt:shorts_trending:topic=movies","language":"multi","priority":3},
+    {"name":"YouTube Shorts Trends - music","type":"youtube_api","url":"yt:shorts_trending:topic=music","language":"multi","priority":3}
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "category": "world_news",
+  "target_ok_min": 20,
+  "target_ok_max": 30,
+  "sources": [
+    {"name":"BBC News - World","type":"rss","url":"http://newsrss.bbc.co.uk/rss/newsonline_uk_edition/world/rss.xml","language":"en","priority":5},
+    {"name":"BBC News - Technology","type":"rss","url":"http://newsrss.bbc.co.uk/rss/newsonline_uk_edition/technology/rss.xml","language":"en","priority":4},
+    {"name":"The Guardian - World","type":"rss","url":"https://www.theguardian.com/world/rss","language":"en","priority":5},
+    {"name":"The Guardian - Technology","type":"rss","url":"https://www.theguardian.com/technology/rss","language":"en","priority":4},
+    {"name":"NYTimes - HomePage","type":"rss","url":"http://feeds.nytimes.com/nyt/rss/HomePage","language":"en","priority":4},
+    {"name":"NPR - News","type":"rss","url":"http://www.npr.org/rss/rss.php?id=1001","language":"en","priority":4},
+    {"name":"Sky News - Home","type":"rss","url":"https://news.sky.com/sky-news/rss/home.xml","language":"en","priority":4},
+    {"name":"Al Jazeera - All","type":"rss","url":"https://www.aljazeera.com/xml/rss/all.xml","language":"en","priority":4},
+    {"name":"AP News - Top","type":"html","url":"https://apnews.com/","language":"en","priority":4},
+    {"name":"Financial Times - World","type":"html","url":"https://www.ft.com/world","language":"en","priority":3},
+    {"name":"Bloomberg - Top","type":"html","url":"https://www.bloomberg.com/","language":"en","priority":3},
+    {"name":"The Economist - Latest","type":"html","url":"https://www.economist.com/latest/","language":"en","priority":3},
+    {"name":"Hacker News","type":"rss","url":"https://hnrss.org/frontpage","language":"en","priority":3},
+    {"name":"Reddit r/worldnews","type":"reddit_rss","url":"https://www.reddit.com/r/worldnews/.rss","language":"en","priority":4},
+    {"name":"Reddit r/news","type":"reddit_rss","url":"https://www.reddit.com/r/news/.rss","language":"en","priority":4},
+    {"name":"Reddit r/geopolitics","type":"reddit_rss","url":"https://www.reddit.com/r/geopolitics/.rss","language":"en","priority":3},
+    {"name":"DW - Top","type":"html","url":"https://www.dw.com/en/top-stories/s-9097","language":"en","priority":3},
+    {"name":"France24","type":"html","url":"https://www.france24.com/en/","language":"en","priority":3},
+    {"name":"CNN Top","type":"html","url":"https://edition.cnn.com/","language":"en","priority":3},
+    {"name":"Yahoo News","type":"html","url":"https://news.yahoo.com/","language":"en","priority":2}
+  ]
+}

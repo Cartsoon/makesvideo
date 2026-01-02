@@ -1,0 +1,27 @@
+{
+  "category": "music",
+  "target_ok_min": 20,
+  "target_ok_max": 30,
+  "sources": [
+    {"name":"Billboard","type":"html","url":"https://www.billboard.com/","language":"en","priority":4},
+    {"name":"Rolling Stone","type":"html","url":"https://www.rollingstone.com/music/","language":"en","priority":3},
+    {"name":"Pitchfork","type":"html","url":"https://pitchfork.com/","language":"en","priority":3},
+    {"name":"NME - Music","type":"html","url":"https://www.nme.com/music","language":"en","priority":3},
+    {"name":"Reddit r/Music","type":"reddit_rss","url":"https://www.reddit.com/r/Music/.rss","language":"en","priority":4},
+    {"name":"Reddit r/hiphopheads","type":"reddit_rss","url":"https://www.reddit.com/r/hiphopheads/.rss","language":"en","priority":4},
+    {"name":"Reddit r/popheads","type":"reddit_rss","url":"https://www.reddit.com/r/popheads/.rss","language":"en","priority":3},
+    {"name":"Reddit r/indieheads","type":"reddit_rss","url":"https://www.reddit.com/r/indieheads/.rss","language":"en","priority":3},
+    {"name":"YouTube Trending Music","type":"youtube_api","url":"yt:trending:category=music","language":"multi","priority":5},
+    {"name":"YouTube Shorts Trends (music)","type":"youtube_api","url":"yt:shorts_trending:topic=music","language":"multi","priority":5},
+    {"name":"Spotify Charts","type":"html","url":"https://charts.spotify.com/","language":"multi","priority":4},
+    {"name":"Apple Music charts","type":"html","url":"https://music.apple.com/us/browse/top-charts","language":"en","priority":3},
+    {"name":"VK Music","type":"html","url":"https://vk.com/music","language":"ru","priority":2},
+    {"name":"Яндекс Музыка чарты","type":"html","url":"https://music.yandex.ru/chart","language":"ru","priority":3},
+    {"name":"Telegram music","type":"telegram_channel","url":"tg:collection:music_ru","language":"ru","priority":3},
+    {"name":"X - billboard","type":"x_user","url":"https://x.com/billboard","language":"en","priority":2},
+    {"name":"X - RollingStone","type":"x_user","url":"https://x.com/RollingStone","language":"en","priority":2},
+    {"name":"TikTok music trends","type":"api","url":"tiktok:trends:music","language":"multi","priority":4},
+    {"name":"Google Trends music","type":"api","url":"google_trends:music","language":"multi","priority":3},
+    {"name":"Reddit r/listentothis","type":"reddit_rss","url":"https://www.reddit.com/r/listentothis/.rss","language":"en","priority":2}
+  ]
+}

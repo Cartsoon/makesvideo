@@ -1,0 +1,33 @@
+{
+  "category": "memes",
+  "target_ok_min": 20,
+  "target_ok_max": 30,
+  "sources": [
+    {"name":"Reddit r/memes","type":"reddit_rss","url":"https://www.reddit.com/r/memes/.rss","language":"en","priority":5},
+    {"name":"Reddit r/dankmemes","type":"reddit_rss","url":"https://www.reddit.com/r/dankmemes/.rss","language":"en","priority":5},
+    {"name":"Reddit r/wholesomememes","type":"reddit_rss","url":"https://www.reddit.com/r/wholesomememes/.rss","language":"en","priority":4},
+    {"name":"Reddit r/funny","type":"reddit_rss","url":"https://www.reddit.com/r/funny/.rss","language":"en","priority":4},
+    {"name":"Reddit r/ProgrammerHumor","type":"reddit_rss","url":"https://www.reddit.com/r/ProgrammerHumor/.rss","language":"en","priority":3},
+    {"name":"Reddit r/Unexpected","type":"reddit_rss","url":"https://www.reddit.com/r/Unexpected/.rss","language":"en","priority":3},
+
+    {"name":"KnowYourMeme (fallback html)","type":"html","url":"https://knowyourmeme.com/","language":"en","priority":4},
+    {"name":"9GAG (fallback html)","type":"html","url":"https://9gag.com/","language":"en","priority":3},
+
+    {"name":"DTF (мемный пул, fallback html)","type":"html","url":"https://dtf.ru/","language":"ru","priority":3},
+    {"name":"Pikabu (fallback html)","type":"html","url":"https://pikabu.ru/","language":"ru","priority":4},
+    {"name":"JoyReactor (fallback html)","type":"html","url":"https://joyreactor.cc/","language":"ru","priority":3},
+
+    {"name":"X - KnowYourMeme (signal)","type":"x_user","url":"https://x.com/knowyourmeme","language":"en","priority":3},
+    {"name":"X - meme accounts (signal placeholder)","type":"x_user","url":"https://x.com/search?q=%23meme%20min_faves%3A1000&f=live","language":"en","priority":2},
+
+    {"name":"YouTube Trends (memes)","type":"youtube_api","url":"yt:trending:category=memes","language":"multi","priority":4},
+    {"name":"YouTube Shorts Trends (memes)","type":"youtube_api","url":"yt:shorts_trending:topic=memes","language":"multi","priority":5},
+
+    {"name":"Telegram meme channels (manual import group)","type":"telegram_channel","url":"tg:collection:memes_ru_en","language":"multi","priority":4},
+    {"name":"TikTok trends (API placeholder)","type":"api","url":"tiktok:trends:memes","language":"multi","priority":3},
+    {"name":"Google Trends (API placeholder)","type":"api","url":"google_trends:memes","language":"multi","priority":3},
+
+    {"name":"Reddit r/TikTokCringe","type":"reddit_rss","url":"https://www.reddit.com/r/TikTokCringe/.rss","language":"en","priority":3},
+    {"name":"Reddit r/OutOfTheLoop","type":"reddit_rss","url":"https://www.reddit.com/r/OutOfTheLoop/.rss","language":"en","priority":3}
+  ]
+}

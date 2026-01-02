@@ -1,0 +1,40 @@
+{
+  "category": "games",
+  "target_ok_min": 20,
+  "target_ok_max": 30,
+  "sources": [
+    {"name":"IGN - Games (all)","type":"rss","url":"https://feeds.feedburner.com/ign/games-all","language":"en","priority":5},
+    {"name":"GameSpot - News","type":"rss","url":"https://www.gamespot.com/feeds/news/","language":"en","priority":5},
+    {"name":"Polygon - All","type":"rss","url":"https://www.polygon.com/rss/index.xml","language":"en","priority":5},
+    {"name":"Kotaku - All","type":"rss","url":"https://kotaku.com/rss","language":"en","priority":4},
+    {"name":"Eurogamer - RSS","type":"rss","url":"https://www.eurogamer.net/?format=rss","language":"en","priority":5},
+    {"name":"PC Gamer - RSS","type":"rss","url":"https://www.pcgamer.com/rss/","language":"en","priority":5},
+    {"name":"Rock Paper Shotgun - Feed","type":"rss","url":"https://www.rockpapershotgun.com/feed","language":"en","priority":4},
+    {"name":"VG247 - Feed","type":"rss","url":"https://www.vg247.com/feed/","language":"en","priority":4},
+    {"name":"Destructoid - Feed","type":"rss","url":"https://www.destructoid.com/feed/","language":"en","priority":4},
+    {"name":"The Verge - Games","type":"rss","url":"https://www.theverge.com/games/rss/index.xml","language":"en","priority":4},
+
+    {"name":"StopGame - RSS news (alt)","type":"rss","url":"https://stopgame.ru/rss/rss_news.xml","language":"ru","priority":5},
+    {"name":"StopGame - RSS news","type":"rss","url":"https://stopgame.ru/rss/news","language":"ru","priority":5},
+    {"name":"Игромания - RSS","type":"rss","url":"https://www.igromania.ru/rss.xml","language":"ru","priority":5},
+    {"name":"Playground - RSS","type":"rss","url":"https://www.playground.ru/rss","language":"ru","priority":4},
+    {"name":"Канобу - RSS","type":"rss","url":"https://www.kanobu.ru/rss/","language":"ru","priority":4},
+    {"name":"3DNews - Games RSS","type":"rss","url":"https://3dnews.ru/games/rss/","language":"ru","priority":4},
+    {"name":"DTF - News RSS","type":"rss","url":"https://dtf.ru/rss/news","language":"ru","priority":4},
+
+    {"name":"Reddit r/Games","type":"reddit_rss","url":"https://www.reddit.com/r/Games/.rss","language":"en","priority":5},
+    {"name":"Reddit r/gaming","type":"reddit_rss","url":"https://www.reddit.com/r/gaming/.rss","language":"en","priority":4},
+    {"name":"Reddit r/pcgaming","type":"reddit_rss","url":"https://www.reddit.com/r/pcgaming/.rss","language":"en","priority":4},
+    {"name":"Reddit r/NintendoSwitch","type":"reddit_rss","url":"https://www.reddit.com/r/NintendoSwitch/.rss","language":"en","priority":3},
+    {"name":"Reddit r/PS5","type":"reddit_rss","url":"https://www.reddit.com/r/PS5/.rss","language":"en","priority":3},
+    {"name":"Reddit r/XboxSeriesX","type":"reddit_rss","url":"https://www.reddit.com/r/XboxSeriesX/.rss","language":"en","priority":3},
+
+    {"name":"Steam News (fallback html)","type":"html","url":"https://store.steampowered.com/news/","language":"en","priority":4},
+    {"name":"Epic Games Store News (fallback html)","type":"html","url":"https://store.epicgames.com/en-US/news","language":"en","priority":3},
+
+    {"name":"X - Wario64 (signal)","type":"x_user","url":"https://x.com/Wario64","language":"en","priority":5},
+    {"name":"X - IGN (signal)","type":"x_user","url":"https://x.com/IGN","language":"en","priority":4},
+    {"name":"X - PlayStation (signal)","type":"x_user","url":"https://x.com/PlayStation","language":"en","priority":4},
+    {"name":"X - Xbox (signal)","type":"x_user","url":"https://x.com/Xbox","language":"en","priority":4}
+  ]
+}

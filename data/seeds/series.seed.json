@@ -1,0 +1,27 @@
+{
+  "category": "series",
+  "target_ok_min": 20,
+  "target_ok_max": 30,
+  "sources": [
+    {"name":"TVLine","type":"html","url":"https://tvline.com/","language":"en","priority":3},
+    {"name":"Variety TV","type":"html","url":"https://variety.com/t/tv/","language":"en","priority":3},
+    {"name":"Hollywood Reporter TV","type":"html","url":"https://www.hollywoodreporter.com/tv/","language":"en","priority":3},
+    {"name":"Deadline TV","type":"html","url":"https://deadline.com/v/tv/","language":"en","priority":3},
+    {"name":"Reddit r/television","type":"reddit_rss","url":"https://www.reddit.com/r/television/.rss","language":"en","priority":4},
+    {"name":"Reddit r/NetflixBestOf","type":"reddit_rss","url":"https://www.reddit.com/r/NetflixBestOf/.rss","language":"en","priority":3},
+    {"name":"Reddit r/MarvelStudios","type":"reddit_rss","url":"https://www.reddit.com/r/marvelstudios/.rss","language":"en","priority":3},
+    {"name":"Reddit r/StarWars","type":"reddit_rss","url":"https://www.reddit.com/r/StarWars/.rss","language":"en","priority":2},
+    {"name":"IMDb TV News","type":"html","url":"https://www.imdb.com/news/tv/","language":"en","priority":3},
+    {"name":"Кинопоиск сериалы","type":"html","url":"https://www.kinopoisk.ru/lists/movies/","language":"ru","priority":2},
+    {"name":"YouTube Shorts Trends (series)","type":"youtube_api","url":"yt:shorts_trending:topic=series","language":"multi","priority":4},
+    {"name":"YouTube Trending (series)","type":"youtube_api","url":"yt:trending:topic=series","language":"multi","priority":3},
+    {"name":"Netflix Top10","type":"html","url":"https://www.netflix.com/tudum/top10","language":"en","priority":4},
+    {"name":"HBO","type":"html","url":"https://www.hbo.com/","language":"en","priority":2},
+    {"name":"Disney+","type":"html","url":"https://www.disneyplus.com/","language":"en","priority":1},
+    {"name":"Telegram series","type":"telegram_channel","url":"tg:collection:series_ru","language":"ru","priority":2},
+    {"name":"X - Netflix","type":"x_user","url":"https://x.com/netflix","language":"en","priority":2},
+    {"name":"X - DiscussingFilm","type":"x_user","url":"https://x.com/DiscussingFilm","language":"en","priority":2},
+    {"name":"X - Variety","type":"x_user","url":"https://x.com/variety","language":"en","priority":2},
+    {"name":"Reddit r/anime","type":"reddit_rss","url":"https://www.reddit.com/r/anime/.rss","language":"en","priority":2}
+  ]
+}

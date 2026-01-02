@@ -1,0 +1,90 @@
+export const SYSTEM = `
+Ты — сценарист вертикальных видео (Shorts/Reels/TikTok) + редактор.
+ЖЁСТКОЕ ПРАВИЛО: запрещено копировать или близко перефразировать seedTitles.
+seedTitles = SIGNAL (паттерн/угол/структура). contextSnippets = CONTEXT (смысл/факты).
+Пиши коротко, энергично, монтажно. Никакой воды "в этом видео".
+`;
+
+export const SEO_TITLE = `
+Язык: {language}. Платформа: {platform}. Длительность: {durationSec} сек.
+Кластер/тема: {clusterLabel}
+Ключевые слова: {keywords_csv}
+
+SIGNAL seedTitles (нельзя копировать):
+{seedTitles_bullets}
+
+CONTEXT contextSnippets (бери смысл и факты отсюда):
+{contextSnippets_bullets}
+
+Сгенерируй 5 уникальных SEO-заголовков (RU 45–70 символов / EN 40–65).
+Верни JSON:
+{"titles":[{"text":"...","why":"...","keywords_used":["..."]}],"best_pick_index":0,"best_pick_reason":"..."}
+`;
+
+export const HOOK = `
+Язык: {language}. Длительность: {durationSec} сек. Стиль: {styleName}. Акцент: {accentName}
+Ключевые слова: {keywords_csv}
+
+SIGNAL seedTitles (запрещено копировать):
+{seedTitles_bullets}
+
+CONTEXT contextSnippets:
+{contextSnippets_bullets}
+
+Сделай 3 хука: (1) вопрос (2) утверждение (3) контраст.
+Запрет: вода и клише.
+Верни JSON:
+{"hooks":[{"text":"...","type":"question|statement|contrast","why":"..."}],"best_pick_index":0,"best_pick_reason":"..."}
+`;
+
+export const TRANSCRIPT_RICH = `
+Язык: {language}. Платформа: {platform}. Длительность: {durationSec} сек.
+Стиль: {styleName}. Акцент: {accentName}. Цель: {goal}. ЦА: {audience}
+Ключевые слова: {keywords_csv}
+
+SIGNAL seedTitles (не копировать):
+{seedTitles_bullets}
+
+CONTEXT contextSnippets (основа смысла):
+{contextSnippets_bullets}
+
+Верни JSON строго:
+{
+  "speaker_lines": ["короткая фраза 1","..."],
+  "cutaways": ["перебивка 1","..."],
+  "onscreen_lines": ["текст на экране 1","..."],
+  "notes": ["до 3 заметок"]
+}
+`;
+
+export const TIMELINE = `
+Собери таймлайн по speaker_lines. Длительность: {durationSec} сек.
+INPUT speaker_lines:
+{speaker_lines_bullets}
+
+Сцены 2–6 сек, конец ≈ {durationSec} (±5%).
+Верни JSON:
+{
+ "scenes":[
+  {"id":"S01","start":"00:00.000","end":"00:03.200","voText":"...",
+   "onScreenText":["...","..."],
+   "visualDescription":"...",
+   "shot":{"type":"CU|MS|WS","motion":"static|pan|zoom|handheld"},
+   "brollKeywords":["...","..."],
+   "sfxMusicHint":"..."}
+ ],
+ "duration_check":{"target":{durationSec},"actual":0,"ok":true}
+}
+`;
+
+export const FRAME_PROMPTS = `
+Сгенерируй промпт кадра/превью (9:16) для каждой сцены по visualDescription+voText.
+Стиль кадра: {frameStyle}. Верни JSON:
+{"frames":[{"sceneId":"S01","prompt":"...","negative":"..."}]}
+`;
+
+export const SUBTITLES = `
+Сделай субтитры по сценам (voText+таймкоды). SRT/VTT/CSV/TSV.
+Макс 42 символа на строку, 2 строки. Верни JSON:
+{"srt":"...","vtt":"...","csv":"start,end,text\\n...","tsv":"start\\tend\\ttext\\n..."}
+`;

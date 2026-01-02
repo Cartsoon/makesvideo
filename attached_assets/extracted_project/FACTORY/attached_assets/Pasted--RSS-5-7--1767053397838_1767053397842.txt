@@ -1,0 +1,201 @@
+Формат: Категория → Язык → Источник → RSS
+(брать 5–7 последних новостей из каждого источника)
+🌍 НОВОСТИ МИРА (World News)
+EN
+BBC News
+RSS: https://feeds.bbci.co.uk/news/world/rss.xml
+Reuters World
+RSS: https://feeds.reuters.com/Reuters/worldNews
+Associated Press World
+RSS: https://feeds.apnews.com/rss/apf-worldnews
+The Guardian World
+RSS: https://www.theguardian.com/world/rss
+Al Jazeera English
+RSS: https://www.aljazeera.com/xml/rss/all.xml
+RU
+ТАСС Мир
+RSS: https://tass.ru/rss/v2.xml
+Интерфакс Мир
+RSS: https://www.interfax.ru/rss.asp
+РБК Мир
+RSS: https://rssexport.rbc.ru/rbcnews/news/30/full.rss
+BBC Russian
+RSS: https://feeds.bbci.co.uk/russian/rss.xml
+Meduza
+RSS: https://meduza.io/rss/all
+🎮 НОВОСТИ ВИДЕОИГР (Gaming)
+EN
+IGN
+RSS: https://feeds.feedburner.com/ign/games-all
+GameSpot
+RSS: https://www.gamespot.com/feeds/news/
+PC Gamer
+RSS: https://www.pcgamer.com/rss/
+Kotaku
+RSS: https://kotaku.com/rss
+Video Games Chronicle
+RSS: https://www.videogameschronicle.com/feed/
+RU
+Игромания
+RSS: https://www.igromania.ru/rss/news.xml
+StopGame
+RSS: https://stopgame.ru/rss/news.xml
+DTF (игры + тренды)
+RSS: https://dtf.ru/rss
+Канобу
+RSS: https://kanobu.ru/rss/all.xml
+😂 МЕМЫ (Memes & Viral)
+EN
+Know Your Meme
+RSS: https://knowyourmeme.com/feed
+Reddit Memes
+RSS: https://www.reddit.com/r/memes/.rss
+Reddit DankMemes
+RSS: https://www.reddit.com/r/dankmemes/.rss
+BuzzFeed Trending
+RSS: https://www.buzzfeed.com/index.xml
+RU
+Pikabu
+RSS: https://pikabu.ru/rss
+AdMe
+RSS: https://www.adme.ru/rss/
+MDK (через VK агрегаторы)
+RSS: https://vk.com/rss?owner_id=-57846937
+📈 ТРЕНДЫ (Trends)
+EN
+Google Trends Daily
+RSS: https://trends.google.com/trends/trendingsearches/daily/rss?geo=US
+YouTube Trending
+RSS: https://www.youtube.com/feeds/videos.xml?chart=mostPopular
+Reddit Popular
+RSS: https://www.reddit.com/r/popular/.rss
+RU
+Google Trends RU
+RSS: https://trends.google.com/trends/trendingsearches/daily/rss?geo=RU
+Яндекс.Дзен Тренды
+RSS: https://zen.yandex.ru/feed
+VK Популярное
+RSS: https://vk.com/rss
+👗 МОДА (Fashion)
+EN
+Vogue
+RSS: https://www.vogue.com/rss
+Business of Fashion
+RSS: https://www.businessoffashion.com/rss
+GQ Style
+RSS: https://www.gq.com/feed/rss
+RU
+The Blueprint
+RSS: https://theblueprint.ru/rss
+FashionUnited RU
+RSS: https://fashionunited.ru/rss
+Wonderzine
+RSS: https://www.wonderzine.com/rss
+🎵 МУЗЫКА (Music)
+EN
+Billboard
+RSS: https://www.billboard.com/feed/
+Rolling Stone
+RSS: https://www.rollingstone.com/feed/
+Pitchfork
+RSS: https://pitchfork.com/rss/news/
+RU
+Rap.ru
+RSS: https://rap.ru/rss
+Яндекс Музыка Чарты
+RSS: https://music.yandex.ru/genre/rss
+VK Музыка
+RSS: https://vk.com/rss?section=audio
+🤯 ИНТЕРЕСНО (Interesting / Viral Knowledge)
+EN
+Mental Floss
+RSS: https://www.mentalfloss.com/rss
+Atlas Obscura
+RSS: https://www.atlasobscura.com/feeds/latest
+Reddit Today I Learned
+RSS: https://www.reddit.com/r/todayilearned/.rss
+RU
+AdMe Интересное
+RSS: https://www.adme.ru/rss/
+Naked Science
+RSS: https://naked-science.ru/feed
+Pikabu Лучшее
+RSS: https://pikabu.ru/rss/best
+📊 ФАКТЫ И ИССЛЕДОВАНИЯ (Facts & Research)
+EN
+Our World in Data
+RSS: https://ourworldindata.org/rss.xml
+ScienceDaily
+RSS: https://www.sciencedaily.com/rss/all.xml
+Nature
+RSS: https://www.nature.com/subjects/science/rss
+RU
+Elementy.ru
+RSS: https://elementy.ru/rss
+Naked Science Research
+RSS: https://naked-science.ru/feed
+PostNauka
+RSS: https://postnauka.ru/feed
+🎬 НОВОСТИ КИНО (Movies)
+EN
+Variety
+RSS: https://variety.com/feed/
+Hollywood Reporter
+RSS: https://www.hollywoodreporter.com/feed/
+Collider
+RSS: https://collider.com/feed/
+RU
+КиноПоиск Новости
+RSS: https://www.kinopoisk.ru/rss/news.xml
+Film.ru
+RSS: https://www.film.ru/rss
+InterMedia
+RSS: https://www.intermedia.ru/rss
+📺 НОВОСТИ СЕРИАЛОВ (TV / Series)
+EN
+TVLine
+RSS: https://tvline.com/feed/
+Deadline TV
+RSS: https://deadline.com/v/tv/feed/
+Den of Geek TV
+RSS: https://www.denofgeek.com/tv/feed/
+RU
+Serialu.net
+RSS: https://serialu.net/rss
+Film.ru Сериалы
+RSS: https://www.film.ru/rss/series
+🇷🇺 НОВОСТИ РОССИИ (RU ONLY)
+РИА Новости
+RSS: https://ria.ru/export/rss2/archive/index.xml
+Лента.ру
+RSS: https://lenta.ru/rss
+Коммерсант
+RSS: https://www.kommersant.ru/RSS/news.xml
+Ведомости
+RSS: https://www.vedomosti.ru/rss/news
+🧬 МЕДИЦИНА (Medicine)
+EN
+Medical News Today
+RSS: https://www.medicalnewstoday.com/rss
+ScienceDaily Health
+RSS: https://www.sciencedaily.com/rss/health_medicine.xml
+NIH
+RSS: https://www.nih.gov/news-events/news-releases/rss.xml
+RU
+Medportal
+RSS: https://medportal.ru/rss
+Доктор Питер
+RSS: https://doctorpiter.ru/rss
+Hi-Tech Mail Мед
+RSS: https://hi-tech.mail.ru/rss/
+▶️ YOUTUBE И ТРЕНДЫ YOUTUBE
+EN
+YouTube Trending
+RSS: https://www.youtube.com/feeds/videos.xml?chart=mostPopular
+SocialBlade Trending
+RSS: https://socialblade.com/rss/topvideos
+RU
+YouTube Trending RU
+RSS: https://www.youtube.com/feeds/videos.xml?chart=mostPopular&region=RU
+Livedune Top Creators
+RSS: https://livedune.com/ru/ratings/youtube/rss

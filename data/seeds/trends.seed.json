@@ -1,0 +1,27 @@
+{
+  "category": "trends",
+  "target_ok_min": 20,
+  "target_ok_max": 30,
+  "sources": [
+    {"name":"YouTube Trending","type":"youtube_api","url":"yt:trending:global","language":"multi","priority":5},
+    {"name":"YouTube Shorts Trending","type":"youtube_api","url":"yt:shorts_trending:global","language":"multi","priority":5},
+    {"name":"YouTube Search #shorts","type":"youtube_api","url":"yt:search:#shorts","language":"multi","priority":4},
+    {"name":"Google Trends (daily)","type":"api","url":"google_trends:daily","language":"multi","priority":5},
+    {"name":"Google Trends (realtime)","type":"api","url":"google_trends:realtime","language":"multi","priority":5},
+    {"name":"Reddit r/popular","type":"reddit_rss","url":"https://www.reddit.com/r/popular/.rss","language":"en","priority":4},
+    {"name":"Reddit r/all","type":"reddit_rss","url":"https://www.reddit.com/r/all/.rss","language":"en","priority":4},
+    {"name":"Reddit r/trendingsubreddits","type":"reddit_rss","url":"https://www.reddit.com/r/trendingsubreddits/.rss","language":"en","priority":3},
+    {"name":"Hacker News frontpage","type":"rss","url":"https://hnrss.org/frontpage","language":"en","priority":3},
+    {"name":"Product Hunt","type":"html","url":"https://www.producthunt.com/","language":"en","priority":3},
+    {"name":"X Trending","type":"api","url":"x:trending:global","language":"multi","priority":4},
+    {"name":"TikTok Trending","type":"api","url":"tiktok:trending:global","language":"multi","priority":4},
+    {"name":"Telegram trends","type":"telegram_channel","url":"tg:collection:trends_ru_en","language":"multi","priority":4},
+    {"name":"Reddit r/technology","type":"reddit_rss","url":"https://www.reddit.com/r/technology/.rss","language":"en","priority":3},
+    {"name":"Reddit r/entertainment","type":"reddit_rss","url":"https://www.reddit.com/r/entertainment/.rss","language":"en","priority":3},
+    {"name":"Reddit r/gaming","type":"reddit_rss","url":"https://www.reddit.com/r/gaming/.rss","language":"en","priority":3},
+    {"name":"Reddit r/movies","type":"reddit_rss","url":"https://www.reddit.com/r/movies/.rss","language":"en","priority":3},
+    {"name":"Reddit r/music","type":"reddit_rss","url":"https://www.reddit.com/r/Music/.rss","language":"en","priority":3},
+    {"name":"Reddit r/fashion","type":"reddit_rss","url":"https://www.reddit.com/r/fashion/.rss","language":"en","priority":2},
+    {"name":"Reddit r/science","type":"reddit_rss","url":"https://www.reddit.com/r/science/.rss","language":"en","priority":3}
+  ]
+}

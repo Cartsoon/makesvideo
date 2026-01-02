@@ -1,0 +1,103 @@
+ТЫ — SENIOR FULL-STACK + DATA ENGINEER + PROMPT ENGINEER.
+СДЕЛАЙ в Shorts Factory систему: Источники → Топики → Скрипт → Таймлайн → Кадры → Субтитры.
+
+# A. КАТЕГОРИИ (как в UI)
+- Мировые новости
+- Новости России
+- Игры
+- Мемы
+- Тренды (новая категория, обязательно)
+- Мода
+- Музыка
+- Интересное
+- Факты и исследования
+- Кино
+- Сериалы
+- Медицина
+- YouTube тренды (и внутри: YouTube Shorts Trends)
+
+# B. ГЛАВНЫЕ ПРАВИЛА КОНТЕНТА (ОБЯЗАТЕЛЬНО)
+1) НЕЛЬЗЯ копировать заголовки источников в наши заголовки/хуки.
+2) Заголовок источника = SIGNAL (паттерн/угол/структура/что цепляет).
+3) Описание/сниппет/первые абзацы/текст/описание видео = CONTEXT (смысл/факты).
+4) Из CONTEXT генерируем:
+   - SEO YouTube Title (уникальный)
+   - Hook (уникальный)
+   - TranscriptRich (диктор + перебивки + текст на экране)
+   - Timeline scenes (таймкоды, vo, onscreen, визуал, shot, brollKeywords, sfx)
+   - FramePrompts на каждую сцену (для превью/кадров, 9:16)
+   - Subtitles export (SRT/VTT/CSV/TSV)
+5) Anti-copy gate: проверяй SEO Title и Hook на схожесть с seedTitles.
+   - запрет совпадения первых 4 слов с любым seedTitle
+   - n-gram similarity threshold → если выше порога, реген (до 2 попыток)
+
+# C. ИСТОЧНИКИ — ВСЕГДА 20–30 РАБОЧИХ НА КАЖДУЮ КАТЕГОРИЮ
+- Не показывать пользователю “недостаточно источников”.
+- Для каждой категории target_ok_min=20, target_ok_max=30.
+- Если ok_sources < 20:
+  1) disable dead
+  2) включи резервные из seed-пула
+  3) сделай AutoDiscovery (MVP) и добавь кандидатов
+  4) прогоняй health-check и доводи до 20–30 OK
+
+# D. HEALTH CHECKER (must)
+- Проверка при добавлении: доступность, RSS валидность, свежесть (есть посты за последние N дней).
+- Плановый крон: каждые 6–12 часов.
+- health: status(ok/warn/dead), httpCode, avgLatency, lastSuccessAt, failuresCount, freshnessHours.
+- Дедуп: по url+hash и по близким заголовкам (но title не используем для копирования, только для кластеризации).
+
+# E. INGEST PIPELINE
+Поддерживаемые типы source.type:
+- rss
+- html (fallback парсер, если RSS нет)
+- reddit_rss
+- youtube_api (trending/search/#shorts)
+- youtube_channel_rss (если без API)
+- x_user (signal-only; если нет API, оставляем как ссылку и опциональный импорт)
+- telegram_channel (если нет API, сделать “manual import” + подготовить интерфейс на будущее)
+
+Из каждого Item сохраняй:
+- title (signal)
+- url
+- publishedAt
+- snippet/description/content (context)
+- sourceId, categoryId, language
+- engagement (если доступно: upvotes/views)
+
+# F. TREND TOPIC BUILDER (ключевое)
+Кластеризуй Items → TrendTopic clusters.
+TrendTopic:
+- seedTitles[] (только title)
+- contextSnippets[] (snippet/description/lead)
+- keywords[], entities[]
+- angles[] (скандал/польза/сравнение/ошибка/релиз/патч/слух/объяснение)
+- hookPatterns[] (вопрос/контраст/обещание/факт)
+- pacingHints (fast/med/slow)
+- refs[] (url)
+- score (свежесть + обсуждаемость + повторяемость темы)
+
+# G. СВЯЗКА С “СКРИПТ”
+Скрипт-генератор принимает TrendTopic:
+- seedTitles → signal
+- contextSnippets → context
+и генерирует ScriptPack:
+- seoTitle (5 + best)
+- hashtags (10)
+- hook (3 + best)
+- transcriptRich (speaker_lines, cutaways, onscreen_lines)
+- timeline scenes (таймкоды, voText, onScreenText, visualDescription, shot, brollKeywords)
+- framePrompts (на каждый scene, 9:16)
+- subtitles (SRT/VTT/CSV/TSV)
+
+# H. ФАЙЛЫ-ВХОДЫ (seed)
+Система должна читать seed-файлы (JSON) вида:
+sources.<category>.seed.json
+и автоматически:
+- импортировать
+- проверять
+- держать 20–30 OK
+
+Сделай UI:
+- /sources: категории и список источников со статусом
+- /topics: тренд-кластеры по категории
+- /script: генерация ScriptPack по выбранному кластеру

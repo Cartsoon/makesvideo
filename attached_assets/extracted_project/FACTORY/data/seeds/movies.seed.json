@@ -1,0 +1,26 @@
+{
+  "category": "movies",
+  "target_ok_min": 20,
+  "target_ok_max": 30,
+  "sources": [
+    {"name":"Variety","type":"html","url":"https://variety.com/","language":"en","priority":4},
+    {"name":"Hollywood Reporter","type":"html","url":"https://www.hollywoodreporter.com/","language":"en","priority":4},
+    {"name":"Deadline","type":"html","url":"https://deadline.com/","language":"en","priority":3},
+    {"name":"IndieWire","type":"html","url":"https://www.indiewire.com/","language":"en","priority":3},
+    {"name":"Empire","type":"html","url":"https://www.empireonline.com/movies/news/","language":"en","priority":3},
+    {"name":"Reddit r/movies","type":"reddit_rss","url":"https://www.reddit.com/r/movies/.rss","language":"en","priority":4},
+    {"name":"Reddit r/boxoffice","type":"reddit_rss","url":"https://www.reddit.com/r/boxoffice/.rss","language":"en","priority":3},
+    {"name":"Кинопоиск","type":"html","url":"https://www.kinopoisk.ru/","language":"ru","priority":3},
+    {"name":"Кино-Театр.ру","type":"html","url":"https://www.kino-teatr.ru/","language":"ru","priority":2},
+    {"name":"YouTube Trending (movies)","type":"youtube_api","url":"yt:trending:topic=movies","language":"multi","priority":4},
+    {"name":"YouTube Shorts Trends (movies)","type":"youtube_api","url":"yt:shorts_trending:topic=movies","language":"multi","priority":4},
+    {"name":"IMDb News","type":"html","url":"https://www.imdb.com/news/movie/","language":"en","priority":3},
+    {"name":"Rotten Tomatoes News","type":"html","url":"https://www.rottentomatoes.com/news","language":"en","priority":3},
+    {"name":"Metacritic Movies","type":"html","url":"https://www.metacritic.com/movie/","language":"en","priority":2},
+    {"name":"Telegram movies","type":"telegram_channel","url":"tg:collection:movies_ru","language":"ru","priority":2},
+    {"name":"X - Variety","type":"x_user","url":"https://x.com/variety","language":"en","priority":2},
+    {"name":"X - DiscussingFilm","type":"x_user","url":"https://x.com/DiscussingFilm","language":"en","priority":3},
+    {"name":"Reddit r/television","type":"reddit_rss","url":"https://www.reddit.com/r/television/.rss","language":"en","priority":2},
+    {"name":"Letterboxd","type":"html","url":"https://letterboxd.com/films/popular/","language":"en","priority":2}
+  ]
+}
