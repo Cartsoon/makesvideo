@@ -328,6 +328,32 @@
     background: hsl(var(--muted-foreground) / 0.5);
   }
 
+  /* Stylish notes scrollbar with amber/coral gradient */
+  .notes-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .notes-scrollbar::-webkit-scrollbar-track {
+    background: hsl(var(--muted) / 0.3);
+    border-radius: 2px;
+    margin: 4px 0;
+  }
+
+  .notes-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, hsl(38 92% 58% / 0.7), hsl(8 80% 56% / 0.7));
+    border-radius: 2px;
+  }
+
+  .notes-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, hsl(38 92% 58% / 0.9), hsl(8 80% 56% / 0.9));
+  }
+
+  /* Firefox scrollbar support */
+  .notes-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(38 92% 58% / 0.7) hsl(var(--muted) / 0.3);
+  }
+
   /* Studio theme utilities */
   .studio-gradient {
     background: var(--gradient-studio);
