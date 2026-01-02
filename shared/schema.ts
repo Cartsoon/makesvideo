@@ -870,3 +870,21 @@ export const loginSchema = z.object({
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
+
+// ============ AI ASSISTANT CHAT ============
+
+export const assistantChats = pgTable("assistant_chats", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id", { length: 36 }).references(() => users.id).notNull(),
+  role: varchar("role", { length: 20 }).notNull(), // "user" or "assistant"
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertAssistantChatSchema = createInsertSchema(assistantChats).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type AssistantChat = typeof assistantChats.$inferSelect;
+export type InsertAssistantChat = z.infer<typeof insertAssistantChatSchema>;

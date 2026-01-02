@@ -6,6 +6,7 @@ import { ensureProviderInitialized } from "./providers";
 import { insertSourceSchema, insertTopicSchema, insertScriptSchema, updateScriptSchema, insertJobSchema } from "@shared/schema";
 import type { StylePreset, Duration, JobKind } from "@shared/schema";
 import { EdgeTTS, listVoices } from "edge-tts-universal";
+import OpenAI from "openai";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -1759,6 +1760,173 @@ Distribute time evenly: scenes 3-7 seconds each. Only JSON array.`;
     } catch (error) {
       console.error("Failed to save form state:", error);
       res.status(500).json({ error: "Failed to save form state" });
+    }
+  });
+
+  // ============ AI ASSISTANT CHAT ============
+  
+  // Check if OpenAI integration is configured
+  const isOpenAIConfigured = Boolean(
+    process.env.AI_INTEGRATIONS_OPENAI_API_KEY && 
+    process.env.AI_INTEGRATIONS_OPENAI_BASE_URL
+  );
+  
+  const openai = isOpenAIConfigured ? new OpenAI({
+    apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+    baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+  }) : null;
+  
+  // Zod schema for chat message
+  const chatMessageSchema = z.object({
+    message: z.string().min(1, "Message cannot be empty").max(10000, "Message too long"),
+  });
+  
+  const VIDEO_ASSISTANT_SYSTEM_PROMPT = `Ты — профессиональный AI-ассистент для видеомонтажеров, режиссеров и создателей контента. Твоя специализация:
+
+**Кинопроизводство и история кино:**
+- История киностудий (Мосфильм, Горького, Ленфильм, Hollywood studios и др.)
+- Биографии режиссеров, операторов, актеров
+- Техники съемки и монтажа разных эпох
+- Жанры и стили кинематографа
+
+**Видеомонтаж:**
+- Adobe Premiere Pro, DaVinci Resolve, Final Cut Pro, After Effects
+- Техники монтажа: jump cut, match cut, J-cut, L-cut, cross-cutting
+- Цветокоррекция и грейдинг
+- Звуковой дизайн и работа с аудио
+- VFX и композитинг
+
+**Создание контента:**
+- YouTube Shorts, TikTok, Reels, VK Clips
+- Написание сценариев и хуков
+- Структура вирусного контента
+- SEO и продвижение видео
+
+**Техническое оснащение:**
+- Камеры и объективы
+- Освещение и звукозапись
+- Стабилизация и риги
+- Кодеки и форматы видео
+
+Отвечай структурировано, с примерами и практическими советами. Если спрашивают о фактах (даты, имена, события), давай точную информацию. Отвечай на языке пользователя.`;
+  
+  // Get chat history
+  app.get("/api/assistant/chat", async (req, res) => {
+    try {
+      const sessionId = req.cookies?.session_id;
+      if (!sessionId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const session = await storage.getSession(sessionId);
+      if (!session) {
+        return res.status(401).json({ error: "Session expired" });
+      }
+      
+      const messages = await storage.getAssistantChats(session.userId);
+      res.json(messages);
+    } catch (error) {
+      console.error("Failed to get chat history:", error);
+      res.status(500).json({ error: "Failed to get chat history" });
+    }
+  });
+  
+  // Send message and get AI response (streaming)
+  app.post("/api/assistant/chat", async (req, res) => {
+    try {
+      // Check if OpenAI is configured
+      if (!openai) {
+        return res.status(503).json({ error: "AI Assistant is not configured. Please set up OpenAI integration." });
+      }
+      
+      const sessionId = req.cookies?.session_id;
+      if (!sessionId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const session = await storage.getSession(sessionId);
+      if (!session) {
+        return res.status(401).json({ error: "Session expired" });
+      }
+      
+      // Validate request body with Zod
+      const parseResult = chatMessageSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ error: parseResult.error.errors[0]?.message || "Invalid request" });
+      }
+      
+      const { message } = parseResult.data;
+      
+      // Save user message
+      await storage.addAssistantChat(session.userId, "user", message);
+      
+      // Get conversation history for context
+      const history = await storage.getAssistantChats(session.userId);
+      const chatMessages: { role: "system" | "user" | "assistant"; content: string }[] = [
+        { role: "system", content: VIDEO_ASSISTANT_SYSTEM_PROMPT },
+        ...history.map(m => ({
+          role: m.role as "user" | "assistant",
+          content: m.content,
+        })),
+      ];
+      
+      // Set up SSE
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+      
+      // Stream response from OpenAI
+      const stream = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: chatMessages,
+        stream: true,
+        max_completion_tokens: 2048,
+      });
+      
+      let fullResponse = "";
+      
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content || "";
+        if (content) {
+          fullResponse += content;
+          res.write(`data: ${JSON.stringify({ content })}\n\n`);
+        }
+      }
+      
+      // Save assistant message
+      await storage.addAssistantChat(session.userId, "assistant", fullResponse);
+      
+      res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+      res.end();
+    } catch (error) {
+      console.error("Failed to send message:", error);
+      if (res.headersSent) {
+        res.write(`data: ${JSON.stringify({ error: "Failed to generate response" })}\n\n`);
+        res.end();
+      } else {
+        res.status(500).json({ error: "Failed to send message" });
+      }
+    }
+  });
+  
+  // Clear chat history
+  app.delete("/api/assistant/chat", async (req, res) => {
+    try {
+      const sessionId = req.cookies?.session_id;
+      if (!sessionId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const session = await storage.getSession(sessionId);
+      if (!session) {
+        return res.status(401).json({ error: "Session expired" });
+      }
+      
+      await storage.clearAssistantChats(session.userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to clear chat:", error);
+      res.status(500).json({ error: "Failed to clear chat" });
     }
   });
 

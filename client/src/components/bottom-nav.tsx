@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Rss, TrendingUp, FileText, Settings } from "lucide-react";
+import { LayoutDashboard, Rss, FileText, Settings, Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 
@@ -10,8 +10,8 @@ export function BottomNav() {
   const navItems = [
     { href: "/", icon: LayoutDashboard, label: t("nav.dashboard") },
     { href: "/sources", icon: Rss, label: t("nav.sources") },
-    { href: "/topics", icon: TrendingUp, label: t("nav.topics") },
     { href: "/scripts", icon: FileText, label: t("nav.scripts") },
+    { href: "/assistant", icon: Bot, label: "AI" },
     { href: "/settings", icon: Settings, label: t("nav.settings") },
   ];
 

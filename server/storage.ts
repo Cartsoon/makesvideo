@@ -3,7 +3,7 @@ import { eq, desc, and, lt, sql } from "drizzle-orm";
 import { db } from "./db";
 import {
   settings, users, sessions, authPasswords, sources, topics, scripts, jobs,
-  trendSignals, trendTopics, formStates
+  trendSignals, trendTopics, formStates, assistantChats
 } from "@shared/schema";
 import type {
   Source, InsertSource, SourceHealth, CategoryId,
@@ -15,7 +15,7 @@ import type {
   TrendTopic, InsertTrendTopic,
   TopicStatus, ScriptStatus, JobStatus,
   User, InsertUser, UpdateUser, Session, AuthPassword,
-  FormState, InsertFormState
+  FormState, InsertFormState, AssistantChat
 } from "@shared/schema";
 
 export interface IStorage {
@@ -89,6 +89,11 @@ export interface IStorage {
   // Form state
   getFormState(pageName: string, userId?: string): Promise<FormState | undefined>;
   saveFormState(pageName: string, state: Record<string, unknown>, userId?: string): Promise<FormState>;
+  
+  // Assistant chat
+  getAssistantChats(userId: string, limit?: number): Promise<AssistantChat[]>;
+  addAssistantChat(userId: string, role: "user" | "assistant", content: string): Promise<AssistantChat>;
+  clearAssistantChats(userId: string): Promise<void>;
 }
 
 // Helper to convert Date to ISO string
@@ -737,6 +742,57 @@ export class DatabaseStorage implements IStorage {
       state: row.state as Record<string, unknown>,
       updatedAt: row.updatedAt.toISOString(),
     };
+  }
+
+  // ============ ASSISTANT CHAT ============
+
+  async getAssistantChats(userId: string, limit: number = 50): Promise<AssistantChat[]> {
+    const rows = await db.select()
+      .from(assistantChats)
+      .where(eq(assistantChats.userId, userId))
+      .orderBy(desc(assistantChats.createdAt))
+      .limit(limit);
+    
+    return rows.reverse().map(row => ({
+      id: row.id,
+      userId: row.userId,
+      role: row.role as "user" | "assistant",
+      content: row.content,
+      createdAt: row.createdAt.toISOString(),
+    }));
+  }
+
+  async addAssistantChat(userId: string, role: "user" | "assistant", content: string): Promise<AssistantChat> {
+    const [row] = await db.insert(assistantChats).values({
+      userId,
+      role,
+      content,
+    }).returning();
+    
+    // Clean up old messages to keep only last 50
+    const allChats = await db.select({ id: assistantChats.id })
+      .from(assistantChats)
+      .where(eq(assistantChats.userId, userId))
+      .orderBy(desc(assistantChats.createdAt));
+    
+    if (allChats.length > 50) {
+      const idsToDelete = allChats.slice(50).map(c => c.id);
+      for (const id of idsToDelete) {
+        await db.delete(assistantChats).where(eq(assistantChats.id, id));
+      }
+    }
+    
+    return {
+      id: row.id,
+      userId: row.userId,
+      role: row.role as "user" | "assistant",
+      content: row.content,
+      createdAt: row.createdAt.toISOString(),
+    };
+  }
+
+  async clearAssistantChats(userId: string): Promise<void> {
+    await db.delete(assistantChats).where(eq(assistantChats.userId, userId));
   }
 }
 
