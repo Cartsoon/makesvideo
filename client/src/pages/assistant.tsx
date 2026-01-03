@@ -81,6 +81,7 @@ import { format } from "date-fns";
 import { ru, enUS } from "date-fns/locale";
 import { playSendSound, playReceiveSound } from "@/hooks/use-sound";
 import { Layout } from "@/components/layout";
+import ReactMarkdown from "react-markdown";
 
 interface OptimisticMessage {
   id: string;
@@ -369,22 +370,72 @@ export default function AssistantPage() {
     }
   };
 
-  const formatContent = (content: string) => {
-    return content.split("\n").map((line, i) => {
-      if (line.startsWith("**") && line.endsWith("**")) {
-        return <p key={i} className="font-semibold mt-3 mb-1 text-foreground">{line.slice(2, -2)}</p>;
-      }
-      if (line.startsWith("- ")) {
-        return <li key={i} className="ml-4 list-disc text-foreground/90">{line.slice(2)}</li>;
-      }
-      if (line.match(/^\d+\.\s/)) {
-        return <li key={i} className="ml-4 list-decimal text-foreground/90">{line.replace(/^\d+\.\s/, "")}</li>;
-      }
-      if (line.trim() === "") {
-        return <div key={i} className="h-2" />;
-      }
-      return <p key={i} className="mb-1 text-foreground/90 leading-relaxed">{line}</p>;
-    });
+  const MarkdownContent = ({ content }: { content: string }) => {
+    return (
+      <ReactMarkdown
+        components={{
+          h1: ({ children }) => (
+            <h1 className="text-lg font-bold mt-4 mb-2 text-foreground border-b border-border/50 pb-1">{children}</h1>
+          ),
+          h2: ({ children }) => (
+            <h2 className="text-base font-bold mt-4 mb-2 text-foreground">{children}</h2>
+          ),
+          h3: ({ children }) => (
+            <h3 className="text-sm font-semibold mt-3 mb-1.5 text-foreground">{children}</h3>
+          ),
+          h4: ({ children }) => (
+            <h4 className="text-sm font-medium mt-2 mb-1 text-foreground">{children}</h4>
+          ),
+          p: ({ children }) => (
+            <p className="mb-2 text-foreground/90 leading-relaxed">{children}</p>
+          ),
+          ul: ({ children }) => (
+            <ul className="ml-4 mb-2 space-y-1 list-disc marker:text-primary/60">{children}</ul>
+          ),
+          ol: ({ children }) => (
+            <ol className="ml-4 mb-2 space-y-1 list-decimal marker:text-primary/60">{children}</ol>
+          ),
+          li: ({ children }) => (
+            <li className="text-foreground/90 leading-relaxed">{children}</li>
+          ),
+          strong: ({ children }) => (
+            <strong className="font-semibold text-foreground">{children}</strong>
+          ),
+          em: ({ children }) => (
+            <em className="italic text-foreground/80">{children}</em>
+          ),
+          a: ({ href, children }) => (
+            <a 
+              href={href} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="text-primary underline underline-offset-2 hover:text-primary/80 transition-colors"
+            >
+              {children}
+            </a>
+          ),
+          code: ({ children, className }) => {
+            const isInline = !className;
+            return isInline ? (
+              <code className="px-1.5 py-0.5 rounded bg-muted text-sm font-mono text-foreground">{children}</code>
+            ) : (
+              <code className="block p-3 rounded-md bg-muted text-sm font-mono text-foreground overflow-x-auto">{children}</code>
+            );
+          },
+          pre: ({ children }) => (
+            <pre className="my-2 rounded-md bg-muted overflow-x-auto">{children}</pre>
+          ),
+          blockquote: ({ children }) => (
+            <blockquote className="border-l-2 border-primary/40 pl-3 my-2 text-foreground/80 italic">{children}</blockquote>
+          ),
+          hr: () => (
+            <hr className="my-3 border-border/50" />
+          ),
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    );
   };
 
   const formatTime = (dateStr: string) => {
@@ -680,7 +731,7 @@ export default function AssistantPage() {
                     <div className={`flex flex-col max-w-[85%] ${msg.role === "user" ? "items-end" : "items-start"}`}>
                       <div className={`px-3 py-2 rounded-lg text-sm ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted/80 border border-border/50"}`}>
                         {msg.role === "assistant" ? (
-                          <div className="prose prose-sm dark:prose-invert max-w-none text-xs">{formatContent(msg.content)}</div>
+                          <div className="prose prose-sm dark:prose-invert max-w-none text-xs"><MarkdownContent content={msg.content} /></div>
                         ) : (
                           <p className="whitespace-pre-wrap text-xs">{msg.content}</p>
                         )}
@@ -743,7 +794,7 @@ export default function AssistantPage() {
                     </div>
                     <div className="flex flex-col max-w-[85%]">
                       <div className="px-3 py-2 rounded-lg text-sm bg-muted/80 border border-primary/30">
-                        <div className="prose prose-sm dark:prose-invert max-w-none text-xs">{formatContent(streamingContent)}</div>
+                        <div className="prose prose-sm dark:prose-invert max-w-none text-xs"><MarkdownContent content={streamingContent} /></div>
                       </div>
                       <span className="text-[9px] text-primary mt-0.5 px-1 font-mono flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
@@ -1045,7 +1096,7 @@ export default function AssistantPage() {
                         >
                           {msg.role === "assistant" ? (
                             <div className="prose prose-sm dark:prose-invert max-w-none">
-                              {formatContent(msg.content)}
+                              <MarkdownContent content={msg.content} />
                             </div>
                           ) : (
                             <p className="whitespace-pre-wrap">{msg.content}</p>
@@ -1116,7 +1167,7 @@ export default function AssistantPage() {
                       <div className="flex flex-col max-w-[80%] items-start">
                         <div className="px-4 py-2.5 rounded-2xl rounded-bl-md text-sm bg-muted">
                           <div className="prose prose-sm dark:prose-invert max-w-none">
-                            {formatContent(streamingContent)}
+                            <MarkdownContent content={streamingContent} />
                           </div>
                         </div>
                         <span className="text-[10px] text-muted-foreground mt-1 px-1 flex items-center gap-1">
