@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/lib/auth-context";
 import { getAvatarById } from "@/lib/avatars";
+import editoAvatar from "@assets/ChatGPT_Image_3_янв._2026_г.,_15_37_10_1767443857410.png";
 import { Card } from "@/components/ui/card";
 import {
   DropdownMenu,
@@ -754,12 +755,8 @@ export default function AssistantPage() {
               </div>
             ) : allMessages.length === 0 && !streamingContent ? (
               <div className="flex flex-col items-center justify-center py-8 px-4">
-                <div className="w-14 h-14 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mb-3 border border-primary/20">
-                  <Clapperboard className="h-7 w-7 text-primary" />
-                </div>
-                <h3 className="font-medium text-sm mb-1">
-                  {language === "ru" ? "Видео Ассистент" : "Video Assistant"}
-                </h3>
+                <img src={editoAvatar} alt="EDITO" className="w-16 h-16 rounded-lg mb-3 shadow-sm" />
+                <h3 className="font-medium text-sm mb-1">EDITO</h3>
                 <p className="text-xs text-muted-foreground text-center mb-4">
                   {language === "ru" ? "Спросите о монтаже, съемке или кино" : "Ask about editing, filming, or cinema"}
                 </p>
@@ -782,9 +779,11 @@ export default function AssistantPage() {
                           {user?.nickname ? user.nickname.charAt(0).toUpperCase() : <User className="h-3 w-3" />}
                         </AvatarFallback>
                       </Avatar>
+                    ) : msg.role === "assistant" ? (
+                      <img src={editoAvatar} alt="EDITO" className="w-6 h-6 rounded flex-shrink-0" />
                     ) : (
-                      <div className={`w-6 h-6 rounded flex-shrink-0 flex items-center justify-center ${msg.role === "user" ? "bg-accent" : "bg-primary/20"}`}>
-                        {msg.role === "user" ? (user?.nickname ? <span className="text-[10px]">{user.nickname.charAt(0).toUpperCase()}</span> : <User className="h-3 w-3" />) : <Bot className="h-3 w-3 text-primary" />}
+                      <div className="w-6 h-6 rounded flex-shrink-0 flex items-center justify-center bg-accent">
+                        {user?.nickname ? <span className="text-[10px]">{user.nickname.charAt(0).toUpperCase()}</span> : <User className="h-3 w-3" />}
                       </div>
                     )}
                     <div className={`flex flex-col max-w-[85%] ${msg.role === "user" ? "items-end" : "items-start"}`}>
@@ -848,9 +847,7 @@ export default function AssistantPage() {
                 ))}
                 {isStreaming && !streamingContent && (
                   <div className="flex gap-2">
-                    <div className="w-6 h-6 rounded flex-shrink-0 flex items-center justify-center bg-primary/20 animate-pulse">
-                      <Bot className="h-3 w-3 text-primary" />
-                    </div>
+                    <img src={editoAvatar} alt="EDITO" className="w-6 h-6 rounded flex-shrink-0 animate-pulse" />
                     <div className="flex flex-col max-w-[85%]">
                       <div className="px-3 py-2 rounded-lg text-sm bg-muted/80 border border-primary/30 flex items-center gap-1.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-primary animate-typing-dot" style={{ animationDelay: "0ms" }} />
@@ -865,9 +862,7 @@ export default function AssistantPage() {
                 )}
                 {streamingContent && (
                   <div className="flex gap-2">
-                    <div className="w-6 h-6 rounded flex-shrink-0 flex items-center justify-center bg-primary/20 animate-pulse">
-                      <Bot className="h-3 w-3 text-primary" />
-                    </div>
+                    <img src={editoAvatar} alt="EDITO" className="w-6 h-6 rounded flex-shrink-0 animate-pulse" />
                     <div className="flex flex-col max-w-[85%]">
                       <div className="px-3 py-2 rounded-lg text-sm bg-muted/80 border border-primary/30">
                         <div className="prose prose-sm dark:prose-invert max-w-none text-xs"><MarkdownContent content={streamingContent} /></div>
@@ -1114,11 +1109,9 @@ export default function AssistantPage() {
                 </div>
               ) : allMessages.length === 0 && !streamingContent ? (
                 <div className="flex flex-col items-center justify-center py-8 px-4">
-                  <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mb-4">
-                    <Sparkles className="h-8 w-8 text-primary" />
-                  </div>
+                  <img src={editoAvatar} alt="EDITO" className="w-20 h-20 rounded-xl mb-4 shadow-md" />
                   <h3 className="font-semibold text-lg mb-2 text-center">
-                    {language === "ru" ? "Привет! Я ваш видео-ассистент" : "Hi! I'm your video assistant"}
+                    {language === "ru" ? "Привет! Я ваш видео-ассистент EDITO (Эдито)." : "Hi! I'm your video assistant EDITO."}
                   </h3>
                   <p className="text-sm text-muted-foreground text-center max-w-sm mb-6">
                     {language === "ru"
@@ -1153,17 +1146,18 @@ export default function AssistantPage() {
                       className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}
                       data-testid={`chat-message-${msg.id || idx}`}
                     >
-                      <Avatar className="w-8 h-8 flex-shrink-0">
-                        {msg.role === "user" && user?.avatarId && user.avatarId > 0 ? (
-                          <AvatarImage src={getAvatarById(user.avatarId)} alt={user.nickname || "User"} className="object-cover" />
-                        ) : null}
-                        <AvatarFallback className={msg.role === "user" 
-                          ? "bg-accent text-accent-foreground" 
-                          : "bg-gradient-to-br from-primary to-primary/70 text-primary-foreground"
-                        }>
-                          {msg.role === "user" ? (user?.nickname ? user.nickname.charAt(0).toUpperCase() : <User className="h-4 w-4" />) : <Bot className="h-4 w-4" />}
-                        </AvatarFallback>
-                      </Avatar>
+                      {msg.role === "assistant" ? (
+                        <img src={editoAvatar} alt="EDITO" className="w-8 h-8 rounded-full flex-shrink-0" />
+                      ) : (
+                        <Avatar className="w-8 h-8 flex-shrink-0">
+                          {user?.avatarId && user.avatarId > 0 ? (
+                            <AvatarImage src={getAvatarById(user.avatarId)} alt={user.nickname || "User"} className="object-cover" />
+                          ) : null}
+                          <AvatarFallback className="bg-accent text-accent-foreground">
+                            {user?.nickname ? user.nickname.charAt(0).toUpperCase() : <User className="h-4 w-4" />}
+                          </AvatarFallback>
+                        </Avatar>
+                      )}
                       
                       <div className={`flex flex-col max-w-[80%] ${msg.role === "user" ? "items-end" : "items-start"}`}>
                         <div
@@ -1237,11 +1231,7 @@ export default function AssistantPage() {
                   
                   {isStreaming && !streamingContent && (
                     <div className="flex gap-3 flex-row">
-                      <Avatar className="w-8 h-8 flex-shrink-0">
-                        <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 text-primary-foreground animate-pulse">
-                          <Bot className="h-4 w-4" />
-                        </AvatarFallback>
-                      </Avatar>
+                      <img src={editoAvatar} alt="EDITO" className="w-8 h-8 rounded-full flex-shrink-0 animate-pulse" />
                       
                       <div className="flex flex-col max-w-[80%] items-start">
                         <div className="px-4 py-2.5 rounded-2xl rounded-bl-md text-sm bg-muted flex items-center gap-2">
@@ -1257,11 +1247,7 @@ export default function AssistantPage() {
                   )}
                   {streamingContent && (
                     <div className="flex gap-3 flex-row">
-                      <Avatar className="w-8 h-8 flex-shrink-0">
-                        <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 text-primary-foreground">
-                          <Bot className="h-4 w-4" />
-                        </AvatarFallback>
-                      </Avatar>
+                      <img src={editoAvatar} alt="EDITO" className="w-8 h-8 rounded-full flex-shrink-0 animate-pulse" />
                       
                       <div className="flex flex-col max-w-[80%] items-start">
                         <div className="px-4 py-2.5 rounded-2xl rounded-bl-md text-sm bg-muted">
