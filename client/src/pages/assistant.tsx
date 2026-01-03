@@ -99,6 +99,7 @@ export default function AssistantPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [notes, setNotes] = useState("");
   const [notesSaved, setNotesSaved] = useState(true);
+  const [showClearDialog, setShowClearDialog] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(() => {
     const saved = localStorage.getItem("assistant-sound-enabled");
     return saved !== "false";
@@ -532,7 +533,7 @@ export default function AssistantPage() {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
-                  onClick={() => clearMutation.mutate()}
+                  onClick={() => setShowClearDialog(true)}
                   disabled={clearMutation.isPending || totalMessages === 0}
                   className="text-destructive"
                 >
@@ -543,6 +544,35 @@ export default function AssistantPage() {
             </DropdownMenu>
           </div>
         </div>
+
+        {/* Clear Chat Confirmation Dialog */}
+        <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {language === "ru" ? "Очистить историю чата?" : "Clear chat history?"}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {language === "ru" 
+                  ? "Вся история переписки с ассистентом будет удалена. Это действие нельзя отменить."
+                  : "All conversation history with the assistant will be deleted. This action cannot be undone."
+                }
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel data-testid="button-cancel-clear-chat">
+                {language === "ru" ? "Отмена" : "Cancel"}
+              </AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={() => clearMutation.mutate()}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                data-testid="button-confirm-clear-chat"
+              >
+                {language === "ru" ? "Очистить" : "Clear"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Timeline Track Ruler */}
         <div className="flex items-center h-5 px-3 bg-muted/30 border-b border-border/30 flex-shrink-0">
@@ -795,7 +825,7 @@ export default function AssistantPage() {
                     {language === "ru" ? "Архивировать" : "Archive"}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => clearMutation.mutate()} disabled={clearMutation.isPending || totalMessages === 0} className="text-destructive">
+                  <DropdownMenuItem onClick={() => setShowClearDialog(true)} disabled={clearMutation.isPending || totalMessages === 0} className="text-destructive">
                     <Trash2 className="h-4 w-4 mr-2" />
                     {language === "ru" ? "Очистить" : "Clear"}
                   </DropdownMenuItem>
