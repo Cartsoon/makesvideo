@@ -223,7 +223,7 @@ export default function Topics() {
                       )}
                       {(topic.insights?.summary || topic.rawText || topic.fullContent) && (
                         <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-2 mt-1">
-                          {topic.insights?.summary || (topic.rawText || topic.fullContent || "").slice(0, 150)}
+                          {topic.insights?.summary || (topic.rawText || topic.fullContent || "").slice(0, 300)}
                         </p>
                       )}
                       <div className="flex items-center gap-2 mt-1 text-[10px] sm:text-xs text-muted-foreground">
