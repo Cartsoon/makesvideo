@@ -7,11 +7,12 @@ import { Clapperboard, Camera, Film, Video, Play, Scissors } from "lucide-react"
 interface LayoutProps {
   children: React.ReactNode;
   title?: string;
+  fullHeight?: boolean;
 }
 
-export function Layout({ children, title }: LayoutProps) {
+export function Layout({ children, title, fullHeight }: LayoutProps) {
   return (
-    <div className="min-h-screen bg-background relative">
+    <div className={`min-h-screen bg-background relative ${fullHeight ? 'lg:h-screen lg:overflow-hidden' : ''}`}>
       <DesktopSidebar />
       
       <div className="md:pl-56">
@@ -21,7 +22,7 @@ export function Layout({ children, title }: LayoutProps) {
         
         <TipsBar />
         
-        <main className="pb-20 md:pb-6 min-h-screen relative z-10">
+        <main className={`pb-20 md:pb-6 min-h-screen relative z-10 ${fullHeight ? 'lg:pb-0 lg:h-screen lg:overflow-hidden' : ''}`}>
           {children}
         </main>
         
