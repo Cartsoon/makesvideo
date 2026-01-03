@@ -566,6 +566,13 @@ export default function AssistantPage() {
 
   const [quickPromptsKey, setQuickPromptsKey] = useState(0);
   
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setQuickPromptsKey(prev => prev + 1);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, []);
+  
   const quickPrompts = useMemo(() => {
     const allRu = [
       "Как сделать крутой хук для видео?",
