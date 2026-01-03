@@ -271,7 +271,8 @@ export default function KbAdminPage() {
 
   const saveFileMutation = useMutation({
     mutationFn: async ({ path, content }: { path: string; content: string }) => {
-      return apiRequest("/api/kb-admin/fs/file", "POST", { path, content });
+      const res = await apiRequest("POST", "/api/kb-admin/fs/file", { path, content });
+      return res.json();
     },
     onSuccess: () => {
       setOriginalContent(editorContent);
@@ -285,7 +286,8 @@ export default function KbAdminPage() {
 
   const createFileMutation = useMutation({
     mutationFn: async (data: { folderPath?: string; title: string; tags: string[]; templateKey?: string }) => {
-      return apiRequest("/api/kb-admin/fs/create", "POST", data);
+      const res = await apiRequest("POST", "/api/kb-admin/fs/create", data);
+      return res.json();
     },
     onSuccess: (data) => {
       setCreateDialogOpen(false);
@@ -304,7 +306,8 @@ export default function KbAdminPage() {
 
   const createFolderMutation = useMutation({
     mutationFn: async (path: string) => {
-      return apiRequest("/api/kb-admin/fs/folder", "POST", { path });
+      const res = await apiRequest("POST", "/api/kb-admin/fs/folder", { path });
+      return res.json();
     },
     onSuccess: () => {
       setCreateFolderDialogOpen(false);
@@ -316,7 +319,8 @@ export default function KbAdminPage() {
 
   const deleteFileMutation = useMutation({
     mutationFn: async (path: string) => {
-      return apiRequest("/api/kb-admin/fs/file", "DELETE", { path });
+      const res = await apiRequest("DELETE", "/api/kb-admin/fs/file", { path });
+      return res.json();
     },
     onSuccess: () => {
       setDeleteDialogOpen(false);
@@ -330,7 +334,8 @@ export default function KbAdminPage() {
 
   const reindexAllMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("/api/kb-admin/index/reindexAll", "POST", {});
+      const res = await apiRequest("POST", "/api/kb-admin/index/reindexAll", {});
+      return res.json();
     },
     onSuccess: (data) => {
       refetchIndex();
@@ -366,7 +371,8 @@ export default function KbAdminPage() {
   
   const updateChunkMutation = useMutation({
     mutationFn: async ({ chunkId, content }: { chunkId: string; content: string }) => {
-      return apiRequest(`/api/kb-admin/index/chunk/${chunkId}`, "PUT", { content });
+      const res = await apiRequest("PUT", `/api/kb-admin/index/chunk/${chunkId}`, { content });
+      return res.json();
     },
     onSuccess: () => {
       setEditChunkDialogOpen(false);
@@ -383,7 +389,8 @@ export default function KbAdminPage() {
   
   const previewChunksMutation = useMutation({
     mutationFn: async (content: string) => {
-      return apiRequest("/api/kb-admin/index/previewChunks", "POST", { content });
+      const res = await apiRequest("POST", "/api/kb-admin/index/previewChunks", { content });
+      return res.json();
     },
     onSuccess: (data) => {
       setPreviewChunks(data.chunks);
@@ -396,7 +403,8 @@ export default function KbAdminPage() {
 
   const reindexFileMutation = useMutation({
     mutationFn: async (path: string) => {
-      return apiRequest("/api/kb-admin/index/reindexFile", "POST", { path });
+      const res = await apiRequest("POST", "/api/kb-admin/index/reindexFile", { path });
+      return res.json();
     },
     onSuccess: (data) => {
       refetchIndex();
@@ -412,7 +420,8 @@ export default function KbAdminPage() {
 
   const deleteDocMutation = useMutation({
     mutationFn: async ({ docId, keepFile }: { docId: string; keepFile: boolean }) => {
-      return apiRequest("/api/kb-admin/index/document", "DELETE", { docId, keepFile });
+      const res = await apiRequest("DELETE", "/api/kb-admin/index/document", { docId, keepFile });
+      return res.json();
     },
     onSuccess: () => {
       refetchIndex();
@@ -422,7 +431,8 @@ export default function KbAdminPage() {
 
   const toggleDocActive = useMutation({
     mutationFn: async ({ docId, isActive }: { docId: string; isActive: boolean }) => {
-      return apiRequest("/api/kb-admin/index/deactivate", "POST", { docId, isActive });
+      const res = await apiRequest("POST", "/api/kb-admin/index/deactivate", { docId, isActive });
+      return res.json();
     },
     onSuccess: () => {
       refetchIndex();
@@ -456,10 +466,11 @@ export default function KbAdminPage() {
     if (!searchQuery.trim()) return;
     setIsSearching(true);
     try {
-      const res = await apiRequest("/api/kb-admin/retrieve", "POST", {
+      const response = await apiRequest("POST", "/api/kb-admin/retrieve", {
         query: searchQuery,
         topK: 10,
       });
+      const res = await response.json();
       setSearchResults(res.results || []);
     } catch (err) {
       toast({ title: language === "ru" ? "Ошибка поиска" : "Search error", variant: "destructive" });
