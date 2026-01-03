@@ -120,6 +120,19 @@ export default function AssistantPage() {
     };
   }, []);
 
+  // Prevent body scroll on desktop for full-height layout
+  useEffect(() => {
+    const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
+    if (isDesktop) {
+      document.body.style.overflow = "hidden";
+      document.documentElement.style.overflow = "hidden";
+    }
+    return () => {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+    };
+  }, []);
+
   useEffect(() => {
     localStorage.setItem("assistant-sound-enabled", String(soundEnabled));
   }, [soundEnabled]);

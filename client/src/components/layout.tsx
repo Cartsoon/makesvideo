@@ -12,7 +12,7 @@ interface LayoutProps {
 
 export function Layout({ children, title, fullHeight }: LayoutProps) {
   return (
-    <div className={`min-h-screen bg-background relative ${fullHeight ? 'lg:h-screen lg:overflow-hidden' : ''}`}>
+    <div className={`min-h-screen bg-background relative ${fullHeight ? 'lg:h-screen lg:max-h-screen lg:overflow-hidden' : ''}`}>
       <DesktopSidebar />
       
       <div className={`md:pl-56 ${fullHeight ? 'lg:h-screen lg:overflow-hidden lg:flex lg:flex-col' : ''}`}>
