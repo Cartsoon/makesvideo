@@ -2078,6 +2078,34 @@ Distribute time evenly: scenes 3-7 seconds each. Only JSON array.`;
       res.status(500).json({ error: "Failed to save notes" });
     }
   });
+  
+  // Save assistant feedback
+  app.post("/api/assistant/feedback", async (req, res) => {
+    try {
+      const sessionId = req.cookies?.session_id;
+      if (!sessionId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const session = await storage.getSession(sessionId);
+      if (!session) {
+        return res.status(401).json({ error: "Session expired" });
+      }
+      
+      const { messageId, rating, reason } = req.body;
+      
+      if (typeof messageId !== "number" || !["positive", "negative"].includes(rating)) {
+        return res.status(400).json({ error: "Invalid feedback data" });
+      }
+      
+      const feedback = await storage.saveAssistantFeedback(session.userId, messageId, rating, reason);
+      console.log(`[Feedback] Message ${messageId}: ${rating}${reason ? ` - ${reason}` : ""}`);
+      res.json(feedback);
+    } catch (error) {
+      console.error("Failed to save feedback:", error);
+      res.status(500).json({ error: "Failed to save feedback" });
+    }
+  });
 
   return httpServer;
 }

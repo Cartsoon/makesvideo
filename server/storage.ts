@@ -3,7 +3,7 @@ import { eq, desc, and, lt, sql, isNull, isNotNull } from "drizzle-orm";
 import { db } from "./db";
 import {
   settings, users, sessions, authPasswords, sources, topics, scripts, jobs,
-  trendSignals, trendTopics, formStates, assistantChats, assistantNotes
+  trendSignals, trendTopics, formStates, assistantChats, assistantNotes, assistantFeedback
 } from "@shared/schema";
 import type {
   Source, InsertSource, SourceHealth, CategoryId,
@@ -15,7 +15,7 @@ import type {
   TrendTopic, InsertTrendTopic,
   TopicStatus, ScriptStatus, JobStatus,
   User, InsertUser, UpdateUser, Session, AuthPassword,
-  FormState, InsertFormState, AssistantChat, AssistantNote
+  FormState, InsertFormState, AssistantChat, AssistantNote, AssistantFeedback
 } from "@shared/schema";
 
 export interface IStorage {
@@ -105,6 +105,10 @@ export interface IStorage {
   // Assistant notes
   getAssistantNote(userId: string): Promise<AssistantNote | undefined>;
   saveAssistantNote(userId: string, content: string): Promise<AssistantNote>;
+  
+  // Assistant feedback
+  saveAssistantFeedback(userId: string, messageId: number, rating: "positive" | "negative", reason?: string): Promise<AssistantFeedback>;
+  getAssistantFeedback(userId: string, messageId: number): Promise<AssistantFeedback | undefined>;
 }
 
 // Helper to convert Date to ISO string
@@ -952,6 +956,70 @@ export class DatabaseStorage implements IStorage {
         updatedAt: row.updatedAt.toISOString(),
       };
     }
+  }
+  
+  // ============ ASSISTANT FEEDBACK ============
+  
+  async saveAssistantFeedback(userId: string, messageId: number, rating: "positive" | "negative", reason?: string): Promise<AssistantFeedback> {
+    // Check if feedback already exists for this message
+    const existing = await this.getAssistantFeedback(userId, messageId);
+    
+    if (existing) {
+      // Update existing feedback
+      const [row] = await db.update(assistantFeedback)
+        .set({ rating, reason: reason || null })
+        .where(and(
+          eq(assistantFeedback.userId, userId),
+          eq(assistantFeedback.messageId, messageId)
+        ))
+        .returning();
+      
+      return {
+        id: row.id,
+        userId: row.userId,
+        messageId: row.messageId,
+        rating: row.rating,
+        reason: row.reason,
+        createdAt: row.createdAt.toISOString(),
+      };
+    } else {
+      // Insert new feedback
+      const [row] = await db.insert(assistantFeedback).values({
+        userId,
+        messageId,
+        rating,
+        reason: reason || null,
+      }).returning();
+      
+      return {
+        id: row.id,
+        userId: row.userId,
+        messageId: row.messageId,
+        rating: row.rating,
+        reason: row.reason,
+        createdAt: row.createdAt.toISOString(),
+      };
+    }
+  }
+  
+  async getAssistantFeedback(userId: string, messageId: number): Promise<AssistantFeedback | undefined> {
+    const [row] = await db.select()
+      .from(assistantFeedback)
+      .where(and(
+        eq(assistantFeedback.userId, userId),
+        eq(assistantFeedback.messageId, messageId)
+      ));
+    
+    if (!row) return undefined;
+    
+    return {
+      id: row.id,
+      userId: row.userId,
+      messageId: row.messageId,
+      rating: row.rating,
+      reason: row.reason,
+      createdAt: row.createdAt.toISOString(),
+    };
   }
 }
 

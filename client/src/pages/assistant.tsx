@@ -68,8 +68,12 @@ import {
   ChevronUp,
   Archive,
   RotateCcw,
-  Clock
+  Clock,
+  ThumbsUp,
+  ThumbsDown,
+  Check
 } from "lucide-react";
+import { feedbackReasons, type FeedbackReason } from "@shared/schema";
 import { useI18n } from "@/lib/i18n";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { AssistantChat } from "@shared/schema";
@@ -215,6 +219,31 @@ export default function AssistantPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/assistant/chat/archived"] });
     },
   });
+
+  // Feedback state and mutation
+  const [feedbackGiven, setFeedbackGiven] = useState<Record<number, "positive" | "negative">>({});
+  const [showReasonDropdown, setShowReasonDropdown] = useState<number | null>(null);
+
+  const feedbackMutation = useMutation({
+    mutationFn: (data: { messageId: number; rating: "positive" | "negative"; reason?: string }) =>
+      apiRequest("POST", "/api/assistant/feedback", data),
+    onSuccess: (_, variables) => {
+      setFeedbackGiven(prev => ({ ...prev, [variables.messageId]: variables.rating }));
+      setShowReasonDropdown(null);
+    },
+  });
+
+  const feedbackReasonLabels: Record<FeedbackReason, { ru: string; en: string }> = {
+    too_generic: { ru: "Слишком общий", en: "Too generic" },
+    wrong_style: { ru: "Не по стилю", en: "Wrong style" },
+    poor_structure: { ru: "Не структурно", en: "Poor structure" },
+    no_practical: { ru: "Нет практики", en: "No practical tips" },
+    not_trendy: { ru: "Не трендово", en: "Not trendy" },
+  };
+
+  const handleFeedback = (messageId: number, rating: "positive" | "negative", reason?: string) => {
+    feedbackMutation.mutate({ messageId, rating, reason });
+  };
 
   const scrollToBottom = useCallback(() => {
     if (scrollAreaRef.current) {
@@ -656,7 +685,54 @@ export default function AssistantPage() {
                           <p className="whitespace-pre-wrap text-xs">{msg.content}</p>
                         )}
                       </div>
-                      <span className="text-[9px] text-muted-foreground mt-0.5 px-1 font-mono">{formatTime(msg.createdAt)}</span>
+                      <div className="flex items-center gap-1 mt-0.5 px-1">
+                        <span className="text-[9px] text-muted-foreground font-mono">{formatTime(msg.createdAt)}</span>
+                        {msg.role === "assistant" && typeof msg.id === "number" && (
+                          <div className="flex items-center gap-0.5 ml-1">
+                            {feedbackGiven[msg.id] ? (
+                              <span className="text-[9px] text-green-500 flex items-center gap-0.5">
+                                <Check className="h-2.5 w-2.5" />
+                                {feedbackGiven[msg.id] === "positive" 
+                                  ? (language === "ru" ? "Спасибо" : "Thanks") 
+                                  : (language === "ru" ? "Записано" : "Noted")
+                                }
+                              </span>
+                            ) : showReasonDropdown === msg.id ? (
+                              <DropdownMenu open={true} onOpenChange={(open) => !open && setShowReasonDropdown(null)}>
+                                <DropdownMenuTrigger asChild>
+                                  <button className="h-4 w-4 flex items-center justify-center rounded text-destructive">
+                                    <ThumbsDown className="h-2.5 w-2.5" />
+                                  </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="start" className="min-w-[140px]">
+                                  {feedbackReasons.map((reason) => (
+                                    <DropdownMenuItem key={reason} onClick={() => handleFeedback(msg.id as number, "negative", reason)} className="text-xs">
+                                      {feedbackReasonLabels[reason][language]}
+                                    </DropdownMenuItem>
+                                  ))}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            ) : (
+                              <>
+                                <button 
+                                  onClick={() => handleFeedback(msg.id as number, "positive")}
+                                  className="h-4 w-4 flex items-center justify-center rounded text-muted-foreground/50 hover:text-green-500 transition-colors"
+                                  data-testid={`button-feedback-up-${msg.id}`}
+                                >
+                                  <ThumbsUp className="h-2.5 w-2.5" />
+                                </button>
+                                <button 
+                                  onClick={() => setShowReasonDropdown(msg.id as number)}
+                                  className="h-4 w-4 flex items-center justify-center rounded text-muted-foreground/50 hover:text-destructive transition-colors"
+                                  data-testid={`button-feedback-down-${msg.id}`}
+                                >
+                                  <ThumbsDown className="h-2.5 w-2.5" />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -975,9 +1051,56 @@ export default function AssistantPage() {
                             <p className="whitespace-pre-wrap">{msg.content}</p>
                           )}
                         </div>
-                        <span className="text-[10px] text-muted-foreground mt-1 px-1">
-                          {formatTime(msg.createdAt)}
-                        </span>
+                        <div className="flex items-center gap-2 mt-1 px-1">
+                          <span className="text-[10px] text-muted-foreground">
+                            {formatTime(msg.createdAt)}
+                          </span>
+                          {msg.role === "assistant" && typeof msg.id === "number" && (
+                            <div className="flex items-center gap-1">
+                              {feedbackGiven[msg.id] ? (
+                                <span className="text-[10px] text-green-500 flex items-center gap-1">
+                                  <Check className="h-3 w-3" />
+                                  {feedbackGiven[msg.id] === "positive" 
+                                    ? (language === "ru" ? "Спасибо" : "Thanks") 
+                                    : (language === "ru" ? "Записано" : "Noted")
+                                  }
+                                </span>
+                              ) : showReasonDropdown === msg.id ? (
+                                <DropdownMenu open={true} onOpenChange={(open) => !open && setShowReasonDropdown(null)}>
+                                  <DropdownMenuTrigger asChild>
+                                    <button className="h-5 w-5 flex items-center justify-center rounded text-destructive">
+                                      <ThumbsDown className="h-3 w-3" />
+                                    </button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="start" className="min-w-[160px]">
+                                    {feedbackReasons.map((reason) => (
+                                      <DropdownMenuItem key={reason} onClick={() => handleFeedback(msg.id as number, "negative", reason)} className="text-xs">
+                                        {feedbackReasonLabels[reason][language]}
+                                      </DropdownMenuItem>
+                                    ))}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              ) : (
+                                <>
+                                  <button 
+                                    onClick={() => handleFeedback(msg.id as number, "positive")}
+                                    className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground/40 hover:text-green-500 transition-colors"
+                                    data-testid={`button-feedback-up-desktop-${msg.id}`}
+                                  >
+                                    <ThumbsUp className="h-3 w-3" />
+                                  </button>
+                                  <button 
+                                    onClick={() => setShowReasonDropdown(msg.id as number)}
+                                    className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground/40 hover:text-destructive transition-colors"
+                                    data-testid={`button-feedback-down-desktop-${msg.id}`}
+                                  >
+                                    <ThumbsDown className="h-3 w-3" />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
