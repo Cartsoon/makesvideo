@@ -252,6 +252,11 @@ export default function KbAdminPage() {
   const [aiChunksDocTitle, setAiChunksDocTitle] = useState("");
   const [isGeneratingAiChunks, setIsGeneratingAiChunks] = useState(false);
   const [editingAiChunkIndex, setEditingAiChunkIndex] = useState<number | null>(null);
+  const [aiChunksSourceContent, setAiChunksSourceContent] = useState("");
+  const [regeneratingChunkIndex, setRegeneratingChunkIndex] = useState<number | null>(null);
+  const [newChunkContent, setNewChunkContent] = useState("");
+  const [newChunkLevel, setNewChunkLevel] = useState("normal");
+  const [newChunkAnchor, setNewChunkAnchor] = useState("general");
   
   const CHUNK_LEVELS = [
     { value: "critical", label: { ru: "Критический (+50%)", en: "Critical (+50%)" } },
@@ -571,12 +576,16 @@ export default function KbAdminPage() {
     setAiChunksDialogOpen(true);
     setIsGeneratingAiChunks(true);
     setAiGeneratedChunks([]);
+    setNewChunkContent("");
+    setNewChunkLevel("normal");
+    setNewChunkAnchor("general");
     
     try {
       // First, load the file content
       const fileRes = await fetch(`/api/kb-admin/fs/file?path=${encodeURIComponent(filePath)}`);
       if (!fileRes.ok) throw new Error("Failed to load file");
       const fileData = await fileRes.json();
+      setAiChunksSourceContent(fileData.content || "");
       
       // Generate chunks using AI
       const genRes = await apiRequest("POST", "/api/kb-admin/index/generateChunks", {
@@ -601,6 +610,55 @@ export default function KbAdminPage() {
     } finally {
       setIsGeneratingAiChunks(false);
     }
+  };
+  
+  const handleRegenerateChunk = async (index: number) => {
+    if (!aiChunksSourceContent) return;
+    
+    setRegeneratingChunkIndex(index);
+    try {
+      const genRes = await apiRequest("POST", "/api/kb-admin/index/generateChunks", {
+        content: aiChunksSourceContent,
+        chunkCount: 1,
+        context: `Regenerate chunk #${index + 1} based on source. Current chunk summary: ${aiGeneratedChunks[index]?.summary || ""}`,
+      });
+      const genData = await genRes.json();
+      
+      if (genData.chunks && genData.chunks.length > 0) {
+        const newChunk = genData.chunks[0];
+        updateAiChunk(index, {
+          content: newChunk.content,
+          summary: newChunk.summary,
+        });
+        toast({ title: language === "ru" ? "Чанк перегенерирован" : "Chunk regenerated" });
+      }
+    } catch (err: any) {
+      toast({
+        title: language === "ru" ? "Ошибка" : "Error",
+        description: err?.message || "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setRegeneratingChunkIndex(null);
+    }
+  };
+  
+  const handleAddNewChunk = () => {
+    if (!newChunkContent.trim()) return;
+    
+    setAiGeneratedChunks(prev => [
+      ...prev,
+      {
+        content: newChunkContent.trim(),
+        level: newChunkLevel,
+        anchor: newChunkAnchor,
+        summary: "",
+        chunkIndex: prev.length,
+      }
+    ]);
+    setNewChunkContent("");
+    setNewChunkLevel("normal");
+    setNewChunkAnchor("general");
   };
   
   const handleSaveAiChunks = async () => {
@@ -1493,14 +1551,30 @@ export default function KbAdminPage() {
                           {chunk.content.length} {language === "ru" ? "симв." : "chars"}
                         </span>
                       </div>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-6 w-6 shrink-0"
-                        onClick={() => deleteAiChunk(idx)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6"
+                          onClick={() => handleRegenerateChunk(idx)}
+                          disabled={regeneratingChunkIndex !== null}
+                          title={language === "ru" ? "Перегенерировать" : "Regenerate"}
+                        >
+                          {regeneratingChunkIndex === idx ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <RefreshCw className="h-3 w-3" />
+                          )}
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6"
+                          onClick={() => deleteAiChunk(idx)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
                     {chunk.summary && (
                       <div className="text-xs text-muted-foreground mb-2 italic">
@@ -1515,6 +1589,64 @@ export default function KbAdminPage() {
                     />
                   </Card>
                 ))}
+                
+                {/* New chunk input section */}
+                <Card className="p-3 border-dashed">
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
+                    <Badge variant="outline">
+                      <Plus className="w-3 h-3 mr-1" />
+                      {language === "ru" ? "Новый" : "New"}
+                    </Badge>
+                    <Select
+                      value={newChunkLevel}
+                      onValueChange={setNewChunkLevel}
+                    >
+                      <SelectTrigger className="h-6 w-auto text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CHUNK_LEVELS.map((l) => (
+                          <SelectItem key={l.value} value={l.value}>
+                            {l.label[language]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={newChunkAnchor}
+                      onValueChange={setNewChunkAnchor}
+                    >
+                      <SelectTrigger className="h-6 w-auto text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CHUNK_ANCHORS.map((a) => (
+                          <SelectItem key={a.value} value={a.value}>
+                            {a.label[language]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Textarea
+                    value={newChunkContent}
+                    onChange={(e) => setNewChunkContent(e.target.value)}
+                    className="text-sm resize-none min-h-[60px] mb-2"
+                    placeholder={language === "ru" ? "Введите текст нового чанка..." : "Enter new chunk content..."}
+                    data-testid="textarea-new-chunk"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleAddNewChunk}
+                    disabled={!newChunkContent.trim()}
+                    className="w-full"
+                    data-testid="button-add-chunk"
+                  >
+                    <Plus className="w-3 h-3 mr-1" />
+                    {language === "ru" ? "Добавить чанк" : "Add chunk"}
+                  </Button>
+                </Card>
               </div>
             </ScrollArea>
           )}
