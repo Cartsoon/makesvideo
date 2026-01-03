@@ -120,6 +120,11 @@ Preferred communication style: Simple, everyday language.
   - Chat: Replit AI Integrations (gpt-4o-mini)
   - Embeddings: Direct OpenAI API (text-embedding-3-large)
 - Context retrieval from KB documents for accurate responses
+- **Deep Context Mode** (REQUIRES_ARTICLE_CHECK):
+  - Primary response based on chunks ("thinking interface")
+  - Full article access when: chunks insufficient, low scores, user asks for details
+  - Trigger keywords: подробнее, глубже, объясни, примеры, explain, etc.
+  - Article usage rules: never retell directly, extract relevant meanings only, formulate as ideas
 
 ### Knowledge Base Admin (KB Admin)
 - **Protected Admin Section**: Access requires `/console` command + password in AI Assistant chat
