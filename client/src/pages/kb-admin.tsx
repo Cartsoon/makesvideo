@@ -71,7 +71,6 @@ import {
   Settings2,
   ChevronLeft,
   SplitSquareVertical,
-  Bot,
   RotateCcw,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
@@ -214,7 +213,7 @@ export default function KbAdminPage() {
   const [originalContent, setOriginalContent] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState<"editor" | "preview" | "chunks">("editor");
-  const [activePanel, setActivePanel] = useState<"index" | "search" | "bot">("index");
+  const [activePanel, setActivePanel] = useState<"index" | "search">("index");
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [createFolderDialogOpen, setCreateFolderDialogOpen] = useState(false);
@@ -294,14 +293,6 @@ export default function KbAdminPage() {
     { value: "general", label: { ru: "Общее", en: "General" } },
   ];
   
-  // Bot settings state
-  const [botName, setBotName] = useState("EDITO");
-  const [botRole, setBotRole] = useState("");
-  const [botPersonality, setBotPersonality] = useState("");
-  const [botSystemPrompt, setBotSystemPrompt] = useState("");
-  const [botResponseStyle, setBotResponseStyle] = useState("expert");
-  const [botMaxHistory, setBotMaxHistory] = useState(20);
-  const [botSettingsChanged, setBotSettingsChanged] = useState(false);
   
   const SUGGESTED_TAGS = [
     { tag: "style", label: { ru: "Стиль", en: "Style" } },
@@ -330,65 +321,6 @@ export default function KbAdminPage() {
 
   const { data: indexStats, refetch: refetchIndex, isLoading: indexLoading } = useQuery<IndexStats>({
     queryKey: ["/api/kb-admin/index/stats"],
-  });
-
-  interface BotSettings {
-    name: string;
-    role: string;
-    personality: string;
-    systemPrompt: string;
-    responseStyle: string;
-    maxHistoryMessages: number;
-    updatedAt?: string;
-  }
-
-  const { data: botSettings, refetch: refetchBotSettings, isLoading: botSettingsLoading } = useQuery<BotSettings>({
-    queryKey: ["/api/kb-admin/bot/settings"],
-  });
-
-  useEffect(() => {
-    if (botSettings) {
-      setBotName(botSettings.name || "EDITO");
-      setBotRole(botSettings.role || "");
-      setBotPersonality(botSettings.personality || "");
-      setBotSystemPrompt(botSettings.systemPrompt || "");
-      setBotResponseStyle(botSettings.responseStyle || "expert");
-      setBotMaxHistory(botSettings.maxHistoryMessages || 20);
-      setBotSettingsChanged(false);
-    }
-  }, [botSettings]);
-
-  const saveBotSettingsMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/kb-admin/bot/settings", {
-        name: botName,
-        role: botRole,
-        personality: botPersonality,
-        systemPrompt: botSystemPrompt,
-        responseStyle: botResponseStyle,
-        maxHistoryMessages: botMaxHistory,
-      });
-      return res.json();
-    },
-    onSuccess: () => {
-      setBotSettingsChanged(false);
-      refetchBotSettings();
-      toast({ title: language === "ru" ? "Настройки сохранены" : "Settings saved" });
-    },
-    onError: () => {
-      toast({ title: language === "ru" ? "Ошибка сохранения" : "Save error", variant: "destructive" });
-    },
-  });
-
-  const resetBotSettingsMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/kb-admin/bot/settings/reset", {});
-      return res.json();
-    },
-    onSuccess: () => {
-      refetchBotSettings();
-      toast({ title: language === "ru" ? "Настройки сброшены" : "Settings reset" });
-    },
   });
 
   const loadFileMutation = useMutation({
@@ -1171,7 +1103,7 @@ export default function KbAdminPage() {
         <div className="w-80 border-l flex flex-col shrink-0">
           <div className="p-3 border-b">
             <Tabs value={activePanel} onValueChange={(v) => setActivePanel(v as any)}>
-              <TabsList className="w-full grid grid-cols-3">
+              <TabsList className="w-full grid grid-cols-2">
                 <TabsTrigger value="index" className="text-xs">
                   <Database className="w-3 h-3 mr-1" />
                   {language === "ru" ? "Индекс" : "Index"}
@@ -1179,10 +1111,6 @@ export default function KbAdminPage() {
                 <TabsTrigger value="search" className="text-xs">
                   <Search className="w-3 h-3 mr-1" />
                   {language === "ru" ? "Поиск" : "Search"}
-                </TabsTrigger>
-                <TabsTrigger value="bot" className="text-xs">
-                  <Bot className="w-3 h-3 mr-1" />
-                  {language === "ru" ? "Бот" : "Bot"}
                 </TabsTrigger>
               </TabsList>
             </Tabs>
