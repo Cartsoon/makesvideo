@@ -158,13 +158,14 @@ export default function AssistantPage() {
     localStorage.setItem("assistant-sound-enabled", String(soundEnabled));
   }, [soundEnabled]);
 
-  const { data: paginatedData, isLoading } = useQuery<PaginatedResponse>({
+  const { data: paginatedData, isLoading, isFetching } = useQuery<PaginatedResponse>({
     queryKey: ["/api/assistant/chat/page", currentPage],
     queryFn: async () => {
       const res = await fetch(`/api/assistant/chat/page/${currentPage}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch");
       return res.json();
     },
+    placeholderData: (previousData) => previousData,
   });
 
   const { data: notesData } = useQuery<{ content: string }>({
