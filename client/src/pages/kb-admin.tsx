@@ -205,7 +205,7 @@ function FileTreeNode({ node, selectedPath, onSelect, expandedPaths, toggleExpan
           <ContextMenuContent>
             <ContextMenuItem onClick={() => onRename(node.path, node.name)}>
               <Pencil className="w-4 h-4 mr-2" />
-              Переименовать
+              {language === "ru" ? "Переименовать" : "Rename"}
             </ContextMenuItem>
           </ContextMenuContent>
         </ContextMenu>
@@ -854,6 +854,7 @@ export default function KbAdminPage() {
                   expandedPaths={expandedPaths}
                   toggleExpand={toggleExpand}
                   onRename={handleRenameFile}
+                  language={language}
                 />
               ))}
               {(!treeData?.tree || treeData.tree.length === 0) && (
