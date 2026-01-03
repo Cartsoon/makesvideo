@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Clapperboard, Radar, Scissors, Film, Settings, Play, User, Bot } from "lucide-react";
+import { Clapperboard, Radar, Scissors, Film, Settings, Play, User, Bot, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LanguageToggle } from "@/components/language-toggle";
 import { InfoModal } from "@/components/info-modal";
@@ -21,6 +21,7 @@ export function DesktopSidebar() {
     { href: "/topics", icon: Scissors, label: t("nav.topics") },
     { href: "/scripts", icon: Film, label: t("nav.scripts") },
     { href: "/assistant", icon: Bot, label: language === "ru" ? "AI-Ассистент" : "AI Assistant" },
+    { href: "/kb-admin", icon: BookOpen, label: language === "ru" ? "База знаний" : "Knowledge Base" },
     { href: "/settings", icon: Settings, label: t("nav.settings") },
   ];
 

@@ -15,6 +15,7 @@ import Scripts from "@/pages/scripts";
 import ScriptDetail from "@/pages/script-detail";
 import TextToVideo from "@/pages/text-to-video";
 import Assistant from "@/pages/assistant";
+import KbAdmin from "@/pages/kb-admin";
 import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 
@@ -32,6 +33,7 @@ function Router() {
       <Route path="/script/:id" component={ScriptDetail} />
       <Route path="/text-to-video" component={TextToVideo} />
       <Route path="/assistant" component={Assistant} />
+      <Route path="/kb-admin" component={KbAdmin} />
       <Route path="/settings" component={Settings} />
       <Route component={NotFound} />
     </Switch>
