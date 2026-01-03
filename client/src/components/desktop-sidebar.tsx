@@ -6,6 +6,7 @@ import { InfoModal } from "@/components/info-modal";
 import { ProfileModal } from "@/components/profile-modal";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth-context";
+import { useAdminAccess } from "@/lib/admin-access";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getAvatarById } from "@/lib/avatars";
@@ -14,6 +15,7 @@ export function DesktopSidebar() {
   const [location] = useLocation();
   const { t, language } = useI18n();
   const { user, setUser, logout } = useAuth();
+  const { isUnlocked } = useAdminAccess();
 
   const navItems = [
     { href: "/", icon: Clapperboard, label: t("nav.dashboard") },
@@ -21,7 +23,7 @@ export function DesktopSidebar() {
     { href: "/sources", icon: Radar, label: t("nav.sources") },
     { href: "/topics", icon: Scissors, label: t("nav.topics") },
     { href: "/scripts", icon: Film, label: t("nav.scripts") },
-    { href: "/kb-admin", icon: BookOpen, label: language === "ru" ? "База знаний" : "Knowledge Base" },
+    ...(isUnlocked ? [{ href: "/kb-admin", icon: BookOpen, label: language === "ru" ? "База знаний" : "Knowledge Base" }] : []),
     { href: "/settings", icon: Settings, label: t("nav.settings") },
   ];
 

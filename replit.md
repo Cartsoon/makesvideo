@@ -122,6 +122,11 @@ Preferred communication style: Simple, everyday language.
 - Context retrieval from KB documents for accurate responses
 
 ### Knowledge Base Admin (KB Admin)
+- **Protected Admin Section**: Access requires `/console` command + password in AI Assistant chat
+  - Send `/console` to EDITO assistant, enter password when prompted
+  - After successful authentication, "База знаний" appears in navigation
+  - Access persists permanently after activation (localStorage)
+  - Direct access to `/kb-admin` redirects with "Unauthorized access" message
 - File system browser for KB documents (`.md`, `.txt`, `.json`)
 - Document indexing with automatic chunking (1200 chars, 200 overlap)
 - Chunk editing with automatic embedding regeneration

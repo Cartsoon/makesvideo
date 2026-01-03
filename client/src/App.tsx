@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Switch, Route } from "wouter";
+import { Switch, Route, Redirect, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -7,7 +7,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { I18nProvider } from "@/lib/i18n";
 import { AuthProvider, type AuthUser } from "@/lib/auth-context";
+import { AdminAccessProvider, useAdminAccess } from "@/lib/admin-access";
 import { Onboarding } from "@/components/onboarding";
+import { useToast } from "@/hooks/use-toast";
 import Dashboard from "@/pages/dashboard";
 import Sources from "@/pages/sources";
 import Topics from "@/pages/topics";
@@ -23,6 +25,33 @@ const ONBOARDING_KEY = "idengine-onboarding-complete";
 const AUTH_KEY = "idengine-auth";
 const USER_KEY = "idengine-user";
 
+function ProtectedKbAdmin() {
+  const { isUnlocked, isReady } = useAdminAccess();
+  const [, navigate] = useLocation();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (isReady && !isUnlocked) {
+      toast({
+        title: "Несанкционированный доступ",
+        description: "Unauthorized access",
+        variant: "destructive",
+      });
+      navigate("/");
+    }
+  }, [isReady, isUnlocked, navigate, toast]);
+
+  if (!isReady) {
+    return null;
+  }
+
+  if (!isUnlocked) {
+    return <Redirect to="/" />;
+  }
+
+  return <KbAdmin />;
+}
+
 function Router() {
   return (
     <Switch>
@@ -33,7 +62,7 @@ function Router() {
       <Route path="/script/:id" component={ScriptDetail} />
       <Route path="/text-to-video" component={TextToVideo} />
       <Route path="/assistant" component={Assistant} />
-      <Route path="/kb-admin" component={KbAdmin} />
+      <Route path="/kb-admin" component={ProtectedKbAdmin} />
       <Route path="/settings" component={Settings} />
       <Route component={NotFound} />
     </Switch>
@@ -109,7 +138,9 @@ function App() {
       <I18nProvider>
         <QueryClientProvider client={queryClient}>
           <TooltipProvider>
-            <AppContent />
+            <AdminAccessProvider>
+              <AppContent />
+            </AdminAccessProvider>
             <Toaster />
           </TooltipProvider>
         </QueryClientProvider>

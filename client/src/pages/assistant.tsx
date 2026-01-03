@@ -85,6 +85,8 @@ import { ru, enUS } from "date-fns/locale";
 import { playSendSound, playReceiveSound } from "@/hooks/use-sound";
 import { Layout } from "@/components/layout";
 import ReactMarkdown from "react-markdown";
+import { useAdminAccess } from "@/lib/admin-access";
+import { useToast } from "@/hooks/use-toast";
 
 interface OptimisticMessage {
   id: string;
@@ -103,6 +105,8 @@ interface PaginatedResponse {
 export default function AssistantPage() {
   const { language } = useI18n();
   const { user } = useAuth();
+  const { checkPassword, isUnlocked } = useAdminAccess();
+  const { toast } = useToast();
   const [input, setInput] = useState("");
   const [streamingContent, setStreamingContent] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
@@ -121,6 +125,10 @@ export default function AssistantPage() {
   const [showWelcome, setShowWelcome] = useState(() => {
     return !localStorage.getItem("assistant-welcome-seen");
   });
+  
+  const [pendingConsoleUnlock, setPendingConsoleUnlock] = useState(false);
+  const [consoleMessageIds, setConsoleMessageIds] = useState<string[]>([]);
+  
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const notesTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -289,6 +297,90 @@ export default function AssistantPage() {
       setCurrentPage(1);
     }
     
+    if (userMessage === "/console" && !pendingConsoleUnlock && !isUnlocked) {
+      const userMsgId = `console-user-${Date.now()}`;
+      const assistantMsgId = `console-assistant-${Date.now()}`;
+      
+      if (soundEnabled) {
+        playSendSound();
+      }
+      
+      setOptimisticMessages(prev => [
+        ...prev,
+        {
+          id: userMsgId,
+          role: "user",
+          content: userMessage,
+          createdAt: new Date().toISOString(),
+          isOptimistic: true,
+        },
+        {
+          id: assistantMsgId,
+          role: "assistant",
+          content: language === "ru" ? "Введите пароль для доступа к консоли администратора:" : "Enter password for admin console access:",
+          createdAt: new Date().toISOString(),
+          isOptimistic: true,
+        },
+      ]);
+      
+      setConsoleMessageIds([userMsgId, assistantMsgId]);
+      setPendingConsoleUnlock(true);
+      setInput("");
+      return;
+    }
+    
+    if (pendingConsoleUnlock) {
+      const passwordMsgId = `password-user-${Date.now()}`;
+      
+      if (soundEnabled) {
+        playSendSound();
+      }
+      
+      setOptimisticMessages(prev => [
+        ...prev,
+        {
+          id: passwordMsgId,
+          role: "user",
+          content: "••••••••",
+          createdAt: new Date().toISOString(),
+          isOptimistic: true,
+        },
+      ]);
+      
+      setInput("");
+      
+      if (checkPassword(userMessage)) {
+        setTimeout(() => {
+          setOptimisticMessages(prev => 
+            prev.filter(m => !consoleMessageIds.includes(m.id) && m.id !== passwordMsgId)
+          );
+          setPendingConsoleUnlock(false);
+          setConsoleMessageIds([]);
+          
+          toast({
+            title: language === "ru" ? "Доступ разблокирован" : "Access unlocked",
+            description: language === "ru" ? "Раздел 'База знаний' теперь доступен в меню" : "Knowledge Base section is now available in menu",
+          });
+        }, 300);
+      } else {
+        const errorMsgId = `error-assistant-${Date.now()}`;
+        
+        setOptimisticMessages(prev => [
+          ...prev,
+          {
+            id: errorMsgId,
+            role: "assistant",
+            content: language === "ru" ? "Неверный пароль. Попробуйте снова:" : "Invalid password. Try again:",
+            createdAt: new Date().toISOString(),
+            isOptimistic: true,
+          },
+        ]);
+        
+        setConsoleMessageIds(prev => [...prev, passwordMsgId, errorMsgId]);
+      }
+      return;
+    }
+    
     if (soundEnabled) {
       playSendSound();
     }
@@ -345,7 +437,6 @@ export default function AssistantPage() {
                 }
                 setStreamingContent("");
                 setIsStreaming(false);
-                // Clear all optimistic messages and refetch from server to avoid duplicates
                 setOptimisticMessages([]);
                 queryClient.invalidateQueries({ queryKey: ["/api/assistant/chat/page", 1] });
               }
