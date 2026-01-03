@@ -907,3 +907,32 @@ export const insertAssistantNoteSchema = createInsertSchema(assistantNotes).omit
 
 export type AssistantNote = typeof assistantNotes.$inferSelect;
 export type InsertAssistantNote = z.infer<typeof insertAssistantNoteSchema>;
+
+// ============ ASSISTANT FEEDBACK ============
+
+export const feedbackReasons = [
+  "too_generic",
+  "wrong_style", 
+  "poor_structure",
+  "no_practical",
+  "not_trendy",
+] as const;
+
+export type FeedbackReason = typeof feedbackReasons[number];
+
+export const assistantFeedback = pgTable("assistant_feedback", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id", { length: 36 }).references(() => users.id).notNull(),
+  messageId: integer("message_id").references(() => assistantChats.id).notNull(),
+  rating: varchar("rating", { length: 10 }).notNull(), // "positive" or "negative"
+  reason: varchar("reason", { length: 50 }), // only for negative ratings
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertAssistantFeedbackSchema = createInsertSchema(assistantFeedback).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type AssistantFeedback = typeof assistantFeedback.$inferSelect;
+export type InsertAssistantFeedback = z.infer<typeof insertAssistantFeedbackSchema>;
