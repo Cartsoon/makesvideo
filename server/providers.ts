@@ -1,5 +1,6 @@
 import type { Script, StoryboardScene, MusicConfig, StylePreset, Duration, Language, TopicInsights, Topic } from "@shared/schema";
 import { storage } from "./storage";
+import { getProvider } from "./ai/provider";
 
 // Words per second for timing calculations (~2.5 words/sec for natural speech)
 const WORDS_PER_SECOND = 2.5;
@@ -229,93 +230,32 @@ export interface MusicProvider {
   pickMusic(script: string, preset: StylePreset, duration: Duration): Promise<MusicConfig>;
 }
 
-// Provider configuration with default models
-export type AIProvider = "openrouter" | "groq" | "together" | "fallback";
-
-export const providerDefaults: Record<AIProvider, { name: string; defaultModel: string; apiUrl: string }> = {
-  openrouter: {
-    name: "OpenRouter",
-    defaultModel: "openai/gpt-4o-mini",
-    apiUrl: "https://openrouter.ai/api/v1/chat/completions"
-  },
-  groq: {
-    name: "Groq",
-    defaultModel: "llama-3.3-70b-versatile",
-    apiUrl: "https://api.groq.com/openai/v1/chat/completions"
-  },
-  together: {
-    name: "Together AI",
-    defaultModel: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-    apiUrl: "https://api.together.xyz/v1/chat/completions"
-  },
-  fallback: {
-    name: "Fallback (Templates)",
-    defaultModel: "",
-    apiUrl: ""
-  }
-};
-
-// Real LLM Provider that calls external APIs (OpenRouter, Groq, Together)
-export class RealLLMProvider implements LLMProvider {
-  private apiKey: string;
+// Unified LLM Provider that uses Replit AI Integrations (OpenAI)
+export class UnifiedLLMProvider implements LLMProvider {
   private model: string;
-  private apiUrl: string;
-  private providerName: string;
   private fallback: FallbackLLMProvider;
 
-  constructor(provider: AIProvider, apiKey: string, model?: string) {
-    const config = providerDefaults[provider];
-    this.apiKey = apiKey;
-    this.model = model || config.defaultModel;
-    this.apiUrl = config.apiUrl;
-    this.providerName = config.name;
+  constructor() {
+    this.model = process.env.AI_CHAT_MODEL ?? "gpt-4o-mini";
     this.fallback = new FallbackLLMProvider();
   }
 
   private async callLLM(systemPrompt: string, userPrompt: string, maxTokens: number = 1000): Promise<string> {
     try {
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${this.apiKey}`
-      };
-
-      // OpenRouter requires additional headers
-      if (this.apiUrl.includes("openrouter")) {
-        headers["HTTP-Referer"] = "https://idengine.repl.co";
-        headers["X-Title"] = "IDENGINE VIDEO FACTORY";
-      }
-
-      const response = await fetch(this.apiUrl, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          model: this.model,
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt }
-          ],
-          max_tokens: maxTokens,
-          temperature: 0.7
-        })
+      const provider = getProvider();
+      const result = await provider.chat({
+        model: this.model,
+        temperature: 0.7,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ]
       });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`[${this.providerName}] API error:`, response.status, errorText);
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content;
       
-      if (!content) {
-        throw new Error("No content in response");
-      }
-
-      console.log(`[${this.providerName}] Generated ${content.length} chars with ${this.model}`);
-      return content.trim();
+      console.log(`[UnifiedLLM] Generated ${result.length} chars with ${this.model}`);
+      return result.trim();
     } catch (error) {
-      console.error(`[${this.providerName}] Error:`, error);
+      console.error("[UnifiedLLM] Error:", error);
       throw error;
     }
   }
@@ -3056,38 +2996,28 @@ export class FallbackMusicProvider implements MusicProvider {
   }
 }
 
-// Dynamic provider factory that checks settings
+// Unified provider factory - uses Replit AI Integrations (OpenAI)
 export async function createLLMProvider(): Promise<LLMProvider> {
   try {
-    // Check settings for API configuration
+    // Check if OpenAI API is available via Replit AI Integrations
+    const hasOpenAI = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+    
+    if (hasOpenAI) {
+      console.log("[Providers] Using unified OpenAI provider via Replit AI Integrations");
+      return new UnifiedLLMProvider();
+    }
+    
+    // Check if fallback mode is explicitly enabled
     const settings = await storage.getSettings();
     const settingsMap = new Map(settings.map(s => [s.key, s.value]));
-    
-    const provider = (settingsMap.get("aiProvider") as AIProvider) || "openrouter";
     const fallbackMode = settingsMap.get("fallbackMode") === "true";
     
-    // Get API key based on provider
-    let apiKey = "";
-    let model = "";
-    
-    if (provider === "openrouter") {
-      apiKey = settingsMap.get("openrouterApiKey") || "";
-      model = settingsMap.get("defaultModel") || providerDefaults.openrouter.defaultModel;
-    } else if (provider === "groq") {
-      apiKey = settingsMap.get("groqApiKey") || "";
-      model = settingsMap.get("groqModel") || providerDefaults.groq.defaultModel;
-    } else if (provider === "together") {
-      apiKey = settingsMap.get("togetherApiKey") || "";
-      model = settingsMap.get("togetherModel") || providerDefaults.together.defaultModel;
+    if (fallbackMode) {
+      console.log("[Providers] Fallback mode enabled, using template provider");
+      return new FallbackLLMProvider();
     }
     
-    // Use real provider if API key is set and fallback mode is disabled
-    if (apiKey && !fallbackMode) {
-      console.log(`[Providers] Using ${providerDefaults[provider].name} with model ${model}`);
-      return new RealLLMProvider(provider, apiKey, model);
-    }
-    
-    console.log("[Providers] Using fallback template provider");
+    console.log("[Providers] No OpenAI API configured, using fallback template provider");
     return new FallbackLLMProvider();
   } catch (error) {
     console.error("[Providers] Error creating LLM provider:", error);
