@@ -879,11 +879,13 @@ export const assistantChats = pgTable("assistant_chats", {
   role: varchar("role", { length: 20 }).notNull(), // "user" or "assistant"
   content: text("content").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  archivedAt: timestamp("archived_at"),
 });
 
 export const insertAssistantChatSchema = createInsertSchema(assistantChats).omit({
   id: true,
   createdAt: true,
+  archivedAt: true,
 });
 
 export type AssistantChat = typeof assistantChats.$inferSelect;

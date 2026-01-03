@@ -65,7 +65,8 @@ import {
   Play,
   Square,
   Layers,
-  ChevronUp
+  ChevronUp,
+  Archive
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -182,6 +183,15 @@ export default function AssistantPage() {
 
   const clearMutation = useMutation({
     mutationFn: () => apiRequest("DELETE", "/api/assistant/chat"),
+    onSuccess: () => {
+      setOptimisticMessages([]);
+      setCurrentPage(1);
+      queryClient.invalidateQueries({ queryKey: ["/api/assistant/chat/page", 1] });
+    },
+  });
+
+  const archiveMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/assistant/chat/archive"),
     onSuccess: () => {
       setOptimisticMessages([]);
       setCurrentPage(1);
@@ -513,6 +523,13 @@ export default function AssistantPage() {
                   <Download className="h-4 w-4 mr-2" />
                   {language === "ru" ? "Экспорт" : "Export"}
                 </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => archiveMutation.mutate()}
+                  disabled={archiveMutation.isPending || totalMessages === 0}
+                >
+                  <Archive className="h-4 w-4 mr-2" />
+                  {language === "ru" ? "Архивировать" : "Archive"}
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
                   onClick={() => clearMutation.mutate()}
@@ -769,6 +786,13 @@ export default function AssistantPage() {
                   <DropdownMenuItem onClick={exportChat} disabled={totalMessages === 0}>
                     <Download className="h-4 w-4 mr-2" />
                     {language === "ru" ? "Экспорт" : "Export"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => archiveMutation.mutate()}
+                    disabled={archiveMutation.isPending || totalMessages === 0}
+                  >
+                    <Archive className="h-4 w-4 mr-2" />
+                    {language === "ru" ? "Архивировать" : "Archive"}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => clearMutation.mutate()} disabled={clearMutation.isPending || totalMessages === 0} className="text-destructive">

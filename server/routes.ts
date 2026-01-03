@@ -1941,6 +1941,27 @@ Distribute time evenly: scenes 3-7 seconds each. Only JSON array.`;
     }
   });
   
+  // Archive chat history
+  app.post("/api/assistant/chat/archive", async (req, res) => {
+    try {
+      const sessionId = req.cookies?.session_id;
+      if (!sessionId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const session = await storage.getSession(sessionId);
+      if (!session) {
+        return res.status(401).json({ error: "Session expired" });
+      }
+      
+      const count = await storage.archiveAssistantChats(session.userId);
+      res.json({ success: true, archivedCount: count });
+    } catch (error) {
+      console.error("Failed to archive chat:", error);
+      res.status(500).json({ error: "Failed to archive chat" });
+    }
+  });
+  
   // Get paginated chat history
   app.get("/api/assistant/chat/page/:page", async (req, res) => {
     try {

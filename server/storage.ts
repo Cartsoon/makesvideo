@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { eq, desc, and, lt, sql } from "drizzle-orm";
+import { eq, desc, and, lt, sql, isNull } from "drizzle-orm";
 import { db } from "./db";
 import {
   settings, users, sessions, authPasswords, sources, topics, scripts, jobs,
@@ -97,6 +97,8 @@ export interface IStorage {
   getAssistantChatsPaginated(userId: string, page: number, perPage: number): Promise<{ messages: AssistantChat[]; total: number; totalPages: number }>;
   addAssistantChat(userId: string, role: "user" | "assistant", content: string): Promise<AssistantChat>;
   clearAssistantChats(userId: string): Promise<void>;
+  archiveAssistantChats(userId: string): Promise<number>;
+  getArchivedChatsForContext(userId: string, limit?: number): Promise<AssistantChat[]>;
   
   // Assistant notes
   getAssistantNote(userId: string): Promise<AssistantNote | undefined>;
@@ -775,7 +777,7 @@ export class DatabaseStorage implements IStorage {
   async getAssistantChats(userId: string, limit: number = 50): Promise<AssistantChat[]> {
     const rows = await db.select()
       .from(assistantChats)
-      .where(eq(assistantChats.userId, userId))
+      .where(and(eq(assistantChats.userId, userId), isNull(assistantChats.archivedAt)))
       .orderBy(desc(assistantChats.createdAt))
       .limit(limit);
     
@@ -791,7 +793,7 @@ export class DatabaseStorage implements IStorage {
   async getAssistantChatsPaginated(userId: string, page: number, perPage: number): Promise<{ messages: AssistantChat[]; total: number; totalPages: number }> {
     const [countResult] = await db.select({ count: sql<number>`count(*)::int` })
       .from(assistantChats)
-      .where(eq(assistantChats.userId, userId));
+      .where(and(eq(assistantChats.userId, userId), isNull(assistantChats.archivedAt)));
     
     const total = countResult?.count || 0;
     const totalPages = Math.ceil(total / perPage);
@@ -799,7 +801,7 @@ export class DatabaseStorage implements IStorage {
     const offset = (page - 1) * perPage;
     const rows = await db.select()
       .from(assistantChats)
-      .where(eq(assistantChats.userId, userId))
+      .where(and(eq(assistantChats.userId, userId), isNull(assistantChats.archivedAt)))
       .orderBy(desc(assistantChats.createdAt))
       .limit(perPage)
       .offset(offset);
@@ -833,6 +835,29 @@ export class DatabaseStorage implements IStorage {
 
   async clearAssistantChats(userId: string): Promise<void> {
     await db.delete(assistantChats).where(eq(assistantChats.userId, userId));
+  }
+
+  async archiveAssistantChats(userId: string): Promise<number> {
+    const result = await db.update(assistantChats)
+      .set({ archivedAt: new Date() })
+      .where(and(eq(assistantChats.userId, userId), isNull(assistantChats.archivedAt)));
+    return result.rowCount ?? 0;
+  }
+
+  async getArchivedChatsForContext(userId: string, limit: number = 20): Promise<AssistantChat[]> {
+    const rows = await db.select()
+      .from(assistantChats)
+      .where(eq(assistantChats.userId, userId))
+      .orderBy(desc(assistantChats.createdAt))
+      .limit(limit);
+    
+    return rows.reverse().map(row => ({
+      id: row.id,
+      userId: row.userId,
+      role: row.role as "user" | "assistant",
+      content: row.content,
+      createdAt: row.createdAt.toISOString(),
+    }));
   }
   
   // ============ ASSISTANT NOTES ============
