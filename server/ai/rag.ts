@@ -1,16 +1,27 @@
 import { db } from "../db";
-import { kbChunks, kbEmbeddings, type ChunkLevel, type ChunkAnchor } from "@shared/schema";
+import { kbChunks, kbEmbeddings, kbDocuments, type ChunkLevel, type ChunkAnchor } from "@shared/schema";
 import { getProvider } from "./provider";
 import { cosineSimilarity } from "../utils/text";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
+import * as fs from "fs";
+import * as path from "path";
 
 export type RagHit = { 
   chunkId: string; 
+  docId: string;
   content: string; 
   score: number;
   level?: ChunkLevel;
   anchor?: ChunkAnchor;
 };
+
+// Keywords that trigger deep article access
+const DEEP_CONTEXT_KEYWORDS = [
+  "подробнее", "подробно", "глубже", "детальнее", "развернуто",
+  "объясни", "explain", "расскажи больше", "more details",
+  "почему", "why", "как именно", "how exactly", 
+  "примеры", "examples", "покажи", "show me"
+];
 
 // Level-based score multipliers
 const LEVEL_BOOSTS: Record<ChunkLevel, number> = {
@@ -75,6 +86,7 @@ export async function ragRetrieve(query: string, topK: number): Promise<RagHit[]
     
     return { 
       chunkId: r.kb_chunks.id, 
+      docId: r.kb_chunks.docId,
       content: r.kb_chunks.content, 
       score: adjustedScore,
       level,
@@ -87,14 +99,90 @@ export async function ragRetrieve(query: string, topK: number): Promise<RagHit[]
   return scored.filter(s => s.score >= minScore).slice(0, topK);
 }
 
-export function formatRagContext(hits: RagHit[]) {
-  if (!hits.length) return "";
-  return `
-КОНТЕКСТ ИЗ БАЗЫ ЗНАНИЙ (используй как подсказку, не копируй дословно):
+// Detect if full article access is needed based on query
+export function checkRequiresArticle(query: string, hits: RagHit[]): boolean {
+  const lowerQuery = query.toLowerCase();
+  
+  // Check if user explicitly asks for more detail
+  const explicitRequest = DEEP_CONTEXT_KEYWORDS.some(kw => lowerQuery.includes(kw));
+  if (explicitRequest) return true;
+  
+  // Check if chunks are insufficient (low scores or too few)
+  if (hits.length === 0) return false; // No chunks = no articles either
+  if (hits.length < 3 && hits[0]?.score < 0.4) return true;
+  
+  // Check if best score is mediocre (might need more context)
+  const avgScore = hits.reduce((sum, h) => sum + h.score, 0) / hits.length;
+  if (avgScore < 0.35) return true;
+  
+  return false;
+}
+
+// Fetch full article content for relevant documents
+export async function getArticleContext(docIds: string[], maxArticles: number = 2): Promise<string> {
+  if (!docIds.length) return "";
+  
+  // Get unique doc IDs
+  const uniqueDocIds = [...new Set(docIds)].slice(0, maxArticles);
+  
+  // Fetch documents with file paths
+  const docs = await db.select({
+    id: kbDocuments.id,
+    title: kbDocuments.title,
+    filePath: kbDocuments.filePath,
+  }).from(kbDocuments).where(inArray(kbDocuments.id, uniqueDocIds));
+  
+  const articles: string[] = [];
+  
+  for (const doc of docs) {
+    if (doc.filePath && fs.existsSync(doc.filePath)) {
+      try {
+        const content = fs.readFileSync(doc.filePath, "utf-8");
+        // Limit article size to prevent context overflow
+        const truncated = content.length > 4000 
+          ? content.substring(0, 4000) + "\n...[статья обрезана]"
+          : content;
+        articles.push(`=== СТАТЬЯ: ${doc.title} ===\n${truncated}`);
+      } catch (err) {
+        console.error(`Failed to read article ${doc.filePath}:`, err);
+      }
+    }
+  }
+  
+  return articles.join("\n\n");
+}
+
+export function formatRagContext(hits: RagHit[], articleContext?: string) {
+  if (!hits.length && !articleContext) return "";
+  
+  let context = "";
+  
+  // Primary: Chunks (the "thinking interface")
+  if (hits.length > 0) {
+    context += `
+=== ЧАНКИ ИЗ БАЗЫ ЗНАНИЙ (основной источник для ответа) ===
 ${hits.map((h, i) => {
-  const levelTag = h.level && h.level !== "normal" ? ` level=${h.level}` : "";
-  const anchorTag = h.anchor && h.anchor !== "general" ? ` anchor=${h.anchor}` : "";
-  return `[KB${i + 1} score=${h.score.toFixed(3)}${levelTag}${anchorTag}] ${h.content}`;
+  const levelTag = h.level && h.level !== "normal" ? ` [${h.level}]` : "";
+  const anchorTag = h.anchor && h.anchor !== "general" ? ` #${h.anchor}` : "";
+  return `[KB${i + 1}${levelTag}${anchorTag}] ${h.content}`;
 }).join("\n\n")}
 `;
+  }
+  
+  // Secondary: Full articles (background, deeper context)
+  if (articleContext) {
+    context += `
+
+=== ПОЛНЫЕ СТАТЬИ (для глубокого контекста, НЕ пересказывать дословно) ===
+ПРАВИЛА ИСПОЛЬЗОВАНИЯ СТАТЕЙ:
+- Статья — это источник, бэкграунд, "память", НЕ для прямого цитирования
+- Выжимай только релевантные смыслы для ответа
+- Формулируй ответ как набор идей, а не как пересказ
+- Используй статьи только для расширения/уточнения информации из чанков
+
+${articleContext}
+`;
+  }
+  
+  return context;
 }

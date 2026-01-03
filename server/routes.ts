@@ -13,6 +13,7 @@ import path from "path";
 import { aiRouter } from "./routes/ai";
 import { kbRouter } from "./routes/kb";
 import { registerKbAdminRoutes } from "./routes/kb-admin";
+import { ragRetrieve, formatRagContext, checkRequiresArticle, getArticleContext } from "./ai/rag";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -1879,10 +1880,40 @@ Distribute time evenly: scenes 3-7 seconds each. Only JSON array.`;
       // Save user message
       await storage.addAssistantChat(session.userId, "user", message);
       
+      // RAG: Retrieve relevant chunks from knowledge base
+      let ragContext = "";
+      try {
+        const hits = await ragRetrieve(message, 5);
+        
+        // Check if we need full article access (deep context mode)
+        const requiresArticle = checkRequiresArticle(message, hits);
+        let articleContext = "";
+        
+        if (requiresArticle && hits.length > 0) {
+          // Get article content from the most relevant documents
+          const docIds = hits.map(h => h.docId);
+          articleContext = await getArticleContext(docIds, 2);
+          console.log(`[RAG] Deep context mode: ${requiresArticle ? "ON" : "OFF"}, articles loaded: ${articleContext ? "YES" : "NO"}`);
+        }
+        
+        ragContext = formatRagContext(hits, articleContext);
+      } catch (ragError) {
+        console.error("RAG retrieval failed, continuing without context:", ragError);
+      }
+      
+      // Build system prompt with RAG context
+      const systemPromptWithContext = ragContext 
+        ? `${VIDEO_ASSISTANT_SYSTEM_PROMPT}\n\n${ragContext}`
+        : VIDEO_ASSISTANT_SYSTEM_PROMPT;
+      
+      if (ragContext) {
+        console.log(`[RAG] Context added to system prompt (${ragContext.length} chars)`);
+      }
+      
       // Get conversation history for context
       const history = await storage.getAssistantChats(session.userId);
       const chatMessages: { role: "system" | "user" | "assistant"; content: string }[] = [
-        { role: "system", content: VIDEO_ASSISTANT_SYSTEM_PROMPT },
+        { role: "system", content: systemPromptWithContext },
         ...history.map(m => ({
           role: m.role as "user" | "assistant",
           content: m.content,
