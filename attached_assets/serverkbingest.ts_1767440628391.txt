@@ -1,0 +1,54 @@
+import fs from "fs";
+import path from "path";
+import { db } from "../db/client";
+import { kbDocuments, kbChunks, kbEmbeddings } from "../db/schema";
+import { chunkText, sha256Hex } from "../utils/text";
+import { getProvider } from "../ai/provider";
+import { parseFile } from "./parsers";
+
+export async function ingestSeedFolder(seedDir: string) {
+  const provider = getProvider();
+  const embedModel = process.env.AI_EMBED_MODEL ?? "text-embedding-3-large";
+
+  const files = walkFiles(seedDir).filter(f => [".md",".txt",".json"].includes(path.extname(f).toLowerCase()));
+  for (const f of files) {
+    const parsed = parseFile(f);
+    const docId = (await db.insert(kbDocuments).values({
+      title: parsed.title,
+      source: parsed.source,
+      tags: parsed.tags,
+    }).returning({ id: kbDocuments.id }))[0].id;
+
+    const chunks = chunkText(parsed.content, 1200, 200);
+    const embeddings = await provider.embed(chunks);
+
+    for (let i=0;i<chunks.length;i++){
+      const content = chunks[i];
+      const contentHash = sha256Hex(content);
+      const chunkId = (await db.insert(kbChunks).values({
+        docId,
+        chunkIndex: i,
+        content,
+        contentHash,
+        tags: parsed.tags,
+      }).returning({ id: kbChunks.id }))[0].id;
+
+      await db.insert(kbEmbeddings).values({
+        chunkId,
+        model: embedModel,
+        vector: embeddings[i],
+      });
+    }
+  }
+}
+
+function walkFiles(dir: string): string[] {
+  const out: string[] = [];
+  for (const name of fs.readdirSync(dir)) {
+    const p = path.join(dir, name);
+    const st = fs.statSync(p);
+    if (st.isDirectory()) out.push(...walkFiles(p));
+    else out.push(p);
+  }
+  return out;
+}

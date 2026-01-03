@@ -1,0 +1,32 @@
+import fs from "fs";
+import path from "path";
+
+export type ParsedDoc = { title: string; content: string; tags: string[]; source: string };
+
+export function parseFile(filePath: string): ParsedDoc {
+  const ext = path.extname(filePath).toLowerCase();
+  const raw = fs.readFileSync(filePath, "utf-8");
+
+  // Теги можно задавать первой строкой вида: tags: монтаж,shorts,sfx
+  let tags: string[] = [];
+  const firstLine = raw.split("\n")[0] ?? "";
+  const tagMatch = firstLine.match(/^tags:\s*(.+)$/i);
+  if (tagMatch) {
+    tags = tagMatch[1].split(",").map(s => s.trim()).filter(Boolean);
+  }
+
+  if (ext === ".json") {
+    // json: либо массив заметок, либо объект с полем text
+    try {
+      const j = JSON.parse(raw);
+      const content = Array.isArray(j)
+        ? j.map(x => (typeof x === "string" ? x : JSON.stringify(x))).join("\n\n")
+        : (j.text ?? JSON.stringify(j));
+      return { title: path.basename(filePath), content: String(content), tags, source: "seed" };
+    } catch {
+      return { title: path.basename(filePath), content: raw, tags, source: "seed" };
+    }
+  }
+
+  return { title: path.basename(filePath), content: raw, tags, source: "seed" };
+}

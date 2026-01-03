@@ -1,0 +1,61 @@
+import { pgTable, serial, text, timestamp, integer, jsonb, real, boolean, uuid, varchar } from "drizzle-orm/pg-core";
+
+export const kbDocuments = pgTable("kb_documents", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  title: text("title").notNull(),
+  source: text("source").notNull(), // "upload", "seed", "web", etc
+  tags: text("tags").array().notNull().default([]),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  isActive: boolean("is_active").notNull().default(true),
+});
+
+export const kbChunks = pgTable("kb_chunks", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  docId: uuid("doc_id").notNull().references(() => kbDocuments.id, { onDelete: "cascade" }),
+  chunkIndex: integer("chunk_index").notNull(),
+  content: text("content").notNull(),
+  contentHash: varchar("content_hash", { length: 64 }).notNull(),
+  tags: text("tags").array().notNull().default([]),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const kbEmbeddings = pgTable("kb_embeddings", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  chunkId: uuid("chunk_id").notNull().references(() => kbChunks.id, { onDelete: "cascade" }),
+  model: text("model").notNull(),
+  // Вариант A: хранить как json массив чисел (просто, но медленнее)
+  vector: jsonb("vector").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const aiConversations = pgTable("ai_conversations", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: text("user_id"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const aiMessages = pgTable("ai_messages", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  conversationId: uuid("conversation_id").notNull().references(() => aiConversations.id, { onDelete: "cascade" }),
+  role: text("role").notNull(), // "user" | "assistant" | "system"
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const aiMessageFeedback = pgTable("ai_message_feedback", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  messageId: uuid("message_id").notNull().references(() => aiMessages.id, { onDelete: "cascade" }),
+  userId: text("user_id"),
+  rating: integer("rating").notNull(), // +1 or -1
+  reason: text("reason"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const aiPromptProfiles = pgTable("ai_prompt_profiles", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  key: text("key").notNull().unique(), // "default"
+  systemPrompt: text("system_prompt").notNull(),
+  styleJson: jsonb("style_json").notNull().default({}),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});

@@ -1,0 +1,15 @@
+import { Router } from "express";
+import path from "path";
+import { ingestSeedFolder } from "../kb/ingest";
+
+export const kbRouter = Router();
+
+/**
+POST /api/kb/reindex
+Re-ingest seed folder (wipe strategy можно добавить позже)
+*/
+kbRouter.post("/reindex", async (_req, res) => {
+  const seedDir = path.join(process.cwd(), "server", "kb", "seed");
+  await ingestSeedFolder(seedDir);
+  return res.json({ ok: true, seedDir });
+});
