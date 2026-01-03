@@ -1,0 +1,165 @@
+СДЕЛАЙ отдельную админ-панель Knowledge Base (KB) для RAG ассистента.
+
+ТЕХСТЕК:
+- Backend: Node.js + Express + TypeScript
+- DB: PostgreSQL + Drizzle ORM
+- Frontend: используем текущий фронт проекта (если есть Next/React — встроить роутом; если нет — сделать отдельный SPA на Vite+React или простые server-rendered страницы).
+- Нужен markdown editor (Monaco / CodeMirror / TipTap markdown) — выбирай любой стабильный.
+- Не ломать существующий AI чат и API.
+
+ЦЕЛИ:
+1) Управлять .md файлами KB прямо из браузера
+2) Управлять индексом: docs/chunks/embeddings, переиндексация, удаление
+3) Удобно добавлять новые материалы (чтобы ассистент их "знал")
+
+=== A) ФАЙЛОВАЯ СТРУКТУРА KB ===
+KB хранится в:
+- server/kb/seed/...
+
+Редактируемые файлы:
+- только .md (на старте)
+- позже можно .txt/.json (опционально)
+
+ВАЖНО:
+- Любые изменения через панель должны писаться в реальную файловую систему проекта (server/kb/seed/**).
+- Каждый .md начинается с первой строки tags: tag1,tag2
+
+=== B) АВТО-ИМЕНОВАНИЕ НОВЫХ ФАЙЛОВ ===
+При создании файла в панели:
+- пользователь вводит Title и Tags
+- система генерит безопасное имя:
+  slug = translit(title) -> lower -> replace spaces with '_' -> remove bad chars
+  filename = YYYYMMDD_HHMM_<slug>.md
+- файл сохраняется в выбранную папку (категорию) внутри server/kb/seed/
+  например:
+  - style_guides/
+  - checklists/
+  - templates/
+  - examples/
+  - uploads/
+
+=== C) UI /kb-admin (новый пункт меню) ===
+Добавить в меню панели управления новый пункт:
+- "Knowledge Base" / "База знаний"
+
+Экран KB Admin: 3 колонки (desktop), адаптивно (mobile):
+1) Дерево папок/файлов (с поиском)
+2) Редактор markdown (live preview)
+3) Индекс/статусы (документы, чанки, embeddings, кнопки действий)
+
+=== D) ФУНКЦИИ В ПАНЕЛИ ===
+D1) Файлы
+- list файлов и папок внутри server/kb/seed
+- create folder
+- create new markdown file (с автоименем + автоподстановкой шаблона)
+- rename file (с проверкой безопасности)
+- delete file
+- открыть/редактировать файл
+- сохранить файл (write)
+- просмотр последней даты изменения
+- быстрые шаблоны вставки:
+  - "style guide"
+  - "checklist"
+  - "template"
+  - "example"
+  (каждый шаблон уже содержит tags: и структуру)
+
+D2) Индекс (RAG)
+Показать таблицу документов/чанков:
+- kb_documents: title, tags, createdAt, updatedAt, isActive, chunksCount
+- kb_chunks: chunkIndex, contentPreview, tags, contentHash
+- kb_embeddings: model, exists, createdAt
+
+Действия:
+- "Reindex All" (пересобрать индекс по файлам)
+- "Reindex File" (переиндексировать только выбранный файл: удалить старые чанки/embeddings этого doc и создать заново)
+- "Delete Document from DB" (удалить doc + каскадно chunks + embeddings; файл НЕ удалять)
+- "Delete File + Delete Document" (удалить и файл, и doc)
+- "Delete Chunk" (удалить один конкретный chunk + embedding; опционально)
+- "Deactivate Document" (isActive=false, чтобы не попадало в RAG)
+
+D3) Поиск по базе
+- Поле "Test Retrieval": вводишь запрос, нажимаешь Search → показывает TOP K чанков с score и ссылкой на документ/файл.
+- Это должно использовать текущую ragRetrieve логику (cosine similarity).
+
+D4) Логи
+- лог последней индексации: сколько файлов, сколько чанков, сколько ошибок.
+- показать ошибки парсинга, ошибки embeddings, rate limit.
+
+=== E) BACKEND API (новые endpoints) ===
+Сделать отдельный router /api/kb-admin:
+
+E1) Filesystem endpoints
+- GET  /api/kb-admin/fs/tree
+  returns: список папок/файлов внутри server/kb/seed
+- GET  /api/kb-admin/fs/file?path=...
+  returns: file content
+- POST /api/kb-admin/fs/file
+  body: { path, content } -> write file
+- POST /api/kb-admin/fs/create
+  body: { folderPath, title, tags[], templateKey } -> создаёт файл с автоименем
+  returns: { path }
+- POST /api/kb-admin/fs/folder
+  body: { path } -> create folder
+- DELETE /api/kb-admin/fs/file
+  body: { path } -> delete file
+- POST /api/kb-admin/fs/rename
+  body: { from, to } -> rename
+
+SECURITY:
+- Path traversal запретить (нельзя ../)
+- Разрешённый root только server/kb/seed
+
+E2) Index endpoints
+- POST /api/kb-admin/index/reindexAll
+- POST /api/kb-admin/index/reindexFile
+  body: { path } -> парсим файл -> удаляем существующий doc связаный с path (храним mapping) -> создаём заново
+- DELETE /api/kb-admin/index/document
+  body: { docId, keepFile:boolean }
+- DELETE /api/kb-admin/index/chunk
+  body: { chunkId }
+- POST /api/kb-admin/index/deactivate
+  body: { docId, isActive }
+
+E3) Retrieval test
+- POST /api/kb-admin/retrieve
+  body: { query, topK } -> returns hits with score, chunkId, docId, filePath, preview
+
+=== F) MAPPING файл -> документ в БД ===
+Добавить поле filePath в kb_documents (или отдельную таблицу mapping),
+чтобы можно было делать reindexFile и открыть нужный doc по файлу.
+При индексации сохраняй:
+- kb_documents.filePath = relative path from server/kb/seed
+
+=== G) INDEXER (обновить ingest) ===
+Обновить ingestSeedFolder/ingestFile:
+- ingestFile(filePath): parse -> create/update doc -> chunk -> embedding
+- Если doc с таким filePath уже есть: удалить его и пересоздать (простая логика)
+- chunking: 1200 + overlap 200
+- tags: берём из первой строки tags: ... и/или из UI
+
+=== H) UI/UX требования (красиво и удобно) ===
+- Flat light UI, как у панели управления
+- Слева дерево файлов с поиском
+- Редактор с подсветкой markdown + preview
+- Кнопки: Save, Create, Delete, Reindex
+- Подтверждение на удаление
+- Toast уведомления об успехе/ошибке
+- Responsive: на мобиле вкладки (Files / Editor / Index)
+
+=== I) АВТО-SAVE (опционально)
+- каждые 10–20 секунд сохранять черновик в localStorage
+- при Save писать на сервер
+
+=== J) РОЛИ/ДОСТУП (минимум)
+- если есть auth в проекте — ограничить /kb-admin только admin
+- если auth нет — поставить простой Basic Auth через ENV:
+  KB_ADMIN_USER / KB_ADMIN_PASS
+
+=== K) ГОТОВНОСТЬ
+Считать готовым когда:
+1) я могу создать новый .md с автоименем в нужной папке
+2) я могу редактировать и сохранять
+3) я могу reindexFile и reindexAll
+4) я вижу docs/chunks и могу удалить doc/chunk
+5) test retrieval показывает релевантные чанки

@@ -943,6 +943,7 @@ export const kbDocuments = pgTable("kb_documents", {
   id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
   title: text("title").notNull(),
   source: text("source").notNull(),
+  filePath: text("file_path"),
   tags: text("tags").array().notNull().default([]),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

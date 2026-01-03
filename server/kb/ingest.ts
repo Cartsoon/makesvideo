@@ -2,9 +2,12 @@ import fs from "fs";
 import path from "path";
 import { db } from "../db";
 import { kbDocuments, kbChunks, kbEmbeddings } from "@shared/schema";
+import { eq } from "drizzle-orm";
 import { chunkText, sha256Hex } from "../utils/text";
 import { getProvider } from "../ai/provider";
 import { parseFile } from "./parsers";
+
+const SEED_DIR = path.join(process.cwd(), "server/kb/seed");
 
 export async function ingestSeedFolder(seedDir: string) {
   const provider = getProvider();
@@ -15,12 +18,14 @@ export async function ingestSeedFolder(seedDir: string) {
   
   for (const f of files) {
     try {
+      const relativePath = path.relative(SEED_DIR, f);
       const parsed = parseFile(f);
       console.log(`[KB Ingest] Processing: ${parsed.title}`);
       
       const docId = (await db.insert(kbDocuments).values({
         title: parsed.title,
         source: parsed.source,
+        filePath: relativePath,
         tags: parsed.tags,
       }).returning({ id: kbDocuments.id }))[0].id;
 
@@ -54,6 +59,64 @@ export async function ingestSeedFolder(seedDir: string) {
   }
   
   console.log(`[KB Ingest] Complete`);
+}
+
+export async function ingestFile(absolutePath: string, relativePath: string): Promise<{ docId: string; chunksCount: number }> {
+  const provider = getProvider();
+  const embedModel = process.env.AI_EMBED_MODEL ?? "text-embedding-3-large";
+  
+  const parsed = parseFile(absolutePath);
+  console.log(`[KB Ingest] Processing single file: ${parsed.title}`);
+  
+  const docId = (await db.insert(kbDocuments).values({
+    title: parsed.title,
+    source: parsed.source,
+    filePath: relativePath,
+    tags: parsed.tags,
+  }).returning({ id: kbDocuments.id }))[0].id;
+
+  const chunks = chunkText(parsed.content, 1200, 200);
+  console.log(`[KB Ingest] ${parsed.title}: ${chunks.length} chunks`);
+  
+  if (chunks.length === 0) {
+    return { docId, chunksCount: 0 };
+  }
+  
+  const embeddings = await provider.embed(chunks);
+
+  for (let i = 0; i < chunks.length; i++) {
+    const content = chunks[i];
+    const contentHash = sha256Hex(content);
+    const chunkId = (await db.insert(kbChunks).values({
+      docId,
+      chunkIndex: i,
+      content,
+      contentHash,
+      tags: parsed.tags,
+    }).returning({ id: kbChunks.id }))[0].id;
+
+    await db.insert(kbEmbeddings).values({
+      chunkId,
+      model: embedModel,
+      vector: embeddings[i],
+    });
+  }
+  
+  return { docId, chunksCount: chunks.length };
+}
+
+export async function deleteDocumentByFilePath(filePath: string): Promise<boolean> {
+  const docs = await db.select({ id: kbDocuments.id }).from(kbDocuments).where(eq(kbDocuments.filePath, filePath));
+  
+  if (docs.length > 0) {
+    for (const doc of docs) {
+      await db.delete(kbDocuments).where(eq(kbDocuments.id, doc.id));
+    }
+    console.log(`[KB Ingest] Deleted ${docs.length} document(s) for path: ${filePath}`);
+    return true;
+  }
+  
+  return false;
 }
 
 function walkFiles(dir: string): string[] {

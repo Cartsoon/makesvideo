@@ -12,6 +12,7 @@ import express from "express";
 import path from "path";
 import { aiRouter } from "./routes/ai";
 import { kbRouter } from "./routes/kb";
+import { registerKbAdminRoutes } from "./routes/kb-admin";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -29,6 +30,7 @@ export async function registerRoutes(
   // ============ RAG AI & KB ROUTES ============
   app.use("/api/ai", aiRouter);
   app.use("/api/kb", kbRouter);
+  registerKbAdminRoutes(app);
 
   // ============ SOURCES ============
 
