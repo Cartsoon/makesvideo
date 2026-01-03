@@ -401,10 +401,11 @@ router.get("/index/stats", async (_req: Request, res: Response) => {
       return {
         ...doc,
         chunksCount: chunks.length,
-        chunks: chunks.slice(0, 10).map(c => ({
+        chunks: chunks.map(c => ({
           id: c.id,
           chunkIndex: c.chunkIndex,
           contentHash: c.contentHash,
+          content: c.content,
           preview: c.content.substring(0, 150) + (c.content.length > 150 ? "..." : ""),
           level: c.level,
           anchor: c.anchor,
@@ -661,6 +662,86 @@ ${content.substring(0, 8000)}
   } catch (err: any) {
     console.error("[KB Admin] Generate chunks error:", err);
     res.status(500).json({ error: `Failed to generate chunks: ${err?.message || "Unknown error"}` });
+  }
+});
+
+router.post("/index/generateSingleChunk", async (req: Request, res: Response) => {
+  try {
+    const { content, existingChunks = "", level = "normal", anchor = "general" } = req.body;
+    if (!content) {
+      return res.status(400).json({ error: "Content required" });
+    }
+    
+    const provider = await getProviderWithSettings();
+    
+    const prompt = `Ты эксперт по созданию базы знаний для RAG-системы.
+
+ЗАДАЧА: Создай ОДИН новый качественный чанк на основе документа.
+
+ДОКУМЕНТ:
+${content.substring(0, 6000)}
+
+${existingChunks ? `УЖЕ СУЩЕСТВУЮЩИЕ ЧАНКИ (не дублируй их):
+${existingChunks.substring(0, 2000)}` : ""}
+
+ПРАВИЛА:
+1. Чанк должен быть самодостаточным (понятен без контекста)
+2. 100-400 слов, фокус на одну тему/идею
+3. Сохраняй ключевые термины и детали
+4. Формулируй так, чтобы чанк отвечал на возможный вопрос пользователя
+5. НЕ дублируй информацию из существующих чанков
+
+Определи оптимальные:
+- level: critical/important/normal/supplementary
+- anchor: hooks/scripts/storyboard/montage/sfx/music/voice/style/platform/trends/workflow/general
+
+ФОРМАТ ОТВЕТА (строго JSON объект):
+{
+  "content": "текст чанка...",
+  "level": "${level}",
+  "anchor": "${anchor}",
+  "summary": "краткое описание"
+}
+
+Верни только JSON объект, без markdown.`;
+
+    const chatModel = process.env.AI_CHAT_MODEL ?? "gpt-4o-mini";
+    const response = await provider.chat({
+      model: chatModel,
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.4,
+    });
+    
+    let chunk = null;
+    try {
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        chunk = JSON.parse(jsonMatch[0]);
+      }
+    } catch (parseErr) {
+      console.error("[KB Admin] Failed to parse AI chunk:", parseErr);
+      return res.status(500).json({ error: "AI returned invalid format" });
+    }
+    
+    if (!chunk || !chunk.content) {
+      return res.status(500).json({ error: "AI did not generate valid chunk" });
+    }
+    
+    const validLevels = ["critical", "important", "normal", "supplementary"];
+    const validAnchors = ["hooks", "scripts", "storyboard", "montage", "sfx", "music", "voice", "style", "platform", "trends", "workflow", "general"];
+    
+    const validatedChunk = {
+      content: chunk.content,
+      level: validLevels.includes(chunk.level) ? chunk.level : level,
+      anchor: validAnchors.includes(chunk.anchor) ? chunk.anchor : anchor,
+      summary: chunk.summary || "Generated chunk",
+    };
+    
+    console.log(`[KB Admin] AI generated single chunk: ${validatedChunk.summary}`);
+    res.json({ chunk: validatedChunk });
+  } catch (err: any) {
+    console.error("[KB Admin] Generate single chunk error:", err);
+    res.status(500).json({ error: `Failed to generate chunk: ${err?.message || "Unknown error"}` });
   }
 });
 

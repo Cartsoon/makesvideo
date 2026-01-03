@@ -109,6 +109,7 @@ interface IndexDoc {
   chunks: { 
     id: string; 
     chunkIndex: number; 
+    content: string;
     preview: string; 
     contentHash: string;
     level?: string;
@@ -1143,35 +1144,71 @@ export default function KbAdminPage() {
                             className="text-sm resize-none min-h-[60px] mb-2"
                             placeholder={language === "ru" ? "Текст нового чанка..." : "New chunk content..."}
                           />
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={async () => {
-                              if (!newFileChunkContent.trim() || !currentFileDoc) return;
-                              try {
-                                const res = await apiRequest("POST", "/api/kb-admin/index/addChunk", {
-                                  docId: currentFileDoc.id,
-                                  content: newFileChunkContent.trim(),
-                                  level: newFileChunkLevel,
-                                  anchor: newFileChunkAnchor,
-                                });
-                                const data = await res.json();
-                                if (data.success) {
-                                  toast({ title: language === "ru" ? "Чанк добавлен" : "Chunk added" });
-                                  setNewFileChunkContent("");
-                                  refetchIndex();
-                                  if (selectedPath) loadFileChunks(selectedPath);
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={async () => {
+                                if (!currentFileDoc || !selectedPath) return;
+                                try {
+                                  const fileRes = await fetch(`/api/kb-admin/fs/file?path=${encodeURIComponent(selectedPath)}`);
+                                  if (!fileRes.ok) throw new Error("Failed to load file");
+                                  const fileData = await fileRes.json();
+                                  
+                                  const genRes = await apiRequest("POST", "/api/kb-admin/index/generateSingleChunk", {
+                                    content: fileData.content,
+                                    existingChunks: currentFileChunks.map(c => c.content).join("\n---\n"),
+                                    level: newFileChunkLevel,
+                                    anchor: newFileChunkAnchor,
+                                  });
+                                  const genData = await genRes.json();
+                                  
+                                  if (genData.chunk) {
+                                    setNewFileChunkContent(genData.chunk.content);
+                                    if (genData.chunk.level) setNewFileChunkLevel(genData.chunk.level);
+                                    if (genData.chunk.anchor) setNewFileChunkAnchor(genData.chunk.anchor);
+                                    toast({ title: language === "ru" ? "Чанк сгенерирован" : "Chunk generated" });
+                                  }
+                                } catch (err: any) {
+                                  toast({ title: err?.message || "Error", variant: "destructive" });
                                 }
-                              } catch (err: any) {
-                                toast({ title: err?.message || "Error", variant: "destructive" });
-                              }
-                            }}
-                            disabled={!newFileChunkContent.trim() || !currentFileDoc}
-                            className="w-full"
-                          >
-                            <Plus className="w-3 h-3 mr-1" />
-                            {language === "ru" ? "Добавить чанк" : "Add chunk"}
-                          </Button>
+                              }}
+                              disabled={!currentFileDoc}
+                              className="flex-1"
+                            >
+                              <Sparkles className="w-3 h-3 mr-1" />
+                              {language === "ru" ? "AI генерация" : "AI Generate"}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={async () => {
+                                if (!newFileChunkContent.trim() || !currentFileDoc) return;
+                                try {
+                                  const res = await apiRequest("POST", "/api/kb-admin/index/addChunk", {
+                                    docId: currentFileDoc.id,
+                                    content: newFileChunkContent.trim(),
+                                    level: newFileChunkLevel,
+                                    anchor: newFileChunkAnchor,
+                                  });
+                                  const data = await res.json();
+                                  if (data.success) {
+                                    toast({ title: language === "ru" ? "Чанк добавлен" : "Chunk added" });
+                                    setNewFileChunkContent("");
+                                    refetchIndex();
+                                    if (selectedPath) loadFileChunks(selectedPath);
+                                  }
+                                } catch (err: any) {
+                                  toast({ title: err?.message || "Error", variant: "destructive" });
+                                }
+                              }}
+                              disabled={!newFileChunkContent.trim() || !currentFileDoc}
+                              className="flex-1"
+                            >
+                              <Plus className="w-3 h-3 mr-1" />
+                              {language === "ru" ? "Добавить" : "Add"}
+                            </Button>
+                          </div>
                         </Card>
                       </>
                     )}
