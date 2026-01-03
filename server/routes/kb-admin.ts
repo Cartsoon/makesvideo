@@ -375,6 +375,8 @@ router.get("/index/stats", async (_req: Request, res: Response) => {
         chunkIndex: kbChunks.chunkIndex,
         content: kbChunks.content,
         contentHash: kbChunks.contentHash,
+        level: kbChunks.level,
+        anchor: kbChunks.anchor,
       }).from(kbChunks).where(eq(kbChunks.docId, doc.id));
       
       return {
@@ -385,6 +387,8 @@ router.get("/index/stats", async (_req: Request, res: Response) => {
           chunkIndex: c.chunkIndex,
           contentHash: c.contentHash,
           preview: c.content.substring(0, 150) + (c.content.length > 150 ? "..." : ""),
+          level: c.level,
+          anchor: c.anchor,
         })),
       };
     }));
@@ -515,7 +519,7 @@ router.get("/index/chunk/:chunkId", async (req: Request, res: Response) => {
 router.put("/index/chunk/:chunkId", async (req: Request, res: Response) => {
   try {
     const { chunkId } = req.params;
-    const { content } = req.body;
+    const { content, level, anchor } = req.body;
     
     if (!content) {
       return res.status(400).json({ error: "Content required" });
@@ -524,10 +528,12 @@ router.put("/index/chunk/:chunkId", async (req: Request, res: Response) => {
     const { sha256Hex } = await import("../utils/text");
     const contentHash = sha256Hex(content);
     
-    await db.update(kbChunks).set({ 
-      content,
-      contentHash,
-    }).where(eq(kbChunks.id, chunkId));
+    // Build update object with optional level/anchor
+    const updateData: Record<string, unknown> = { content, contentHash };
+    if (level) updateData.level = level;
+    if (anchor) updateData.anchor = anchor;
+    
+    await db.update(kbChunks).set(updateData).where(eq(kbChunks.id, chunkId));
     
     const provider = getProvider();
     const embedModel = process.env.AI_EMBED_MODEL ?? "text-embedding-3-large";

@@ -939,6 +939,32 @@ export type InsertAssistantFeedback = z.infer<typeof insertAssistantFeedbackSche
 
 // ============ KNOWLEDGE BASE (RAG) ============
 
+// Chunk levels for importance weighting
+export const chunkLevels = [
+  "critical",     // +50% score boost - always include
+  "important",    // +25% score boost  
+  "normal",       // no boost
+  "supplementary" // -25% score (background info)
+] as const;
+export type ChunkLevel = typeof chunkLevels[number];
+
+// Anchor categories for topic-based filtering
+export const chunkAnchors = [
+  "hooks",       // хуки, зацепы
+  "scripts",     // сценарии
+  "storyboard",  // раскадровка
+  "montage",     // монтаж
+  "sfx",         // звуковые эффекты
+  "music",       // музыка
+  "voice",       // озвучка
+  "style",       // стили видео
+  "platform",    // площадки (YouTube, TikTok и т.д.)
+  "trends",      // тренды
+  "workflow",    // процессы, чеклисты
+  "general",     // общее
+] as const;
+export type ChunkAnchor = typeof chunkAnchors[number];
+
 export const kbDocuments = pgTable("kb_documents", {
   id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
   title: text("title").notNull(),
@@ -957,6 +983,8 @@ export const kbChunks = pgTable("kb_chunks", {
   content: text("content").notNull(),
   contentHash: varchar("content_hash", { length: 64 }).notNull(),
   tags: text("tags").array().notNull().default([]),
+  level: varchar("level", { length: 20 }).default("normal").notNull(), // critical, important, normal, supplementary
+  anchor: varchar("anchor", { length: 20 }).default("general").notNull(), // topic anchor for filtering
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

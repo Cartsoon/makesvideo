@@ -100,7 +100,14 @@ interface IndexDoc {
   createdAt: string;
   updatedAt: string;
   chunksCount: number;
-  chunks: { id: string; chunkIndex: number; preview: string; contentHash: string }[];
+  chunks: { 
+    id: string; 
+    chunkIndex: number; 
+    preview: string; 
+    contentHash: string;
+    level?: string;
+    anchor?: string;
+  }[];
 }
 
 interface IndexStats {
@@ -226,8 +233,32 @@ export default function KbAdminPage() {
   const [editChunkDialogOpen, setEditChunkDialogOpen] = useState(false);
   const [editingChunkId, setEditingChunkId] = useState<string | null>(null);
   const [editingChunkContent, setEditingChunkContent] = useState("");
+  const [editingChunkLevel, setEditingChunkLevel] = useState<string>("normal");
+  const [editingChunkAnchor, setEditingChunkAnchor] = useState<string>("general");
   const [chunkPreviewOpen, setChunkPreviewOpen] = useState(false);
   const [previewChunks, setPreviewChunks] = useState<string[]>([]);
+  
+  const CHUNK_LEVELS = [
+    { value: "critical", label: { ru: "Критический (+50%)", en: "Critical (+50%)" } },
+    { value: "important", label: { ru: "Важный (+25%)", en: "Important (+25%)" } },
+    { value: "normal", label: { ru: "Обычный", en: "Normal" } },
+    { value: "supplementary", label: { ru: "Дополнительный (-25%)", en: "Supplementary (-25%)" } },
+  ];
+  
+  const CHUNK_ANCHORS = [
+    { value: "hooks", label: { ru: "Хуки", en: "Hooks" } },
+    { value: "scripts", label: { ru: "Сценарии", en: "Scripts" } },
+    { value: "storyboard", label: { ru: "Раскадровка", en: "Storyboard" } },
+    { value: "montage", label: { ru: "Монтаж", en: "Montage" } },
+    { value: "sfx", label: { ru: "Звуковые эффекты", en: "SFX" } },
+    { value: "music", label: { ru: "Музыка", en: "Music" } },
+    { value: "voice", label: { ru: "Озвучка", en: "Voice" } },
+    { value: "style", label: { ru: "Стили", en: "Style" } },
+    { value: "platform", label: { ru: "Платформы", en: "Platform" } },
+    { value: "trends", label: { ru: "Тренды", en: "Trends" } },
+    { value: "workflow", label: { ru: "Процессы", en: "Workflow" } },
+    { value: "general", label: { ru: "Общее", en: "General" } },
+  ];
   
   // Bot settings state
   const [botName, setBotName] = useState("EDITO");
@@ -432,6 +463,8 @@ export default function KbAdminPage() {
     },
     onSuccess: (data) => {
       setEditingChunkContent(data.content);
+      setEditingChunkLevel(data.level || "normal");
+      setEditingChunkAnchor(data.anchor || "general");
       setEditChunkDialogOpen(true);
     },
     onError: () => {
@@ -440,14 +473,16 @@ export default function KbAdminPage() {
   });
   
   const updateChunkMutation = useMutation({
-    mutationFn: async ({ chunkId, content }: { chunkId: string; content: string }) => {
-      const res = await apiRequest("PUT", `/api/kb-admin/index/chunk/${chunkId}`, { content });
+    mutationFn: async ({ chunkId, content, level, anchor }: { chunkId: string; content: string; level: string; anchor: string }) => {
+      const res = await apiRequest("PUT", `/api/kb-admin/index/chunk/${chunkId}`, { content, level, anchor });
       return res.json();
     },
     onSuccess: () => {
       setEditChunkDialogOpen(false);
       setEditingChunkId(null);
       setEditingChunkContent("");
+      setEditingChunkLevel("normal");
+      setEditingChunkAnchor("general");
       refetchIndex();
       toast({ title: language === "ru" ? "Чанк обновлен" : "Chunk updated" });
     },
@@ -880,8 +915,20 @@ export default function KbAdminPage() {
                               {doc.chunks?.slice(0, 5).map((chunk) => (
                                 <div key={chunk.id} className="text-xs p-2 bg-muted rounded-sm flex items-start gap-2 group">
                                   <div className="flex-1 min-w-0">
-                                    <span className="text-muted-foreground font-mono">#{chunk.chunkIndex}: </span>
-                                    {chunk.preview}
+                                    <div className="flex items-center gap-1 mb-0.5 flex-wrap">
+                                      <span className="text-muted-foreground font-mono">#{chunk.chunkIndex}</span>
+                                      {chunk.level && chunk.level !== "normal" && (
+                                        <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">
+                                          {chunk.level === "critical" ? "!!!" : chunk.level === "important" ? "!!" : "-"}
+                                        </Badge>
+                                      )}
+                                      {chunk.anchor && chunk.anchor !== "general" && (
+                                        <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">
+                                          {chunk.anchor}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    <span className="text-muted-foreground">{chunk.preview}</span>
                                   </div>
                                   <Button
                                     size="icon"
@@ -1130,6 +1177,8 @@ export default function KbAdminPage() {
           setEditChunkDialogOpen(false);
           setEditingChunkId(null);
           setEditingChunkContent("");
+          setEditingChunkLevel("normal");
+          setEditingChunkAnchor("general");
         }
       }}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
@@ -1139,19 +1188,51 @@ export default function KbAdminPage() {
             </DialogTitle>
             <DialogDescription>
               {language === "ru"
-                ? "Отредактируйте содержимое чанка. После сохранения эмбеддинг будет пересоздан."
-                : "Edit chunk content. The embedding will be regenerated after saving."}
+                ? "Отредактируйте содержимое, уровень и якорь чанка. Эмбеддинг будет пересоздан."
+                : "Edit content, level and anchor. Embedding will be regenerated."}
             </DialogDescription>
           </DialogHeader>
-          <div className="flex-1 min-h-0 overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-hidden space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs mb-1 block">{language === "ru" ? "Уровень" : "Level"}</Label>
+                <Select value={editingChunkLevel} onValueChange={setEditingChunkLevel}>
+                  <SelectTrigger data-testid="select-chunk-level">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CHUNK_LEVELS.map((l) => (
+                      <SelectItem key={l.value} value={l.value}>
+                        {l.label[language]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs mb-1 block">{language === "ru" ? "Якорь" : "Anchor"}</Label>
+                <Select value={editingChunkAnchor} onValueChange={setEditingChunkAnchor}>
+                  <SelectTrigger data-testid="select-chunk-anchor">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CHUNK_ANCHORS.map((a) => (
+                      <SelectItem key={a.value} value={a.value}>
+                        {a.label[language]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             <Textarea
               value={editingChunkContent}
               onChange={(e) => setEditingChunkContent(e.target.value)}
-              className="h-64 resize-none font-mono text-sm"
+              className="h-52 resize-none font-mono text-sm"
               placeholder={language === "ru" ? "Содержимое чанка..." : "Chunk content..."}
               data-testid="textarea-edit-chunk"
             />
-            <div className="flex items-center justify-between mt-2">
+            <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">
                 {editingChunkContent.length} {language === "ru" ? "символов" : "characters"}
               </span>
@@ -1164,7 +1245,12 @@ export default function KbAdminPage() {
             <Button
               onClick={() => {
                 if (editingChunkId) {
-                  updateChunkMutation.mutate({ chunkId: editingChunkId, content: editingChunkContent });
+                  updateChunkMutation.mutate({ 
+                    chunkId: editingChunkId, 
+                    content: editingChunkContent,
+                    level: editingChunkLevel,
+                    anchor: editingChunkAnchor,
+                  });
                 }
               }}
               disabled={!editingChunkContent.trim() || updateChunkMutation.isPending}

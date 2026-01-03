@@ -130,6 +130,14 @@ Preferred communication style: Simple, everyday language.
 - File system browser for KB documents (`.md`, `.txt`, `.json`)
 - Document indexing with automatic chunking (1200 chars, 200 overlap)
 - Chunk editing with automatic embedding regeneration
+- **Chunk Levels** for importance weighting (score boost during retrieval):
+  - `critical` (+50% boost) - always prioritized
+  - `important` (+25% boost)
+  - `normal` (no change, default)
+  - `supplementary` (-25% penalty, background info)
+- **Chunk Anchors** for topic-based filtering:
+  - hooks, scripts, storyboard, montage, sfx, music, voice, style, platform, trends, workflow, general
+  - Auto-detected from query keywords for +10% relevance boost
 - Chunk preview before indexing
 - Tag suggestions based on README.md structure
 - Suggested tags: style, guide, checklist, template, монтаж, shorts, sfx, music, hooks, scripts
