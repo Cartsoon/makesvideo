@@ -936,3 +936,89 @@ export const insertAssistantFeedbackSchema = createInsertSchema(assistantFeedbac
 
 export type AssistantFeedback = typeof assistantFeedback.$inferSelect;
 export type InsertAssistantFeedback = z.infer<typeof insertAssistantFeedbackSchema>;
+
+// ============ KNOWLEDGE BASE (RAG) ============
+
+export const kbDocuments = pgTable("kb_documents", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  title: text("title").notNull(),
+  source: text("source").notNull(),
+  tags: text("tags").array().notNull().default([]),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+});
+
+export const kbChunks = pgTable("kb_chunks", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  docId: varchar("doc_id", { length: 36 }).references(() => kbDocuments.id, { onDelete: "cascade" }).notNull(),
+  chunkIndex: integer("chunk_index").notNull(),
+  content: text("content").notNull(),
+  contentHash: varchar("content_hash", { length: 64 }).notNull(),
+  tags: text("tags").array().notNull().default([]),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const kbEmbeddings = pgTable("kb_embeddings", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  chunkId: varchar("chunk_id", { length: 36 }).references(() => kbChunks.id, { onDelete: "cascade" }).notNull(),
+  model: text("model").notNull(),
+  vector: jsonb("vector").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertKbDocumentSchema = createInsertSchema(kbDocuments).omit({
+  createdAt: true,
+  updatedAt: true,
+});
+export type KbDocument = typeof kbDocuments.$inferSelect;
+export type InsertKbDocument = z.infer<typeof insertKbDocumentSchema>;
+
+export const insertKbChunkSchema = createInsertSchema(kbChunks).omit({
+  createdAt: true,
+});
+export type KbChunk = typeof kbChunks.$inferSelect;
+export type InsertKbChunk = z.infer<typeof insertKbChunkSchema>;
+
+// ============ AI CONVERSATIONS (RAG) ============
+
+export const aiConversations = pgTable("ai_conversations", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: varchar("user_id", { length: 36 }).references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const aiMessages = pgTable("ai_messages", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  conversationId: varchar("conversation_id", { length: 36 }).references(() => aiConversations.id, { onDelete: "cascade" }).notNull(),
+  role: text("role").notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const aiMessageFeedback = pgTable("ai_message_feedback", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  messageId: varchar("message_id", { length: 36 }).references(() => aiMessages.id, { onDelete: "cascade" }).notNull(),
+  userId: varchar("user_id", { length: 36 }).references(() => users.id),
+  rating: integer("rating").notNull(),
+  reason: text("reason"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const aiPromptProfiles = pgTable("ai_prompt_profiles", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  key: text("key").notNull().unique(),
+  systemPrompt: text("system_prompt").notNull(),
+  styleJson: jsonb("style_json").notNull().default({}),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertAiConversationSchema = createInsertSchema(aiConversations).omit({
+  createdAt: true,
+});
+export type AiConversation = typeof aiConversations.$inferSelect;
+
+export const insertAiMessageSchema = createInsertSchema(aiMessages).omit({
+  createdAt: true,
+});
+export type AiMessage = typeof aiMessages.$inferSelect;

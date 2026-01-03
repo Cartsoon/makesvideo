@@ -1,0 +1,32 @@
+import { db } from "../db";
+import { kbChunks, kbEmbeddings } from "@shared/schema";
+import { getProvider } from "./provider";
+import { cosineSimilarity } from "../utils/text";
+import { eq } from "drizzle-orm";
+
+export type RagHit = { chunkId: string; content: string; score: number };
+
+export async function ragRetrieve(query: string, topK: number): Promise<RagHit[]> {
+  const provider = getProvider();
+  const [qVec] = await provider.embed([query]);
+
+  const rows = await db.select().from(kbEmbeddings).innerJoin(kbChunks, eq(kbEmbeddings.chunkId, kbChunks.id));
+
+  const scored = rows.map(r => {
+    const vec = r.kb_embeddings.vector as number[];
+    const score = cosineSimilarity(qVec, vec);
+    return { chunkId: r.kb_chunks.id, content: r.kb_chunks.content, score };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+  const minScore = Number(process.env.RAG_MIN_SCORE ?? 0.2);
+  return scored.filter(s => s.score >= minScore).slice(0, topK);
+}
+
+export function formatRagContext(hits: RagHit[]) {
+  if (!hits.length) return "";
+  return `
+КОНТЕКСТ ИЗ БАЗЫ ЗНАНИЙ (используй как подсказку, не копируй дословно):
+${hits.map((h, i) => `[KB${i + 1} score=${h.score.toFixed(3)}] ${h.content}`).join("\n\n")}
+`;
+}

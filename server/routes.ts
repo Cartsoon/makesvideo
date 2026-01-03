@@ -10,6 +10,8 @@ import { EdgeTTS, listVoices } from "edge-tts-universal";
 import OpenAI from "openai";
 import express from "express";
 import path from "path";
+import { aiRouter } from "./routes/ai";
+import { kbRouter } from "./routes/kb";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -23,6 +25,10 @@ export async function registerRoutes(
   
   // Serve static files from public/files directory
   app.use("/files", express.static(path.join(process.cwd(), "public/files")));
+  
+  // ============ RAG AI & KB ROUTES ============
+  app.use("/api/ai", aiRouter);
+  app.use("/api/kb", kbRouter);
 
   // ============ SOURCES ============
 

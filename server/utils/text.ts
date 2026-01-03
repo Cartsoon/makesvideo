@@ -1,0 +1,29 @@
+import crypto from "crypto";
+
+export function cosineSimilarity(a: number[], b: number[]) {
+  let dot = 0, na = 0, nb = 0;
+  const n = Math.min(a.length, b.length);
+  for (let i = 0; i < n; i++) {
+    dot += a[i] * b[i];
+    na += a[i] * a[i];
+    nb += b[i] * b[i];
+  }
+  return dot / (Math.sqrt(na) * Math.sqrt(nb) + 1e-9);
+}
+
+export function chunkText(text: string, chunkSize = 1200, overlap = 200) {
+  const chunks: string[] = [];
+  let i = 0;
+  while (i < text.length) {
+    const end = Math.min(text.length, i + chunkSize);
+    chunks.push(text.slice(i, end).trim());
+    i = end - overlap;
+    if (i < 0) i = 0;
+    if (end >= text.length) break;
+  }
+  return chunks.filter(Boolean);
+}
+
+export function sha256Hex(input: string) {
+  return crypto.createHash("sha256").update(input).digest("hex");
+}
