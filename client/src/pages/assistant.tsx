@@ -879,13 +879,15 @@ export default function AssistantPage() {
               <div className="flex flex-col items-center justify-center py-8 px-4">
                 <img src={editoAvatar} alt="EDITO" className="w-16 h-16 rounded-lg mb-3 shadow-sm" />
                 <h3 className="font-medium text-sm mb-1">EDITO</h3>
-                <p className="text-xs text-muted-foreground text-center mb-4">
-                  {language === "ru" ? "Спросите о монтаже, съемке или кино" : "Ask about editing, filming, or cinema"}
+                <p className="text-xs text-muted-foreground text-center mb-4 px-2">
+                  {language === "ru" 
+                    ? "Спросите меня о фото и видео съёмке, монтаже, сценариях или подборе кадров" 
+                    : "Ask me about photo and video shooting, editing, scripts, or finding the right shots"}
                 </p>
-                <div className="flex flex-wrap gap-1.5 justify-center">
+                <div className="flex flex-col gap-1.5 w-full px-2">
                   {quickPrompts.slice(0, 2).map((prompt, i) => (
-                    <Button key={i} variant="outline" size="sm" className="text-[10px] h-7" onClick={() => { setInput(prompt); textareaRef.current?.focus(); }} data-testid={`button-quick-prompt-mobile-${i}`}>
-                      {prompt.slice(0, 25)}...
+                    <Button key={i} variant="outline" size="sm" className="text-[10px] h-auto py-2 px-3 whitespace-normal text-left justify-start" onClick={() => { setInput(prompt); textareaRef.current?.focus(); }} data-testid={`button-quick-prompt-mobile-${i}`}>
+                      {prompt}
                     </Button>
                   ))}
                 </div>
