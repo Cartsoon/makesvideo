@@ -15,14 +15,14 @@ export function Layout({ children, title, fullHeight }: LayoutProps) {
     <div className={`min-h-screen bg-background relative ${fullHeight ? 'lg:h-screen lg:overflow-hidden' : ''}`}>
       <DesktopSidebar />
       
-      <div className="md:pl-56">
+      <div className={`md:pl-56 ${fullHeight ? 'lg:h-screen lg:overflow-hidden lg:flex lg:flex-col' : ''}`}>
         <div className="md:hidden">
           <AppHeader title={title} />
         </div>
         
-        <TipsBar />
+        {!fullHeight && <TipsBar />}
         
-        <main className={`pb-20 md:pb-6 min-h-screen relative z-10 ${fullHeight ? 'lg:pb-0 lg:h-screen lg:overflow-hidden' : ''}`}>
+        <main className={`pb-20 md:pb-6 min-h-screen relative z-10 ${fullHeight ? 'lg:pb-0 lg:flex-1 lg:overflow-hidden lg:min-h-0' : ''}`}>
           {children}
         </main>
         
