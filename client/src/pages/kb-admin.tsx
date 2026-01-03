@@ -213,7 +213,7 @@ export default function KbAdminPage() {
   const [editorContent, setEditorContent] = useState("");
   const [originalContent, setOriginalContent] = useState("");
   const [isEditing, setIsEditing] = useState(false);
-  const [activeTab, setActiveTab] = useState<"editor" | "preview">("editor");
+  const [activeTab, setActiveTab] = useState<"editor" | "preview" | "chunks">("editor");
   const [activePanel, setActivePanel] = useState<"index" | "search" | "bot">("index");
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -257,6 +257,20 @@ export default function KbAdminPage() {
   const [newChunkContent, setNewChunkContent] = useState("");
   const [newChunkLevel, setNewChunkLevel] = useState("normal");
   const [newChunkAnchor, setNewChunkAnchor] = useState("general");
+  
+  // Current file's document and chunks
+  const [currentFileDoc, setCurrentFileDoc] = useState<IndexDoc | null>(null);
+  const [currentFileChunks, setCurrentFileChunks] = useState<{
+    id: string;
+    content: string;
+    level: string;
+    anchor: string;
+    chunkIndex: number;
+  }[]>([]);
+  const [isLoadingChunks, setIsLoadingChunks] = useState(false);
+  const [newFileChunkContent, setNewFileChunkContent] = useState("");
+  const [newFileChunkLevel, setNewFileChunkLevel] = useState("normal");
+  const [newFileChunkAnchor, setNewFileChunkAnchor] = useState("general");
   
   const CHUNK_LEVELS = [
     { value: "critical", label: { ru: "Критический (+50%)", en: "Critical (+50%)" } },
@@ -715,10 +729,35 @@ export default function KbAdminPage() {
     });
   }, []);
 
+  const loadFileChunks = async (path: string) => {
+    setIsLoadingChunks(true);
+    setCurrentFileDoc(null);
+    setCurrentFileChunks([]);
+    try {
+      // Find the document by file path from indexStats
+      const doc = indexStats?.documents?.find(d => d.filePath === path);
+      if (doc) {
+        setCurrentFileDoc(doc);
+        setCurrentFileChunks(doc.chunks?.map(c => ({
+          id: c.id,
+          content: c.content,
+          level: c.level || "normal",
+          anchor: c.anchor || "general",
+          chunkIndex: c.chunkIndex,
+        })) || []);
+      }
+    } catch (err) {
+      console.error("Error loading chunks:", err);
+    } finally {
+      setIsLoadingChunks(false);
+    }
+  };
+
   const handleSelectFile = useCallback((path: string) => {
     setSelectedPath(path);
     loadFileMutation.mutate(path);
-  }, []);
+    loadFileChunks(path);
+  }, [indexStats]);
 
   const handleSave = () => {
     if (selectedPath) {
@@ -840,6 +879,15 @@ export default function KbAdminPage() {
                         <Eye className="w-3 h-3 mr-1" />
                         {language === "ru" ? "Просмотр" : "Preview"}
                       </TabsTrigger>
+                      <TabsTrigger value="chunks" className="text-xs px-3 h-6">
+                        <Layers className="w-3 h-3 mr-1" />
+                        {language === "ru" ? "Чанки" : "Chunks"}
+                        {currentFileChunks.length > 0 && (
+                          <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">
+                            {currentFileChunks.length}
+                          </Badge>
+                        )}
+                      </TabsTrigger>
                     </TabsList>
                   </Tabs>
                   <TooltipProvider>
@@ -926,10 +974,188 @@ export default function KbAdminPage() {
                   placeholder={language === "ru" ? "Содержимое файла..." : "File content..."}
                   data-testid="textarea-editor"
                 />
-              ) : (
+              ) : activeTab === "preview" ? (
                 <ScrollArea className="h-full">
                   <div className="p-4 prose prose-sm dark:prose-invert max-w-none">
                     <ReactMarkdown>{editorContent}</ReactMarkdown>
+                  </div>
+                </ScrollArea>
+              ) : (
+                <ScrollArea className="h-full">
+                  <div className="p-4 space-y-3">
+                    {isLoadingChunks ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="w-6 h-6 animate-spin" />
+                      </div>
+                    ) : currentFileChunks.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Layers className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">
+                          {language === "ru" 
+                            ? "Файл не индексирован или не имеет чанков" 
+                            : "File not indexed or has no chunks"}
+                        </p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="mt-2"
+                          onClick={() => reindexFileMutation.mutate(selectedPath)}
+                          disabled={reindexFileMutation.isPending}
+                        >
+                          {reindexFileMutation.isPending ? (
+                            <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                          ) : (
+                            <RefreshCw className="w-4 h-4 mr-1" />
+                          )}
+                          {language === "ru" ? "Индексировать" : "Index"}
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        {currentFileChunks.map((chunk, idx) => (
+                          <Card key={chunk.id} className="p-3">
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Badge variant="secondary">#{idx + 1}</Badge>
+                                <Select
+                                  value={chunk.level}
+                                  onValueChange={(v) => {
+                                    setCurrentFileChunks(prev => 
+                                      prev.map((c, i) => i === idx ? { ...c, level: v } : c)
+                                    );
+                                  }}
+                                >
+                                  <SelectTrigger className="h-6 w-auto text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {CHUNK_LEVELS.map((l) => (
+                                      <SelectItem key={l.value} value={l.value}>
+                                        {l.label[language]}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Select
+                                  value={chunk.anchor}
+                                  onValueChange={(v) => {
+                                    setCurrentFileChunks(prev => 
+                                      prev.map((c, i) => i === idx ? { ...c, anchor: v } : c)
+                                    );
+                                  }}
+                                >
+                                  <SelectTrigger className="h-6 w-auto text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {CHUNK_ANCHORS.map((a) => (
+                                      <SelectItem key={a.value} value={a.value}>
+                                        {a.label[language]}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <span className="text-xs text-muted-foreground">
+                                  {chunk.content.length} {language === "ru" ? "симв." : "chars"}
+                                </span>
+                              </div>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6 shrink-0"
+                                onClick={() => {
+                                  setEditingChunkId(chunk.id);
+                                  setEditingChunkContent(chunk.content);
+                                  setEditingChunkLevel(chunk.level);
+                                  setEditingChunkAnchor(chunk.anchor);
+                                  setEditChunkDialogOpen(true);
+                                }}
+                              >
+                                <Edit3 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                            <div className="text-xs text-muted-foreground whitespace-pre-wrap line-clamp-4">
+                              {chunk.content}
+                            </div>
+                          </Card>
+                        ))}
+                        
+                        {/* Add new chunk section */}
+                        <Card className="p-3 border-dashed">
+                          <div className="flex items-center gap-2 mb-2 flex-wrap">
+                            <Badge variant="outline">
+                              <Plus className="w-3 h-3 mr-1" />
+                              {language === "ru" ? "Новый" : "New"}
+                            </Badge>
+                            <Select
+                              value={newFileChunkLevel}
+                              onValueChange={setNewFileChunkLevel}
+                            >
+                              <SelectTrigger className="h-6 w-auto text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {CHUNK_LEVELS.map((l) => (
+                                  <SelectItem key={l.value} value={l.value}>
+                                    {l.label[language]}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Select
+                              value={newFileChunkAnchor}
+                              onValueChange={setNewFileChunkAnchor}
+                            >
+                              <SelectTrigger className="h-6 w-auto text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {CHUNK_ANCHORS.map((a) => (
+                                  <SelectItem key={a.value} value={a.value}>
+                                    {a.label[language]}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <Textarea
+                            value={newFileChunkContent}
+                            onChange={(e) => setNewFileChunkContent(e.target.value)}
+                            className="text-sm resize-none min-h-[60px] mb-2"
+                            placeholder={language === "ru" ? "Текст нового чанка..." : "New chunk content..."}
+                          />
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={async () => {
+                              if (!newFileChunkContent.trim() || !currentFileDoc) return;
+                              try {
+                                const res = await apiRequest("POST", "/api/kb-admin/index/addChunk", {
+                                  docId: currentFileDoc.id,
+                                  content: newFileChunkContent.trim(),
+                                  level: newFileChunkLevel,
+                                  anchor: newFileChunkAnchor,
+                                });
+                                const data = await res.json();
+                                if (data.success) {
+                                  toast({ title: language === "ru" ? "Чанк добавлен" : "Chunk added" });
+                                  setNewFileChunkContent("");
+                                  refetchIndex();
+                                  if (selectedPath) loadFileChunks(selectedPath);
+                                }
+                              } catch (err: any) {
+                                toast({ title: err?.message || "Error", variant: "destructive" });
+                              }
+                            }}
+                            disabled={!newFileChunkContent.trim() || !currentFileDoc}
+                            className="w-full"
+                          >
+                            <Plus className="w-3 h-3 mr-1" />
+                            {language === "ru" ? "Добавить чанк" : "Add chunk"}
+                          </Button>
+                        </Card>
+                      </>
+                    )}
                   </div>
                 </ScrollArea>
               )

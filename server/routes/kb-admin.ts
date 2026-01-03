@@ -734,6 +734,63 @@ router.post("/index/deactivate", async (req: Request, res: Response) => {
   }
 });
 
+router.post("/index/addChunk", async (req: Request, res: Response) => {
+  try {
+    const { docId, content, level, anchor } = req.body;
+    if (!docId || !content?.trim()) {
+      return res.status(400).json({ error: "Document ID and content required" });
+    }
+    
+    const doc = await db.select().from(kbDocuments).where(eq(kbDocuments.id, docId)).limit(1);
+    if (doc.length === 0) {
+      return res.status(404).json({ error: "Document not found" });
+    }
+    
+    const { sha256Hex } = await import("../utils/text");
+    const { v4: uuidv4 } = await import("uuid");
+    const provider = getProvider();
+    const embedModel = process.env.AI_EMBED_MODEL ?? "text-embedding-3-large";
+    
+    const existingChunks = await db.select({ chunkIndex: kbChunks.chunkIndex })
+      .from(kbChunks)
+      .where(eq(kbChunks.docId, docId))
+      .orderBy(kbChunks.chunkIndex);
+    
+    const maxIndex = existingChunks.length > 0 
+      ? Math.max(...existingChunks.map(c => c.chunkIndex)) + 1 
+      : 0;
+    
+    const validLevels = ["critical", "important", "normal", "supplementary"];
+    const validAnchors = ["hooks", "scripts", "storyboard", "montage", "sfx", "music", "voice", "style", "platform", "trends", "workflow", "general"];
+    
+    const chunkId = uuidv4();
+    const contentHash = sha256Hex(content.trim());
+    
+    await db.insert(kbChunks).values({
+      id: chunkId,
+      docId,
+      chunkIndex: maxIndex,
+      content: content.trim(),
+      contentHash,
+      level: validLevels.includes(level) ? level : "normal",
+      anchor: validAnchors.includes(anchor) ? anchor : "general",
+    });
+    
+    const [embedding] = await provider.embed([content.trim()]);
+    await db.insert(kbEmbeddings).values({
+      chunkId,
+      model: embedModel,
+      vector: embedding,
+    });
+    
+    console.log(`[KB Admin] Added chunk ${chunkId} to doc ${docId}`);
+    res.json({ success: true, chunkId });
+  } catch (err: any) {
+    console.error("[KB Admin] Add chunk error:", err);
+    res.status(500).json({ error: `Failed to add chunk: ${err?.message || "Unknown error"}` });
+  }
+});
+
 router.post("/retrieve", async (req: Request, res: Response) => {
   try {
     const { query, topK = 5 } = req.body;
