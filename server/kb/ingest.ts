@@ -105,18 +105,23 @@ export async function ingestFile(absolutePath: string, relativePath: string): Pr
   return { docId, chunksCount: chunks.length };
 }
 
-export async function deleteDocumentByFilePath(filePath: string): Promise<boolean> {
+export async function deleteDocumentByFilePath(filePath: string): Promise<number> {
   const docs = await db.select({ id: kbDocuments.id }).from(kbDocuments).where(eq(kbDocuments.filePath, filePath));
   
   if (docs.length > 0) {
     for (const doc of docs) {
+      const chunks = await db.select({ id: kbChunks.id }).from(kbChunks).where(eq(kbChunks.docId, doc.id));
+      for (const chunk of chunks) {
+        await db.delete(kbEmbeddings).where(eq(kbEmbeddings.chunkId, chunk.id));
+      }
+      await db.delete(kbChunks).where(eq(kbChunks.docId, doc.id));
       await db.delete(kbDocuments).where(eq(kbDocuments.id, doc.id));
     }
     console.log(`[KB Ingest] Deleted ${docs.length} document(s) for path: ${filePath}`);
-    return true;
+    return docs.length;
   }
   
-  return false;
+  return 0;
 }
 
 function walkFiles(dir: string): string[] {

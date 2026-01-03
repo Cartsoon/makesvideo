@@ -380,8 +380,10 @@ router.get("/index/stats", async (_req: Request, res: Response) => {
       return {
         ...doc,
         chunksCount: chunks.length,
-        chunks: chunks.map(c => ({
-          ...c,
+        chunks: chunks.slice(0, 10).map(c => ({
+          id: c.id,
+          chunkIndex: c.chunkIndex,
+          contentHash: c.contentHash,
           preview: c.content.substring(0, 150) + (c.content.length > 150 ? "..." : ""),
         })),
       };
