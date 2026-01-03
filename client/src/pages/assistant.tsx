@@ -1237,8 +1237,8 @@ export default function AssistantPage() {
                   </h3>
                   <p className="text-sm text-muted-foreground text-center max-w-sm mb-6">
                     {language === "ru"
-                      ? "Спросите меня о видеомонтаже, съемке, истории кино или создании контента"
-                      : "Ask me about video editing, filmmaking, cinema history, or content creation"}
+                      ? "Вы можете меня просить о чем угодно связанном с фото и видео съемками, монтажем и улучшением. Так же я готов вам помочь в ваших сценариях, советами, или помочь найти подходящие кадры."
+                      : "You can ask me about anything related to photo and video shooting, editing and enhancement. I'm also ready to help you with your scripts, advice, or finding the right shots."}
                   </p>
                   
                   <div className="flex flex-wrap gap-2 justify-center">
