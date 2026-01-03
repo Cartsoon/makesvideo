@@ -8,9 +8,10 @@ interface LayoutProps {
   children: React.ReactNode;
   title?: string;
   fullHeight?: boolean;
+  hideBottomNav?: boolean;
 }
 
-export function Layout({ children, title, fullHeight }: LayoutProps) {
+export function Layout({ children, title, fullHeight, hideBottomNav }: LayoutProps) {
   return (
     <div className={`min-h-screen bg-background relative ${fullHeight ? 'lg:h-screen lg:max-h-screen lg:overflow-hidden' : ''}`}>
       <DesktopSidebar />
@@ -22,7 +23,7 @@ export function Layout({ children, title, fullHeight }: LayoutProps) {
         
         {!fullHeight && <TipsBar />}
         
-        <main className={`pb-20 md:pb-6 min-h-screen relative z-10 ${fullHeight ? 'lg:pb-0 lg:flex-1 lg:overflow-hidden lg:min-h-0' : ''}`}>
+        <main className={`${hideBottomNav ? 'pb-0' : 'pb-20'} md:pb-6 ${hideBottomNav ? 'h-[calc(100dvh-3.5rem)] overflow-hidden' : 'min-h-screen'} relative z-10 ${fullHeight ? 'lg:pb-0 lg:flex-1 lg:overflow-hidden lg:min-h-0' : ''}`}>
           {children}
         </main>
         

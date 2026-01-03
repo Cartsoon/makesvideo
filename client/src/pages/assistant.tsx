@@ -411,7 +411,7 @@ export default function AssistantPage() {
   };
 
   return (
-    <Layout title="VIDEO AI" fullHeight>
+    <Layout title="VIDEO AI" fullHeight hideBottomNav>
       {/* Welcome Modal */}
       <Dialog open={showWelcome} onOpenChange={(open) => !open && closeWelcome()}>
         <DialogContent className="max-w-sm p-0 gap-0 overflow-hidden border-0">
@@ -495,7 +495,7 @@ export default function AssistantPage() {
       </Dialog>
 
       {/* MOBILE CONSOLE LAYOUT */}
-      <div className="lg:hidden flex flex-col h-[calc(100vh-4rem)] bg-background">
+      <div className="lg:hidden flex flex-col h-full bg-background">
         {/* Console Header - Timeline Style */}
         <div className="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-background via-card to-background border-b border-border/50 flex-shrink-0">
           <div className="flex items-center gap-2">
