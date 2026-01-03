@@ -1075,7 +1075,7 @@ export default function KbAdminPage() {
                                   </SelectContent>
                                 </Select>
                                 <span className="text-xs text-muted-foreground">
-                                  {chunk.content.length} {language === "ru" ? "симв." : "chars"}
+                                  {chunk.content?.length || 0} {language === "ru" ? "симв." : "chars"}
                                 </span>
                               </div>
                               <Button
@@ -1084,9 +1084,9 @@ export default function KbAdminPage() {
                                 className="h-6 w-6 shrink-0"
                                 onClick={() => {
                                   setEditingChunkId(chunk.id);
-                                  setEditingChunkContent(chunk.content);
-                                  setEditingChunkLevel(chunk.level);
-                                  setEditingChunkAnchor(chunk.anchor);
+                                  setEditingChunkContent(chunk.content || "");
+                                  setEditingChunkLevel(chunk.level || "normal");
+                                  setEditingChunkAnchor(chunk.anchor || "general");
                                   setEditChunkDialogOpen(true);
                                 }}
                               >
@@ -1094,7 +1094,7 @@ export default function KbAdminPage() {
                               </Button>
                             </div>
                             <div className="text-xs text-muted-foreground whitespace-pre-wrap line-clamp-4">
-                              {chunk.content}
+                              {chunk.content || ""}
                             </div>
                           </Card>
                         ))}
