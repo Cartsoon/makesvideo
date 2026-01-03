@@ -406,9 +406,11 @@ router.get("/index/stats", async (_req: Request, res: Response) => {
 
 router.post("/index/reindexAll", async (_req: Request, res: Response) => {
   try {
+    console.log("[KB Admin] Starting full reindex...");
     await db.delete(kbEmbeddings);
     await db.delete(kbChunks);
     await db.delete(kbDocuments);
+    console.log("[KB Admin] Cleared existing data");
     
     const { ingestSeedFolder } = await import("../kb/ingest");
     await ingestSeedFolder(SEED_DIR);
@@ -417,15 +419,17 @@ router.post("/index/reindexAll", async (_req: Request, res: Response) => {
     const totalChunks = await db.select({ count: sql<number>`count(*)` }).from(kbChunks);
     const totalEmbeddings = await db.select({ count: sql<number>`count(*)` }).from(kbEmbeddings);
     
+    console.log(`[KB Admin] Reindex complete: ${totalDocs[0]?.count} docs, ${totalChunks[0]?.count} chunks, ${totalEmbeddings[0]?.count} embeddings`);
     res.json({
       success: true,
       documentsIngested: Number(totalDocs[0]?.count || 0),
       chunksCreated: Number(totalChunks[0]?.count || 0),
       embeddingsCreated: Number(totalEmbeddings[0]?.count || 0),
     });
-  } catch (err) {
+  } catch (err: any) {
     console.error("[KB Admin] Reindex all error:", err);
-    res.status(500).json({ error: "Failed to reindex" });
+    const errorMessage = err?.message || "Unknown error";
+    res.status(500).json({ error: `Failed to reindex: ${errorMessage}` });
   }
 });
 
@@ -485,11 +489,78 @@ router.delete("/index/chunk", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Chunk ID required" });
     }
     
+    await db.delete(kbEmbeddings).where(eq(kbEmbeddings.chunkId, chunkId));
     await db.delete(kbChunks).where(eq(kbChunks.id, chunkId));
     res.json({ success: true });
   } catch (err) {
     console.error("[KB Admin] Delete chunk error:", err);
     res.status(500).json({ error: "Failed to delete chunk" });
+  }
+});
+
+router.get("/index/chunk/:chunkId", async (req: Request, res: Response) => {
+  try {
+    const { chunkId } = req.params;
+    const chunk = await db.select().from(kbChunks).where(eq(kbChunks.id, chunkId)).limit(1);
+    if (chunk.length === 0) {
+      return res.status(404).json({ error: "Chunk not found" });
+    }
+    res.json(chunk[0]);
+  } catch (err) {
+    console.error("[KB Admin] Get chunk error:", err);
+    res.status(500).json({ error: "Failed to get chunk" });
+  }
+});
+
+router.put("/index/chunk/:chunkId", async (req: Request, res: Response) => {
+  try {
+    const { chunkId } = req.params;
+    const { content } = req.body;
+    
+    if (!content) {
+      return res.status(400).json({ error: "Content required" });
+    }
+    
+    const { sha256Hex } = await import("../utils/text");
+    const contentHash = sha256Hex(content);
+    
+    await db.update(kbChunks).set({ 
+      content,
+      contentHash,
+    }).where(eq(kbChunks.id, chunkId));
+    
+    const provider = getProvider();
+    const embedModel = process.env.AI_EMBED_MODEL ?? "text-embedding-3-large";
+    const [embedding] = await provider.embed([content]);
+    
+    await db.delete(kbEmbeddings).where(eq(kbEmbeddings.chunkId, chunkId));
+    await db.insert(kbEmbeddings).values({
+      chunkId,
+      model: embedModel,
+      vector: embedding,
+    });
+    
+    res.json({ success: true });
+  } catch (err: any) {
+    console.error("[KB Admin] Update chunk error:", err);
+    res.status(500).json({ error: `Failed to update chunk: ${err?.message || "Unknown error"}` });
+  }
+});
+
+router.post("/index/previewChunks", async (req: Request, res: Response) => {
+  try {
+    const { content, chunkSize = 1200, overlap = 200 } = req.body;
+    if (!content) {
+      return res.status(400).json({ error: "Content required" });
+    }
+    
+    const { chunkText } = await import("../utils/text");
+    const chunks = chunkText(content, chunkSize, overlap);
+    
+    res.json({ chunks });
+  } catch (err) {
+    console.error("[KB Admin] Preview chunks error:", err);
+    res.status(500).json({ error: "Failed to preview chunks" });
   }
 });
 

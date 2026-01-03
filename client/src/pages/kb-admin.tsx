@@ -36,6 +36,7 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
+  TooltipProvider,
 } from "@/components/ui/tooltip";
 import {
   Collapsible,
@@ -69,6 +70,7 @@ import {
   BookOpen,
   Settings2,
   ChevronLeft,
+  SplitSquareVertical,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -218,6 +220,33 @@ export default function KbAdminPage() {
   const [isSearching, setIsSearching] = useState(false);
 
   const [expandedDocs, setExpandedDocs] = useState<Set<string>>(new Set());
+  
+  const [editChunkDialogOpen, setEditChunkDialogOpen] = useState(false);
+  const [editingChunkId, setEditingChunkId] = useState<string | null>(null);
+  const [editingChunkContent, setEditingChunkContent] = useState("");
+  const [chunkPreviewOpen, setChunkPreviewOpen] = useState(false);
+  const [previewChunks, setPreviewChunks] = useState<string[]>([]);
+  
+  const SUGGESTED_TAGS = [
+    { tag: "style", label: { ru: "Стиль", en: "Style" } },
+    { tag: "guide", label: { ru: "Гайд", en: "Guide" } },
+    { tag: "checklist", label: { ru: "Чеклист", en: "Checklist" } },
+    { tag: "template", label: { ru: "Шаблон", en: "Template" } },
+    { tag: "example", label: { ru: "Пример", en: "Example" } },
+    { tag: "монтаж", label: { ru: "Монтаж", en: "Editing" } },
+    { tag: "shorts", label: { ru: "Shorts", en: "Shorts" } },
+    { tag: "sfx", label: { ru: "SFX", en: "SFX" } },
+    { tag: "music", label: { ru: "Музыка", en: "Music" } },
+    { tag: "hooks", label: { ru: "Хуки", en: "Hooks" } },
+    { tag: "scripts", label: { ru: "Скрипты", en: "Scripts" } },
+  ];
+  
+  const SUGGESTED_FOLDERS = [
+    { path: "style_guides", label: { ru: "Гайды по стилям", en: "Style Guides" } },
+    { path: "checklists", label: { ru: "Чеклисты", en: "Checklists" } },
+    { path: "templates", label: { ru: "Шаблоны", en: "Templates" } },
+    { path: "examples", label: { ru: "Примеры", en: "Examples" } },
+  ];
 
   const { data: treeData, refetch: refetchTree } = useQuery<{ tree: FileNode[]; root: string }>({
     queryKey: ["/api/kb-admin/fs/tree"],
@@ -310,8 +339,58 @@ export default function KbAdminPage() {
         description: `${data.documentsIngested} docs, ${data.chunksCreated} chunks`,
       });
     },
+    onError: (error: any) => {
+      const msg = error?.message || (language === "ru" ? "Ошибка индексации" : "Reindex error");
+      toast({ 
+        title: language === "ru" ? "Ошибка индексации" : "Reindex error", 
+        description: msg,
+        variant: "destructive" 
+      });
+    },
+  });
+  
+  const loadChunkMutation = useMutation({
+    mutationFn: async (chunkId: string) => {
+      const res = await fetch(`/api/kb-admin/index/chunk/${chunkId}`);
+      if (!res.ok) throw new Error("Failed to load chunk");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setEditingChunkContent(data.content);
+      setEditChunkDialogOpen(true);
+    },
     onError: () => {
-      toast({ title: language === "ru" ? "Ошибка индексации" : "Reindex error", variant: "destructive" });
+      toast({ title: language === "ru" ? "Ошибка загрузки чанка" : "Failed to load chunk", variant: "destructive" });
+    },
+  });
+  
+  const updateChunkMutation = useMutation({
+    mutationFn: async ({ chunkId, content }: { chunkId: string; content: string }) => {
+      return apiRequest(`/api/kb-admin/index/chunk/${chunkId}`, "PUT", { content });
+    },
+    onSuccess: () => {
+      setEditChunkDialogOpen(false);
+      setEditingChunkId(null);
+      setEditingChunkContent("");
+      refetchIndex();
+      toast({ title: language === "ru" ? "Чанк обновлен" : "Chunk updated" });
+    },
+    onError: (error: any) => {
+      const msg = error?.message || (language === "ru" ? "Ошибка обновления" : "Update error");
+      toast({ title: msg, variant: "destructive" });
+    },
+  });
+  
+  const previewChunksMutation = useMutation({
+    mutationFn: async (content: string) => {
+      return apiRequest("/api/kb-admin/index/previewChunks", "POST", { content });
+    },
+    onSuccess: (data) => {
+      setPreviewChunks(data.chunks);
+      setChunkPreviewOpen(true);
+    },
+    onError: () => {
+      toast({ title: language === "ru" ? "Ошибка предпросмотра" : "Preview error", variant: "destructive" });
     },
   });
 
@@ -488,19 +567,50 @@ export default function KbAdminPage() {
                       </TabsTrigger>
                     </TabsList>
                   </Tabs>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => reindexFileMutation.mutate(selectedPath)}
-                    disabled={reindexFileMutation.isPending}
-                    data-testid="button-reindex-file"
-                  >
-                    {reindexFileMutation.isPending ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <RefreshCw className="w-4 h-4" />
-                    )}
-                  </Button>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => previewChunksMutation.mutate(editorContent)}
+                          disabled={previewChunksMutation.isPending || !editorContent.trim()}
+                          data-testid="button-preview-chunks"
+                        >
+                          {previewChunksMutation.isPending ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <SplitSquareVertical className="w-4 h-4" />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {language === "ru" ? "Предпросмотр чанков" : "Preview Chunks"}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => reindexFileMutation.mutate(selectedPath)}
+                          disabled={reindexFileMutation.isPending}
+                          data-testid="button-reindex-file"
+                        >
+                          {reindexFileMutation.isPending ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <RefreshCw className="w-4 h-4" />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {language === "ru" ? "Переиндексировать" : "Reindex"}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                   <Button
                     size="sm"
                     variant="ghost"
@@ -682,15 +792,30 @@ export default function KbAdminPage() {
                               </Button>
                             </div>
                             <div className="space-y-1">
-                              {doc.chunks?.slice(0, 3).map((chunk) => (
-                                <div key={chunk.id} className="text-xs p-2 bg-muted rounded-sm">
-                                  <span className="text-muted-foreground">#{chunk.chunkIndex}: </span>
-                                  {chunk.preview}
+                              {doc.chunks?.slice(0, 5).map((chunk) => (
+                                <div key={chunk.id} className="text-xs p-2 bg-muted rounded-sm flex items-start gap-2 group">
+                                  <div className="flex-1 min-w-0">
+                                    <span className="text-muted-foreground font-mono">#{chunk.chunkIndex}: </span>
+                                    {chunk.preview}
+                                  </div>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-5 w-5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingChunkId(chunk.id);
+                                      loadChunkMutation.mutate(chunk.id);
+                                    }}
+                                    data-testid={`button-edit-chunk-${chunk.id}`}
+                                  >
+                                    <Edit3 className="h-3 w-3" />
+                                  </Button>
                                 </div>
                               ))}
-                              {doc.chunks?.length > 3 && (
+                              {doc.chunks?.length > 5 && (
                                 <div className="text-xs text-muted-foreground text-center">
-                                  +{doc.chunks.length - 3} more
+                                  +{doc.chunks.length - 5} {language === "ru" ? "ещё" : "more"}
                                 </div>
                               )}
                             </div>
@@ -798,6 +923,24 @@ export default function KbAdminPage() {
                 placeholder="style, guide, hooks"
                 data-testid="input-new-file-tags"
               />
+              <div className="flex flex-wrap gap-1 mt-2">
+                {SUGGESTED_TAGS.map((st) => (
+                  <Badge
+                    key={st.tag}
+                    variant="outline"
+                    className="cursor-pointer text-xs"
+                    onClick={() => {
+                      const current = newFileTags.split(",").map(t => t.trim()).filter(Boolean);
+                      if (!current.includes(st.tag)) {
+                        setNewFileTags([...current, st.tag].join(", "));
+                      }
+                    }}
+                    data-testid={`tag-suggestion-${st.tag}`}
+                  >
+                    + {st.label[language]}
+                  </Badge>
+                ))}
+              </div>
             </div>
             <div>
               <Label>{language === "ru" ? "Шаблон" : "Template"}</Label>
@@ -896,6 +1039,97 @@ export default function KbAdminPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={editChunkDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          setEditChunkDialogOpen(false);
+          setEditingChunkId(null);
+          setEditingChunkContent("");
+        }
+      }}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>
+              {language === "ru" ? "Редактирование чанка" : "Edit Chunk"}
+            </DialogTitle>
+            <DialogDescription>
+              {language === "ru"
+                ? "Отредактируйте содержимое чанка. После сохранения эмбеддинг будет пересоздан."
+                : "Edit chunk content. The embedding will be regenerated after saving."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <Textarea
+              value={editingChunkContent}
+              onChange={(e) => setEditingChunkContent(e.target.value)}
+              className="h-64 resize-none font-mono text-sm"
+              placeholder={language === "ru" ? "Содержимое чанка..." : "Chunk content..."}
+              data-testid="textarea-edit-chunk"
+            />
+            <div className="flex items-center justify-between mt-2">
+              <span className="text-xs text-muted-foreground">
+                {editingChunkContent.length} {language === "ru" ? "символов" : "characters"}
+              </span>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditChunkDialogOpen(false)}>
+              {language === "ru" ? "Отмена" : "Cancel"}
+            </Button>
+            <Button
+              onClick={() => {
+                if (editingChunkId) {
+                  updateChunkMutation.mutate({ chunkId: editingChunkId, content: editingChunkContent });
+                }
+              }}
+              disabled={!editingChunkContent.trim() || updateChunkMutation.isPending}
+              data-testid="button-save-chunk"
+            >
+              {updateChunkMutation.isPending && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
+              {language === "ru" ? "Сохранить" : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={chunkPreviewOpen} onOpenChange={setChunkPreviewOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>
+              {language === "ru" ? "Предпросмотр чанков" : "Chunk Preview"}
+            </DialogTitle>
+            <DialogDescription>
+              {language === "ru"
+                ? `Файл будет разбит на ${previewChunks.length} чанков`
+                : `File will be split into ${previewChunks.length} chunks`}
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="flex-1 min-h-0">
+            <div className="space-y-2 pr-4">
+              {previewChunks.map((chunk, idx) => (
+                <Card key={idx} className="p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <Badge variant="secondary">
+                      {language === "ru" ? "Чанк" : "Chunk"} #{idx + 1}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {chunk.length} {language === "ru" ? "символов" : "chars"}
+                    </span>
+                  </div>
+                  <div className="text-xs text-muted-foreground whitespace-pre-wrap line-clamp-6">
+                    {chunk}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </ScrollArea>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setChunkPreviewOpen(false)}>
+              {language === "ru" ? "Закрыть" : "Close"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }

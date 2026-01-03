@@ -112,6 +112,25 @@ Preferred communication style: Simple, everyday language.
 - Safe area handling for mobile notches
 - Offline-friendly design for viewing cached data
 
+### EDITO AI Assistant
+- RAG-powered chat assistant with video production expertise
+- Custom EDITO avatar for branded chat experience
+- Knowledge base with style guides, checklists, templates, examples
+- Hybrid AI architecture:
+  - Chat: Replit AI Integrations (gpt-4o-mini)
+  - Embeddings: Direct OpenAI API (text-embedding-3-large)
+- Context retrieval from KB documents for accurate responses
+
+### Knowledge Base Admin (KB Admin)
+- File system browser for KB documents (`.md`, `.txt`, `.json`)
+- Document indexing with automatic chunking (1200 chars, 200 overlap)
+- Chunk editing with automatic embedding regeneration
+- Chunk preview before indexing
+- Tag suggestions based on README.md structure
+- Suggested tags: style, guide, checklist, template, монтаж, shorts, sfx, music, hooks, scripts
+- Document activation/deactivation for search inclusion
+- Semantic search testing interface
+
 ## External Dependencies
 
 ### AI/LLM Services
