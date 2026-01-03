@@ -2,7 +2,7 @@ import { Router, Request, Response } from "express";
 import fs from "fs";
 import path from "path";
 import { db } from "../db";
-import { kbDocuments, kbChunks, kbEmbeddings } from "@shared/schema";
+import { kbDocuments, kbChunks, kbEmbeddings, aiPromptProfiles } from "@shared/schema";
 import { eq, sql, desc } from "drizzle-orm";
 import { ingestFile, deleteDocumentByFilePath } from "../kb/ingest";
 import { getProvider } from "../ai/provider";
@@ -631,6 +631,95 @@ router.post("/retrieve", async (req: Request, res: Response) => {
   } catch (err) {
     console.error("[KB Admin] Retrieve error:", err);
     res.status(500).json({ error: "Failed to retrieve" });
+  }
+});
+
+// Bot settings API
+const DEFAULT_BOT_SETTINGS = {
+  key: "edito_main",
+  name: "EDITO",
+  role: "Профессиональный AI-ассистент для видеомонтажеров, режиссеров и создателей контента",
+  personality: "Дружелюбный, экспертный, практичный. Даёт конкретные советы без лишней воды.",
+  systemPrompt: `Ты — профессиональный AI-ассистент для видеомонтажеров, режиссеров и создателей контента.
+
+СТИЛЬ ОТВЕТОВ:
+- Отвечай кратко и по делу
+- Давай практичные, применимые советы
+- Используй примеры и конкретику
+- Адаптируй сложность под вопрос`,
+  responseStyle: "expert",
+  maxHistoryMessages: 20,
+};
+
+router.get("/bot/settings", async (_req: Request, res: Response) => {
+  try {
+    const profile = await db.select().from(aiPromptProfiles).where(eq(aiPromptProfiles.key, "edito_main")).limit(1);
+    
+    if (profile.length === 0) {
+      return res.json(DEFAULT_BOT_SETTINGS);
+    }
+    
+    const styleJson = profile[0].styleJson as any;
+    res.json({
+      key: profile[0].key,
+      name: styleJson?.name || DEFAULT_BOT_SETTINGS.name,
+      role: styleJson?.role || DEFAULT_BOT_SETTINGS.role,
+      personality: styleJson?.personality || DEFAULT_BOT_SETTINGS.personality,
+      systemPrompt: profile[0].systemPrompt,
+      responseStyle: styleJson?.responseStyle || DEFAULT_BOT_SETTINGS.responseStyle,
+      maxHistoryMessages: styleJson?.maxHistoryMessages || DEFAULT_BOT_SETTINGS.maxHistoryMessages,
+      updatedAt: profile[0].updatedAt,
+    });
+  } catch (err) {
+    console.error("[KB Admin] Get bot settings error:", err);
+    res.status(500).json({ error: "Failed to get settings" });
+  }
+});
+
+router.post("/bot/settings", async (req: Request, res: Response) => {
+  try {
+    const { name, role, personality, systemPrompt, responseStyle, maxHistoryMessages } = req.body;
+    
+    const styleJson = {
+      name: name || DEFAULT_BOT_SETTINGS.name,
+      role: role || DEFAULT_BOT_SETTINGS.role,
+      personality: personality || DEFAULT_BOT_SETTINGS.personality,
+      responseStyle: responseStyle || DEFAULT_BOT_SETTINGS.responseStyle,
+      maxHistoryMessages: maxHistoryMessages || DEFAULT_BOT_SETTINGS.maxHistoryMessages,
+    };
+    
+    const existing = await db.select().from(aiPromptProfiles).where(eq(aiPromptProfiles.key, "edito_main")).limit(1);
+    
+    if (existing.length === 0) {
+      await db.insert(aiPromptProfiles).values({
+        key: "edito_main",
+        systemPrompt: systemPrompt || DEFAULT_BOT_SETTINGS.systemPrompt,
+        styleJson,
+      });
+    } else {
+      await db.update(aiPromptProfiles)
+        .set({
+          systemPrompt: systemPrompt || DEFAULT_BOT_SETTINGS.systemPrompt,
+          styleJson,
+          updatedAt: new Date(),
+        })
+        .where(eq(aiPromptProfiles.key, "edito_main"));
+    }
+    
+    res.json({ success: true });
+  } catch (err) {
+    console.error("[KB Admin] Update bot settings error:", err);
+    res.status(500).json({ error: "Failed to update settings" });
+  }
+});
+
+router.post("/bot/settings/reset", async (_req: Request, res: Response) => {
+  try {
+    await db.delete(aiPromptProfiles).where(eq(aiPromptProfiles.key, "edito_main"));
+    res.json({ success: true, settings: DEFAULT_BOT_SETTINGS });
+  } catch (err) {
+    console.error("[KB Admin] Reset bot settings error:", err);
+    res.status(500).json({ error: "Failed to reset settings" });
   }
 });
 
