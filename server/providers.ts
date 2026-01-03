@@ -3010,17 +3010,17 @@ export async function createLLMProvider(): Promise<LLMProvider> {
       return new FallbackLLMProvider();
     }
     
-    // Check if custom API is enabled and available
-    if (useCustomApi && process.env.CUSTOM_OPENAI_API_KEY) {
-      console.log("[Providers] Using custom OpenAI API key");
+    // Check if custom API is enabled - uses direct OPENAI_API_KEY
+    if (useCustomApi && process.env.OPENAI_API_KEY) {
+      console.log("[Providers] Using direct OpenAI API key (custom mode)");
       return new UnifiedLLMProvider();
     }
     
     // Check if OpenAI API is available via Replit AI Integrations
     const hasOpenAI = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
     
-    if (hasOpenAI) {
-      console.log("[Providers] Using unified OpenAI provider via Replit AI Integrations");
+    if (hasOpenAI && !useCustomApi) {
+      console.log("[Providers] Using OpenAI via Replit AI Integrations");
       return new UnifiedLLMProvider();
     }
     

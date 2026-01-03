@@ -33,24 +33,25 @@ export function getProvider(forceCustom?: boolean): AIProvider {
   }
   
   const useCustom = forceCustom ?? false;
-  const customApiKey = process.env.CUSTOM_OPENAI_API_KEY;
+  // Custom API uses OPENAI_API_KEY directly (bypassing Replit AI Integrations)
+  const directApiKey = process.env.OPENAI_API_KEY;
   
-  // For chat: use custom key if enabled, otherwise Replit AI Integrations
+  // For chat: use direct key if custom mode enabled, otherwise Replit AI Integrations
   let chatApiKey: string | undefined;
   let chatBaseUrl: string | undefined;
   
-  if (useCustom && customApiKey) {
-    chatApiKey = customApiKey;
-    chatBaseUrl = undefined;
-    console.log("[AIProvider] Using custom OpenAI API key");
+  if (useCustom && directApiKey) {
+    chatApiKey = directApiKey;
+    chatBaseUrl = undefined; // Direct OpenAI API
+    console.log("[AIProvider] Using direct OpenAI API key (custom mode)");
   } else {
     chatApiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
     chatBaseUrl = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
     console.log("[AIProvider] Using Replit AI Integrations");
   }
   
-  // For embeddings: prefer custom key if available, otherwise use OPENAI_API_KEY
-  const embedApiKey = (useCustom && customApiKey) ? customApiKey : process.env.OPENAI_API_KEY;
+  // For embeddings: always use direct OpenAI API key
+  const embedApiKey = process.env.OPENAI_API_KEY;
   
   if (!chatApiKey) {
     throw new Error("OpenAI API key not configured");
