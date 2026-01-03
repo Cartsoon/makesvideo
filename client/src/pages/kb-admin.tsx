@@ -238,6 +238,21 @@ export default function KbAdminPage() {
   const [chunkPreviewOpen, setChunkPreviewOpen] = useState(false);
   const [previewChunks, setPreviewChunks] = useState<string[]>([]);
   
+  // AI chunk generation state
+  const [aiChunksDialogOpen, setAiChunksDialogOpen] = useState(false);
+  const [aiChunkCount, setAiChunkCount] = useState(5);
+  const [aiGeneratedChunks, setAiGeneratedChunks] = useState<{
+    content: string;
+    level: string;
+    anchor: string;
+    summary: string;
+    chunkIndex: number;
+  }[]>([]);
+  const [aiChunksDocId, setAiChunksDocId] = useState<string | null>(null);
+  const [aiChunksDocTitle, setAiChunksDocTitle] = useState("");
+  const [isGeneratingAiChunks, setIsGeneratingAiChunks] = useState(false);
+  const [editingAiChunkIndex, setEditingAiChunkIndex] = useState<number | null>(null);
+  
   const CHUNK_LEVELS = [
     { value: "critical", label: { ru: "Критический (+50%)", en: "Critical (+50%)" } },
     { value: "important", label: { ru: "Важный (+25%)", en: "Important (+25%)" } },
@@ -543,6 +558,92 @@ export default function KbAdminPage() {
       refetchIndex();
     },
   });
+  
+  // AI Chunk generation handlers
+  const handleGenerateAiChunks = async (docId: string, docTitle: string, filePath: string | null) => {
+    if (!filePath) {
+      toast({ title: language === "ru" ? "Файл не найден" : "File not found", variant: "destructive" });
+      return;
+    }
+    
+    setAiChunksDocId(docId);
+    setAiChunksDocTitle(docTitle);
+    setAiChunksDialogOpen(true);
+    setIsGeneratingAiChunks(true);
+    setAiGeneratedChunks([]);
+    
+    try {
+      // First, load the file content
+      const fileRes = await fetch(`/api/kb-admin/fs/file?path=${encodeURIComponent(filePath)}`);
+      if (!fileRes.ok) throw new Error("Failed to load file");
+      const fileData = await fileRes.json();
+      
+      // Generate chunks using AI
+      const genRes = await apiRequest("POST", "/api/kb-admin/index/generateChunks", {
+        content: fileData.content,
+        chunkCount: aiChunkCount,
+      });
+      const genData = await genRes.json();
+      
+      if (genData.chunks) {
+        setAiGeneratedChunks(genData.chunks);
+        toast({
+          title: language === "ru" ? "Чанки сгенерированы" : "Chunks generated",
+          description: `${genData.chunks.length} chunks`,
+        });
+      }
+    } catch (err: any) {
+      toast({
+        title: language === "ru" ? "Ошибка генерации" : "Generation error",
+        description: err?.message || "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingAiChunks(false);
+    }
+  };
+  
+  const handleSaveAiChunks = async () => {
+    if (!aiChunksDocId || aiGeneratedChunks.length === 0) return;
+    
+    setIsGeneratingAiChunks(true);
+    try {
+      const res = await apiRequest("POST", "/api/kb-admin/index/saveGeneratedChunks", {
+        docId: aiChunksDocId,
+        chunks: aiGeneratedChunks,
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        toast({
+          title: language === "ru" ? "Чанки сохранены" : "Chunks saved",
+          description: `${data.chunksCount} chunks with embeddings`,
+        });
+        setAiChunksDialogOpen(false);
+        setAiGeneratedChunks([]);
+        setAiChunksDocId(null);
+        refetchIndex();
+      }
+    } catch (err: any) {
+      toast({
+        title: language === "ru" ? "Ошибка сохранения" : "Save error",
+        description: err?.message || "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingAiChunks(false);
+    }
+  };
+  
+  const updateAiChunk = (index: number, updates: Partial<typeof aiGeneratedChunks[0]>) => {
+    setAiGeneratedChunks(prev => 
+      prev.map((chunk, i) => i === index ? { ...chunk, ...updates } : chunk)
+    );
+  };
+  
+  const deleteAiChunk = (index: number) => {
+    setAiGeneratedChunks(prev => prev.filter((_, i) => i !== index));
+  };
 
   const toggleExpand = useCallback((path: string) => {
     setExpandedPaths((prev) => {
@@ -891,7 +992,7 @@ export default function KbAdminPage() {
                         </CollapsibleTrigger>
                         <CollapsibleContent>
                           <div className="p-2 pt-0 space-y-2 border-t">
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1 flex-wrap">
                               <Button
                                 size="sm"
                                 variant="ghost"
@@ -910,6 +1011,33 @@ export default function KbAdminPage() {
                                 <Trash2 className="w-3 h-3 mr-1" />
                                 {language === "ru" ? "Из индекса" : "From index"}
                               </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleGenerateAiChunks(doc.id, doc.title, doc.filePath)}
+                                disabled={!doc.filePath}
+                                title={!doc.filePath ? (language === "ru" ? "Файл не найден" : "File not found") : ""}
+                                data-testid={`button-ai-chunks-${doc.id}`}
+                              >
+                                <Sparkles className="w-3 h-3 mr-1" />
+                                {language === "ru" ? "AI чанки" : "AI Chunks"}
+                              </Button>
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Label className="text-xs">{language === "ru" ? "Кол-во:" : "Count:"}</Label>
+                              <Select
+                                value={String(aiChunkCount)}
+                                onValueChange={(v) => setAiChunkCount(Number(v))}
+                              >
+                                <SelectTrigger className="h-7 w-16 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {[3, 4, 5, 6, 7, 8, 10, 12, 15].map((n) => (
+                                    <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                             </div>
                             <div className="space-y-1">
                               {doc.chunks?.slice(0, 5).map((chunk) => (
@@ -1297,6 +1425,112 @@ export default function KbAdminPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setChunkPreviewOpen(false)}>
               {language === "ru" ? "Закрыть" : "Close"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={aiChunksDialogOpen} onOpenChange={setAiChunksDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5" />
+              {language === "ru" ? "AI Генерация чанков" : "AI Chunk Generation"}
+            </DialogTitle>
+            <DialogDescription>
+              {aiChunksDocTitle} - {aiGeneratedChunks.length} {language === "ru" ? "чанков" : "chunks"}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {isGeneratingAiChunks && aiGeneratedChunks.length === 0 ? (
+            <div className="flex-1 flex items-center justify-center py-8">
+              <div className="text-center">
+                <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  {language === "ru" ? "Генерация чанков..." : "Generating chunks..."}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <ScrollArea className="flex-1 min-h-0">
+              <div className="space-y-3 pr-4">
+                {aiGeneratedChunks.map((chunk, idx) => (
+                  <Card key={idx} className="p-3">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge variant="secondary">#{idx + 1}</Badge>
+                        <Select
+                          value={chunk.level}
+                          onValueChange={(v) => updateAiChunk(idx, { level: v })}
+                        >
+                          <SelectTrigger className="h-6 w-auto text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {CHUNK_LEVELS.map((l) => (
+                              <SelectItem key={l.value} value={l.value}>
+                                {l.label[language]}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Select
+                          value={chunk.anchor}
+                          onValueChange={(v) => updateAiChunk(idx, { anchor: v })}
+                        >
+                          <SelectTrigger className="h-6 w-auto text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {CHUNK_ANCHORS.map((a) => (
+                              <SelectItem key={a.value} value={a.value}>
+                                {a.label[language]}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <span className="text-xs text-muted-foreground">
+                          {chunk.content.length} {language === "ru" ? "симв." : "chars"}
+                        </span>
+                      </div>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6 shrink-0"
+                        onClick={() => deleteAiChunk(idx)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    {chunk.summary && (
+                      <div className="text-xs text-muted-foreground mb-2 italic">
+                        {chunk.summary}
+                      </div>
+                    )}
+                    <Textarea
+                      value={chunk.content}
+                      onChange={(e) => updateAiChunk(idx, { content: e.target.value })}
+                      className="text-sm resize-none min-h-[80px]"
+                      data-testid={`textarea-ai-chunk-${idx}`}
+                    />
+                  </Card>
+                ))}
+              </div>
+            </ScrollArea>
+          )}
+          
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setAiChunksDialogOpen(false)}>
+              {language === "ru" ? "Отмена" : "Cancel"}
+            </Button>
+            <Button
+              onClick={handleSaveAiChunks}
+              disabled={isGeneratingAiChunks || aiGeneratedChunks.length === 0}
+              data-testid="button-save-ai-chunks"
+            >
+              {isGeneratingAiChunks && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
+              <Save className="w-4 h-4 mr-1" />
+              {language === "ru" ? `Сохранить ${aiGeneratedChunks.length} чанков` : `Save ${aiGeneratedChunks.length} chunks`}
             </Button>
           </DialogFooter>
         </DialogContent>

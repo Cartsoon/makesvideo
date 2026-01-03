@@ -570,6 +570,155 @@ router.post("/index/previewChunks", async (req: Request, res: Response) => {
   }
 });
 
+router.post("/index/generateChunks", async (req: Request, res: Response) => {
+  try {
+    const { content, chunkCount = 5 } = req.body;
+    if (!content) {
+      return res.status(400).json({ error: "Content required" });
+    }
+    
+    const provider = getProvider();
+    
+    const prompt = `Ты эксперт по созданию базы знаний для RAG-системы.
+
+ЗАДАЧА: Разбей текст на ${chunkCount} смысловых чанков для поиска.
+
+ПРАВИЛА:
+1. Каждый чанк должен быть самодостаточным (понятен без контекста)
+2. Чанк = 100-400 слов, фокус на одну тему/идею
+3. Сохраняй ключевые термины и имена
+4. Не теряй важные детали
+5. Формулируй так, чтобы чанк отвечал на возможный вопрос пользователя
+
+Для каждого чанка определи:
+- level: critical/important/normal/supplementary (насколько важен для темы)
+- anchor: hooks/scripts/storyboard/montage/sfx/music/voice/style/platform/trends/workflow/general
+
+ТЕКСТ:
+${content.substring(0, 8000)}
+
+ФОРМАТ ОТВЕТА (строго JSON массив):
+[
+  {
+    "content": "текст чанка...",
+    "level": "normal",
+    "anchor": "general",
+    "summary": "краткое описание о чем чанк"
+  }
+]
+
+Верни только JSON массив, без markdown.`;
+
+    const response = await provider.chat([{ role: "user", content: prompt }], {
+      temperature: 0.3,
+      maxTokens: 4000,
+    });
+    
+    // Parse JSON from response
+    let chunks = [];
+    try {
+      const jsonMatch = response.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        chunks = JSON.parse(jsonMatch[0]);
+      }
+    } catch (parseErr) {
+      console.error("[KB Admin] Failed to parse AI chunks:", parseErr);
+      return res.status(500).json({ error: "AI returned invalid format" });
+    }
+    
+    // Validate and normalize chunks
+    const validatedChunks = chunks.map((c: any, i: number) => ({
+      content: c.content || "",
+      level: ["critical", "important", "normal", "supplementary"].includes(c.level) ? c.level : "normal",
+      anchor: c.anchor || "general",
+      summary: c.summary || `Chunk ${i + 1}`,
+      chunkIndex: i,
+    }));
+    
+    console.log(`[KB Admin] AI generated ${validatedChunks.length} chunks`);
+    res.json({ chunks: validatedChunks });
+  } catch (err: any) {
+    console.error("[KB Admin] Generate chunks error:", err);
+    res.status(500).json({ error: `Failed to generate chunks: ${err?.message || "Unknown error"}` });
+  }
+});
+
+router.post("/index/saveGeneratedChunks", async (req: Request, res: Response) => {
+  try {
+    const { docId, chunks } = req.body;
+    if (!docId || !chunks || !Array.isArray(chunks)) {
+      return res.status(400).json({ error: "docId and chunks array required" });
+    }
+    
+    // Validate chunks before any destructive operations
+    const validChunks = chunks.filter((c: any) => 
+      c && typeof c.content === "string" && c.content.trim().length > 0
+    );
+    
+    if (validChunks.length === 0) {
+      return res.status(400).json({ error: "No valid chunks to save (empty content)" });
+    }
+    
+    // Verify document exists
+    const doc = await db.select().from(kbDocuments).where(eq(kbDocuments.id, docId)).limit(1);
+    if (doc.length === 0) {
+      return res.status(404).json({ error: "Document not found" });
+    }
+    
+    // Import utilities first
+    const { sha256Hex } = await import("../utils/text");
+    const { v4: uuidv4 } = await import("uuid");
+    const provider = getProvider();
+    const embedModel = process.env.AI_EMBED_MODEL ?? "text-embedding-3-large";
+    
+    // Delete existing chunks and embeddings for this document
+    const existingChunks = await db.select({ id: kbChunks.id }).from(kbChunks).where(eq(kbChunks.docId, docId));
+    for (const chunk of existingChunks) {
+      await db.delete(kbEmbeddings).where(eq(kbEmbeddings.chunkId, chunk.id));
+    }
+    await db.delete(kbChunks).where(eq(kbChunks.docId, docId));
+    
+    // Insert new chunks and create embeddings
+    const savedChunks = [];
+    const validLevels = ["critical", "important", "normal", "supplementary"];
+    const validAnchors = ["hooks", "scripts", "storyboard", "montage", "sfx", "music", "voice", "style", "platform", "trends", "workflow", "general"];
+    
+    for (let i = 0; i < validChunks.length; i++) {
+      const chunk = validChunks[i];
+      const chunkId = uuidv4();
+      const contentHash = sha256Hex(chunk.content);
+      const level = validLevels.includes(chunk.level) ? chunk.level : "normal";
+      const anchor = validAnchors.includes(chunk.anchor) ? chunk.anchor : "general";
+      
+      await db.insert(kbChunks).values({
+        id: chunkId,
+        docId,
+        chunkIndex: i,
+        content: chunk.content,
+        contentHash,
+        level,
+        anchor,
+      });
+      
+      // Generate embedding
+      const [embedding] = await provider.embed([chunk.content]);
+      await db.insert(kbEmbeddings).values({
+        chunkId,
+        model: embedModel,
+        vector: embedding,
+      });
+      
+      savedChunks.push({ id: chunkId, chunkIndex: i });
+    }
+    
+    console.log(`[KB Admin] Saved ${savedChunks.length} AI-generated chunks for doc ${docId}`);
+    res.json({ success: true, chunksCount: savedChunks.length, chunks: savedChunks });
+  } catch (err: any) {
+    console.error("[KB Admin] Save generated chunks error:", err);
+    res.status(500).json({ error: `Failed to save chunks: ${err?.message || "Unknown error"}` });
+  }
+});
+
 router.post("/index/deactivate", async (req: Request, res: Response) => {
   try {
     const { docId, isActive } = req.body;
