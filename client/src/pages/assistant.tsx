@@ -206,11 +206,27 @@ export default function AssistantPage() {
   const totalMessages = paginatedData?.total || 0;
 
   const clearMutation = useMutation({
-    mutationFn: () => apiRequest("DELETE", "/api/assistant/chat"),
+    mutationFn: async () => {
+      const res = await apiRequest("DELETE", "/api/assistant/chat");
+      return res.json();
+    },
     onSuccess: () => {
       setOptimisticMessages([]);
       setCurrentPage(1);
+      setShowClearDialog(false);
       queryClient.invalidateQueries({ queryKey: ["/api/assistant/chat/page", 1] });
+      toast({
+        title: language === "ru" ? "История очищена" : "Chat cleared",
+        description: language === "ru" ? "Все сообщения удалены" : "All messages deleted",
+      });
+    },
+    onError: (error) => {
+      console.error("Clear chat error:", error);
+      toast({
+        title: language === "ru" ? "Ошибка" : "Error",
+        description: language === "ru" ? "Не удалось очистить чат" : "Failed to clear chat",
+        variant: "destructive",
+      });
     },
   });
 
@@ -809,11 +825,19 @@ export default function AssistantPage() {
                 {language === "ru" ? "Отмена" : "Cancel"}
               </AlertDialogCancel>
               <AlertDialogAction 
-                onClick={() => clearMutation.mutate()}
+                onClick={(e) => {
+                  e.preventDefault();
+                  clearMutation.mutate();
+                }}
+                disabled={clearMutation.isPending}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 data-testid="button-confirm-clear-chat"
               >
-                {language === "ru" ? "Очистить" : "Clear"}
+                {clearMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  language === "ru" ? "Очистить" : "Clear"
+                )}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
