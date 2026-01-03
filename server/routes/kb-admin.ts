@@ -333,7 +333,7 @@ router.delete("/fs/file", async (req: Request, res: Response) => {
 
 router.post("/fs/rename", async (req: Request, res: Response) => {
   try {
-    const { from, to } = req.body;
+    const { from, to, reindex } = req.body;
     if (!from || !to) {
       return res.status(400).json({ error: "From and to paths required" });
     }
@@ -350,6 +350,25 @@ router.post("/fs/rename", async (req: Request, res: Response) => {
     }
     
     fs.renameSync(safeFrom, safeTo);
+    
+    // Update document in database if it exists
+    const existingDoc = await db.select().from(kbDocuments).where(eq(kbDocuments.filePath, from)).limit(1);
+    if (existingDoc.length > 0) {
+      // Get new title from filename
+      const newTitle = path.basename(to, path.extname(to));
+      await db.update(kbDocuments)
+        .set({ filePath: to, title: newTitle, updatedAt: new Date() })
+        .where(eq(kbDocuments.id, existingDoc[0].id));
+      console.log(`[KB Admin] Updated document path: ${from} -> ${to}`);
+      
+      // Optionally reindex the file
+      if (reindex) {
+        await deleteDocumentByFilePath(to);
+        await ingestFile(safeTo, to);
+        console.log(`[KB Admin] Reindexed file: ${to}`);
+      }
+    }
+    
     res.json({ success: true, from, to });
   } catch (err) {
     console.error("[KB Admin] Rename error:", err);
@@ -609,9 +628,11 @@ ${content.substring(0, 8000)}
 
 Верни только JSON массив, без markdown.`;
 
-    const response = await provider.chat([{ role: "user", content: prompt }], {
+    const chatModel = process.env.AI_CHAT_MODEL ?? "gpt-4o-mini";
+    const response = await provider.chat({
+      model: chatModel,
+      messages: [{ role: "user", content: prompt }],
       temperature: 0.3,
-      maxTokens: 4000,
     });
     
     // Parse JSON from response

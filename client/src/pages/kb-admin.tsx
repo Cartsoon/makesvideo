@@ -26,6 +26,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -72,6 +78,7 @@ import {
   ChevronLeft,
   SplitSquareVertical,
   RotateCcw,
+  Pencil,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -133,56 +140,78 @@ const TEMPLATES = [
   { key: "example", label: { ru: "Пример", en: "Example" } },
 ];
 
-function FileTreeNode({ node, selectedPath, onSelect, expandedPaths, toggleExpand, level = 0 }: {
+function FileTreeNode({ node, selectedPath, onSelect, expandedPaths, toggleExpand, onRename, language = "ru", level = 0 }: {
   node: FileNode;
   selectedPath: string | null;
   onSelect: (path: string) => void;
   expandedPaths: Set<string>;
   toggleExpand: (path: string) => void;
+  onRename?: (path: string, name: string) => void;
+  language?: "ru" | "en";
   level?: number;
 }) {
   const isExpanded = expandedPaths.has(node.path);
   const isSelected = selectedPath === node.path;
 
+  const handleClick = () => {
+    if (node.type === "folder") {
+      toggleExpand(node.path);
+    } else {
+      onSelect(node.path);
+    }
+  };
+
+  const nodeContent = (
+    <div
+      className={cn(
+        "flex items-center gap-1 px-2 py-1 rounded-sm cursor-pointer text-sm",
+        "hover-elevate active-elevate-2",
+        isSelected && "bg-accent"
+      )}
+      style={{ paddingLeft: `${8 + level * 12}px` }}
+      onClick={handleClick}
+      data-testid={`tree-node-${node.path}`}
+    >
+      {node.type === "folder" ? (
+        <>
+          {isExpanded ? (
+            <ChevronDown className="w-3 h-3 shrink-0" />
+          ) : (
+            <ChevronRight className="w-3 h-3 shrink-0" />
+          )}
+          {isExpanded ? (
+            <FolderOpen className="w-4 h-4 shrink-0 text-amber-500" />
+          ) : (
+            <Folder className="w-4 h-4 shrink-0 text-amber-500" />
+          )}
+        </>
+      ) : (
+        <>
+          <span className="w-3" />
+          <FileText className="w-4 h-4 shrink-0 text-muted-foreground" />
+        </>
+      )}
+      <span className="truncate">{node.name}</span>
+    </div>
+  );
+
   return (
     <div>
-      <div
-        className={cn(
-          "flex items-center gap-1 px-2 py-1 rounded-sm cursor-pointer text-sm",
-          "hover-elevate active-elevate-2",
-          isSelected && "bg-accent"
-        )}
-        style={{ paddingLeft: `${8 + level * 12}px` }}
-        onClick={() => {
-          if (node.type === "folder") {
-            toggleExpand(node.path);
-          } else {
-            onSelect(node.path);
-          }
-        }}
-        data-testid={`tree-node-${node.path}`}
-      >
-        {node.type === "folder" ? (
-          <>
-            {isExpanded ? (
-              <ChevronDown className="w-3 h-3 shrink-0" />
-            ) : (
-              <ChevronRight className="w-3 h-3 shrink-0" />
-            )}
-            {isExpanded ? (
-              <FolderOpen className="w-4 h-4 shrink-0 text-amber-500" />
-            ) : (
-              <Folder className="w-4 h-4 shrink-0 text-amber-500" />
-            )}
-          </>
-        ) : (
-          <>
-            <span className="w-3" />
-            <FileText className="w-4 h-4 shrink-0 text-muted-foreground" />
-          </>
-        )}
-        <span className="truncate">{node.name}</span>
-      </div>
+      {node.type === "file" && onRename ? (
+        <ContextMenu>
+          <ContextMenuTrigger asChild>
+            {nodeContent}
+          </ContextMenuTrigger>
+          <ContextMenuContent>
+            <ContextMenuItem onClick={() => onRename(node.path, node.name)}>
+              <Pencil className="w-4 h-4 mr-2" />
+              Переименовать
+            </ContextMenuItem>
+          </ContextMenuContent>
+        </ContextMenu>
+      ) : (
+        nodeContent
+      )}
       {node.type === "folder" && isExpanded && node.children && (
         <div>
           {node.children.map((child) => (
@@ -193,6 +222,7 @@ function FileTreeNode({ node, selectedPath, onSelect, expandedPaths, toggleExpan
               onSelect={onSelect}
               expandedPaths={expandedPaths}
               toggleExpand={toggleExpand}
+              onRename={onRename}
               level={level + 1}
             />
           ))}
@@ -270,6 +300,12 @@ export default function KbAdminPage() {
   const [newFileChunkContent, setNewFileChunkContent] = useState("");
   const [newFileChunkLevel, setNewFileChunkLevel] = useState("normal");
   const [newFileChunkAnchor, setNewFileChunkAnchor] = useState("general");
+  
+  // Rename dialog state
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+  const [renamingFilePath, setRenamingFilePath] = useState<string | null>(null);
+  const [renamingFileName, setRenamingFileName] = useState("");
+  const [renameReindex, setRenameReindex] = useState(true);
   
   const CHUNK_LEVELS = [
     { value: "critical", label: { ru: "Критический (+50%)", en: "Critical (+50%)" } },
@@ -398,6 +434,55 @@ export default function KbAdminPage() {
       toast({ title: language === "ru" ? "Файл удален" : "File deleted" });
     },
   });
+
+  const renameFileMutation = useMutation({
+    mutationFn: async ({ from, to, reindex }: { from: string; to: string; reindex: boolean }) => {
+      const res = await apiRequest("POST", "/api/kb-admin/fs/rename", { from, to, reindex });
+      return res.json();
+    },
+    onSuccess: (_data, variables) => {
+      setRenameDialogOpen(false);
+      setRenamingFilePath(null);
+      setRenamingFileName("");
+      refetchTree();
+      refetchIndex();
+      // Update selected path to new path
+      if (selectedPath === variables.from) {
+        setSelectedPath(variables.to);
+      }
+      toast({ 
+        title: language === "ru" ? "Файл переименован" : "File renamed",
+        description: renameReindex 
+          ? (language === "ru" ? "Файл переиндексирован" : "File reindexed")
+          : undefined
+      });
+    },
+    onError: () => {
+      toast({ title: language === "ru" ? "Ошибка переименования" : "Rename error", variant: "destructive" });
+    },
+  });
+
+  const handleRenameFile = (path: string, currentName: string) => {
+    setRenamingFilePath(path);
+    setRenamingFileName(currentName);
+    setRenameReindex(true);
+    setRenameDialogOpen(true);
+  };
+
+  const handleConfirmRename = () => {
+    if (!renamingFilePath || !renamingFileName.trim()) return;
+    
+    // Get directory and build new path
+    const dir = renamingFilePath.substring(0, renamingFilePath.lastIndexOf('/') + 1);
+    const newPath = dir + renamingFileName.trim();
+    
+    if (newPath === renamingFilePath) {
+      setRenameDialogOpen(false);
+      return;
+    }
+    
+    renameFileMutation.mutate({ from: renamingFilePath, to: newPath, reindex: renameReindex });
+  };
 
   const reindexAllMutation = useMutation({
     mutationFn: async () => {
@@ -768,6 +853,7 @@ export default function KbAdminPage() {
                   onSelect={handleSelectFile}
                   expandedPaths={expandedPaths}
                   toggleExpand={toggleExpand}
+                  onRename={handleRenameFile}
                 />
               ))}
               {(!treeData?.tree || treeData.tree.length === 0) && (
@@ -1511,6 +1597,63 @@ export default function KbAdminPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={renameDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          setRenameDialogOpen(false);
+          setRenamingFilePath(null);
+          setRenamingFileName("");
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {language === "ru" ? "Переименовать файл" : "Rename file"}
+            </DialogTitle>
+            <DialogDescription>
+              {language === "ru"
+                ? "Введите новое имя файла"
+                : "Enter the new file name"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label>{language === "ru" ? "Новое имя" : "New name"}</Label>
+              <Input
+                value={renamingFileName}
+                onChange={(e) => setRenamingFileName(e.target.value)}
+                placeholder={language === "ru" ? "Имя файла" : "File name"}
+                data-testid="input-rename-file"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="rename-reindex"
+                checked={renameReindex}
+                onChange={(e) => setRenameReindex(e.target.checked)}
+                className="h-4 w-4"
+              />
+              <Label htmlFor="rename-reindex" className="text-sm cursor-pointer">
+                {language === "ru" ? "Переиндексировать файл" : "Reindex file"}
+              </Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenameDialogOpen(false)}>
+              {language === "ru" ? "Отмена" : "Cancel"}
+            </Button>
+            <Button
+              onClick={handleConfirmRename}
+              disabled={!renamingFileName.trim() || renameFileMutation.isPending}
+              data-testid="button-rename-confirm"
+            >
+              {renameFileMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {language === "ru" ? "Переименовать" : "Rename"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={editChunkDialogOpen} onOpenChange={(open) => {
         if (!open) {
