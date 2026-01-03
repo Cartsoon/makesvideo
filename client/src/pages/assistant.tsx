@@ -66,7 +66,9 @@ import {
   Square,
   Layers,
   ChevronUp,
-  Archive
+  Archive,
+  RotateCcw,
+  Clock
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -106,7 +108,7 @@ export default function AssistantPage() {
   });
   const [mobileNotesOpen, setMobileNotesOpen] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
-  const [mobileDrawerTab, setMobileDrawerTab] = useState<"notes" | "files">("notes");
+  const [mobileDrawerTab, setMobileDrawerTab] = useState<"notes" | "archive">("notes");
   const [showWelcome, setShowWelcome] = useState(() => {
     return !localStorage.getItem("assistant-welcome-seen");
   });
@@ -150,6 +152,10 @@ export default function AssistantPage() {
 
   const { data: notesData } = useQuery<{ content: string }>({
     queryKey: ["/api/assistant/notes"],
+  });
+
+  const { data: archivedSessions = [] } = useQuery<{ archivedAt: string; messageCount: number; preview: string }[]>({
+    queryKey: ["/api/assistant/chat/archived"],
   });
 
   useEffect(() => {
@@ -197,6 +203,16 @@ export default function AssistantPage() {
       setOptimisticMessages([]);
       setCurrentPage(1);
       queryClient.invalidateQueries({ queryKey: ["/api/assistant/chat/page", 1] });
+      queryClient.invalidateQueries({ queryKey: ["/api/assistant/chat/archived"] });
+    },
+  });
+
+  const unarchiveMutation = useMutation({
+    mutationFn: (archivedAt: string) => apiRequest("POST", "/api/assistant/chat/unarchive", { archivedAt }),
+    onSuccess: () => {
+      setCurrentPage(1);
+      queryClient.invalidateQueries({ queryKey: ["/api/assistant/chat/page", 1] });
+      queryClient.invalidateQueries({ queryKey: ["/api/assistant/chat/archived"] });
     },
   });
 
@@ -455,16 +471,16 @@ export default function AssistantPage() {
             </div>
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <FolderDown className="h-4 w-4 text-primary" />
+                <Archive className="h-4 w-4 text-primary" />
               </div>
               <div>
                 <p className="text-xs font-medium">
-                  {language === "ru" ? "Полезные файлы" : "Useful Files"}
+                  {language === "ru" ? "Архив чатов" : "Chat Archive"}
                 </p>
                 <p className="text-[11px] text-muted-foreground">
                   {language === "ru" 
-                    ? "Шаблоны, чек-листы и ресурсы"
-                    : "Templates, checklists and resources"
+                    ? "Сохраняйте разговоры для продолжения"
+                    : "Save conversations to continue later"
                   }
                 </p>
               </div>
@@ -700,14 +716,17 @@ export default function AssistantPage() {
               )}
             </button>
             <button
-              onClick={() => { setMobileDrawerTab("files"); setMobileDrawerOpen(true); }}
+              onClick={() => { setMobileDrawerTab("archive"); setMobileDrawerOpen(true); }}
               className="flex-1 flex items-center justify-center gap-2 py-2 rounded-md bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 active:scale-[0.98] transition-all"
-              data-testid="button-open-files-mobile"
+              data-testid="button-open-archive-mobile"
             >
-              <FolderDown className="h-4 w-4 text-primary" />
+              <Archive className="h-4 w-4 text-primary" />
               <span className="text-xs font-medium text-primary">
-                {language === "ru" ? "Файлы" : "Files"}
+                {language === "ru" ? "Архив" : "Archive"}
               </span>
+              {archivedSessions.length > 0 && (
+                <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-mono">{archivedSessions.length}</span>
+              )}
             </button>
           </div>
 
@@ -725,12 +744,12 @@ export default function AssistantPage() {
                   {language === "ru" ? "Заметки" : "Notes"}
                 </button>
                 <button
-                  onClick={() => setMobileDrawerTab("files")}
-                  className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors ${mobileDrawerTab === "files" ? "text-primary border-b-2 border-primary bg-primary/5" : "text-muted-foreground"}`}
-                  data-testid="button-drawer-tab-files"
+                  onClick={() => setMobileDrawerTab("archive")}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors ${mobileDrawerTab === "archive" ? "text-primary border-b-2 border-primary bg-primary/5" : "text-muted-foreground"}`}
+                  data-testid="button-drawer-tab-archive"
                 >
-                  <FolderDown className="h-4 w-4" />
-                  {language === "ru" ? "Файлы" : "Files"}
+                  <Archive className="h-4 w-4" />
+                  {language === "ru" ? "Архив" : "Archive"}
                 </button>
               </div>
 
@@ -754,33 +773,42 @@ export default function AssistantPage() {
                   />
                 </div>
               ) : (
-                <div className="p-4 space-y-3">
+                <div className="p-4 space-y-3 overflow-y-auto h-[calc(70vh-48px)]">
                   <p className="text-xs text-muted-foreground mb-3">
-                    {language === "ru" ? "Полезные шаблоны и ресурсы" : "Useful templates and resources"}
+                    {language === "ru" ? "Нажмите, чтобы восстановить и продолжить" : "Tap to restore and continue"}
                   </p>
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      { icon: FileType, name: language === "ru" ? "Шаблон сценария" : "Script Template", file: "script-template.txt", color: "from-blue-500 to-blue-600", desc: language === "ru" ? "Структура для Shorts" : "Structure for Shorts" },
-                      { icon: FileCheck, name: language === "ru" ? "Правила ОТК" : "QC Rules", file: "otk-tv-rules.pdf", color: "from-green-500 to-green-600", desc: language === "ru" ? "Проверка качества" : "Quality check" },
-                      { icon: FileVideo, name: "Premiere Pro", file: "podcast-premiere-template.prproj", color: "from-purple-500 to-purple-600", desc: language === "ru" ? "Проект подкаста" : "Podcast project" },
-                      { icon: FileText, name: language === "ru" ? "Чек-лист монтажа" : "Edit Checklist", file: "editing-checklist.pdf", color: "from-orange-500 to-orange-600", desc: language === "ru" ? "Пошаговая проверка" : "Step-by-step check" },
-                    ].map((item) => (
-                      <button
-                        key={item.file}
-                        onClick={() => { const link = document.createElement("a"); link.href = `/files/${item.file}`; link.download = item.file; link.click(); }}
-                        className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors text-left"
-                        data-testid={`button-download-drawer-${item.file}`}
-                      >
-                        <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${item.color} flex items-center justify-center flex-shrink-0`}>
-                          <item.icon className="h-5 w-5 text-white" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium truncate">{item.name}</p>
-                          <p className="text-[10px] text-muted-foreground">{item.desc}</p>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
+                  {archivedSessions.length === 0 ? (
+                    <div className="py-8 text-center text-sm text-muted-foreground">
+                      {language === "ru" ? "Нет архивированных чатов" : "No archived chats"}
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {archivedSessions.map((session) => (
+                        <button
+                          key={session.archivedAt}
+                          onClick={() => { unarchiveMutation.mutate(session.archivedAt); setMobileDrawerOpen(false); }}
+                          disabled={unarchiveMutation.isPending}
+                          className="w-full flex items-start gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors text-left"
+                          data-testid={`button-restore-archive-mobile-${session.archivedAt}`}
+                        >
+                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center flex-shrink-0">
+                            <Clock className="h-5 w-5 text-primary-foreground" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium line-clamp-2">
+                              {session.preview.slice(0, 80)}{session.preview.length > 80 ? "..." : ""}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {format(new Date(session.archivedAt), "dd.MM.yyyy HH:mm", { locale: language === "ru" ? ru : enUS })}
+                              {" • "}
+                              {session.messageCount} {language === "ru" ? "сообщений" : "messages"}
+                            </p>
+                          </div>
+                          <RotateCcw className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-1" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </SheetContent>
@@ -1106,62 +1134,48 @@ export default function AssistantPage() {
           <Card className="flex flex-col flex-shrink-0 overflow-hidden">
             <div className="flex items-center gap-3 px-4 py-3 border-b bg-gradient-to-r from-primary/10 to-primary/5">
               <div className="w-8 h-8 rounded-md bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
-                <FolderDown className="h-4 w-4 text-primary-foreground" />
+                <Archive className="h-4 w-4 text-primary-foreground" />
               </div>
               <div className="flex-1">
                 <h2 className="text-sm font-semibold">
-                  {language === "ru" ? "Полезные файлы" : "Useful Files"}
+                  {language === "ru" ? "Архив чатов" : "Chat Archive"}
                 </h2>
                 <p className="text-[10px] text-muted-foreground">
-                  {language === "ru" ? "Шаблоны и ресурсы" : "Templates & resources"}
+                  {language === "ru" ? "Сохраненные разговоры" : "Saved conversations"}
                 </p>
               </div>
             </div>
             
-            <div className="p-2 space-y-1">
-              {[
-                { 
-                  icon: FileType, 
-                  name: language === "ru" ? "Шаблон сценария" : "Script Template",
-                  file: "script-template.txt",
-                  color: "text-blue-500"
-                },
-                { 
-                  icon: FileCheck, 
-                  name: language === "ru" ? "ОТК ТВ правила" : "TV QC Rules",
-                  file: "otk-tv-rules.pdf",
-                  color: "text-green-500"
-                },
-                { 
-                  icon: FileVideo, 
-                  name: language === "ru" ? "Проект Premiere (подкасты)" : "Premiere Project (podcasts)",
-                  file: "podcast-premiere-template.prproj",
-                  color: "text-purple-500"
-                },
-                { 
-                  icon: FileText, 
-                  name: language === "ru" ? "Чек-лист монтажа" : "Editing Checklist",
-                  file: "editing-checklist.pdf",
-                  color: "text-orange-500"
-                },
-              ].map((item) => (
+            <div className="p-2 space-y-1 max-h-[200px] overflow-y-auto notes-scrollbar">
+              {archivedSessions.length === 0 ? (
+                <div className="py-4 text-center text-sm text-muted-foreground">
+                  {language === "ru" ? "Нет архивированных чатов" : "No archived chats"}
+                </div>
+              ) : (
+                archivedSessions.map((session) => (
                   <Button
-                    key={item.file}
+                    key={session.archivedAt}
                     variant="ghost"
                     className="w-full justify-start gap-3 h-auto py-2.5 px-3"
-                    onClick={() => {
-                      const link = document.createElement("a");
-                      link.href = `/files/${item.file}`;
-                      link.download = item.file;
-                      link.click();
-                    }}
-                    data-testid={`button-download-${item.file}`}
+                    onClick={() => unarchiveMutation.mutate(session.archivedAt)}
+                    disabled={unarchiveMutation.isPending}
+                    data-testid={`button-restore-archive-${session.archivedAt}`}
                   >
-                    <item.icon className={`h-4 w-4 flex-shrink-0 ${item.color}`} />
-                    <span className="text-sm text-left truncate">{item.name}</span>
-                    <Download className="h-3.5 w-3.5 ml-auto text-muted-foreground flex-shrink-0" />
+                    <Clock className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                    <div className="flex-1 min-w-0 text-left">
+                      <p className="text-sm truncate">
+                        {session.preview.slice(0, 50)}{session.preview.length > 50 ? "..." : ""}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {format(new Date(session.archivedAt), "dd.MM.yyyy HH:mm", { locale: language === "ru" ? ru : enUS })}
+                        {" • "}
+                        {session.messageCount} {language === "ru" ? "сообщ." : "msg"}
+                      </p>
+                    </div>
+                    <RotateCcw className="h-3.5 w-3.5 ml-auto text-muted-foreground flex-shrink-0" />
                   </Button>
-              ))}
+                ))
+              )}
             </div>
           </Card>
         </div>

@@ -1962,6 +1962,53 @@ Distribute time evenly: scenes 3-7 seconds each. Only JSON array.`;
     }
   });
   
+  // Get archived chat sessions
+  app.get("/api/assistant/chat/archived", async (req, res) => {
+    try {
+      const sessionId = req.cookies?.session_id;
+      if (!sessionId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const session = await storage.getSession(sessionId);
+      if (!session) {
+        return res.status(401).json({ error: "Session expired" });
+      }
+      
+      const sessions = await storage.getArchivedChatSessions(session.userId);
+      res.json(sessions);
+    } catch (error) {
+      console.error("Failed to get archived sessions:", error);
+      res.status(500).json({ error: "Failed to get archived sessions" });
+    }
+  });
+  
+  // Unarchive a chat session
+  app.post("/api/assistant/chat/unarchive", async (req, res) => {
+    try {
+      const sessionId = req.cookies?.session_id;
+      if (!sessionId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const session = await storage.getSession(sessionId);
+      if (!session) {
+        return res.status(401).json({ error: "Session expired" });
+      }
+      
+      const { archivedAt } = req.body;
+      if (!archivedAt) {
+        return res.status(400).json({ error: "archivedAt is required" });
+      }
+      
+      const count = await storage.unarchiveChatSession(session.userId, archivedAt);
+      res.json({ success: true, unarchivedCount: count });
+    } catch (error) {
+      console.error("Failed to unarchive session:", error);
+      res.status(500).json({ error: "Failed to unarchive session" });
+    }
+  });
+  
   // Get paginated chat history
   app.get("/api/assistant/chat/page/:page", async (req, res) => {
     try {

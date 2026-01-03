@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { eq, desc, and, lt, sql, isNull } from "drizzle-orm";
+import { eq, desc, and, lt, sql, isNull, isNotNull } from "drizzle-orm";
 import { db } from "./db";
 import {
   settings, users, sessions, authPasswords, sources, topics, scripts, jobs,
@@ -99,6 +99,8 @@ export interface IStorage {
   clearAssistantChats(userId: string): Promise<void>;
   archiveAssistantChats(userId: string): Promise<number>;
   getArchivedChatsForContext(userId: string, limit?: number): Promise<AssistantChat[]>;
+  getArchivedChatSessions(userId: string): Promise<{ archivedAt: string; messageCount: number; preview: string }[]>;
+  unarchiveChatSession(userId: string, archivedAt: string): Promise<number>;
   
   // Assistant notes
   getAssistantNote(userId: string): Promise<AssistantNote | undefined>;
@@ -858,6 +860,41 @@ export class DatabaseStorage implements IStorage {
       content: row.content,
       createdAt: row.createdAt.toISOString(),
     }));
+  }
+
+  async getArchivedChatSessions(userId: string): Promise<{ archivedAt: string; messageCount: number; preview: string }[]> {
+    const rows = await db.select({
+      archivedAt: assistantChats.archivedAt,
+      messageCount: sql<number>`count(*)::int`,
+      preview: sql<string>`(
+        SELECT content FROM assistant_chats ac2 
+        WHERE ac2.archived_at = assistant_chats.archived_at 
+        AND ac2.user_id = ${userId}
+        AND ac2.role = 'user'
+        ORDER BY ac2.created_at ASC 
+        LIMIT 1
+      )`,
+    })
+      .from(assistantChats)
+      .where(and(eq(assistantChats.userId, userId), isNotNull(assistantChats.archivedAt)))
+      .groupBy(assistantChats.archivedAt)
+      .orderBy(desc(assistantChats.archivedAt));
+    
+    return rows.map(row => ({
+      archivedAt: row.archivedAt!.toISOString(),
+      messageCount: row.messageCount,
+      preview: row.preview || "",
+    }));
+  }
+
+  async unarchiveChatSession(userId: string, archivedAt: string): Promise<number> {
+    const result = await db.update(assistantChats)
+      .set({ archivedAt: null })
+      .where(and(
+        eq(assistantChats.userId, userId),
+        eq(assistantChats.archivedAt, new Date(archivedAt))
+      ));
+    return result.rowCount ?? 0;
   }
   
   // ============ ASSISTANT NOTES ============
