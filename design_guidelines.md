@@ -1,4 +1,4 @@
-# IDENGINE: Shorts Factory - Design Guidelines
+# IDENGINE: VIDEO FACTORY - Design Guidelines
 
 ## Design Approach
 **System-Based Approach**: Mobile-first PWA with clean, productivity-focused design inspired by modern content creation tools (Linear's clarity + Notion's organization).

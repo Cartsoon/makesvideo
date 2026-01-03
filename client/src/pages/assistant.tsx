@@ -1,9 +1,11 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuth } from "@/lib/auth-context";
+import { getAvatarById } from "@/lib/avatars";
 import { Card } from "@/components/ui/card";
 import {
   DropdownMenu,
@@ -99,6 +101,7 @@ interface PaginatedResponse {
 
 export default function AssistantPage() {
   const { language } = useI18n();
+  const { user } = useAuth();
   const [input, setInput] = useState("");
   const [streamingContent, setStreamingContent] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
@@ -469,15 +472,68 @@ export default function AssistantPage() {
     URL.revokeObjectURL(url);
   };
 
-  const quickPrompts = language === "ru" ? [
-    "Как сделать крутой хук для видео?",
-    "Расскажи про правило третей",
-    "Лучшие переходы для Shorts",
-  ] : [
-    "How to make a great video hook?",
-    "Tell me about the rule of thirds",
-    "Best transitions for Shorts",
-  ];
+  const [quickPromptsKey, setQuickPromptsKey] = useState(0);
+  
+  const quickPrompts = useMemo(() => {
+    const allRu = [
+      "Как сделать крутой хук для видео?",
+      "Расскажи про правило третей",
+      "Лучшие переходы для Shorts",
+      "Как выставить свет для интервью?",
+      "Какие настройки камеры для съемки еды?",
+      "Как делать плавные переходы в Premiere?",
+      "Расскажи про цветокоррекцию в DaVinci",
+      "Как снять таймлапс на телефон?",
+      "Лучшие бесплатные саундтреки для видео",
+      "Как записать качественный звук дома?",
+      "Что такое B-roll и как его снимать?",
+      "Как сделать кинематографичный кадр?",
+      "Советы по съемке на стабилизаторе",
+      "Как редактировать видео для TikTok?",
+      "Какой микрофон выбрать для влога?",
+      "Как убрать шум с видео?",
+      "Расскажи про композицию в кадре",
+      "Как снимать вертикальное видео?",
+      "Лучшие эффекты для Reels",
+      "Как делать субтитры для видео?",
+      "Расскажи про slow motion съемку",
+      "Как работать с зеленым экраном?",
+      "Советы по ночной съемке видео",
+      "Как сделать стоп-моушен анимацию?",
+    ];
+    const allEn = [
+      "How to make a great video hook?",
+      "Tell me about the rule of thirds",
+      "Best transitions for Shorts",
+      "How to set up lighting for interviews?",
+      "Camera settings for food videography?",
+      "How to make smooth transitions in Premiere?",
+      "Tell me about color grading in DaVinci",
+      "How to shoot timelapse on phone?",
+      "Best free soundtracks for videos",
+      "How to record quality audio at home?",
+      "What is B-roll and how to shoot it?",
+      "How to create a cinematic shot?",
+      "Tips for shooting with gimbal",
+      "How to edit videos for TikTok?",
+      "Which mic to choose for vlogging?",
+      "How to remove noise from video?",
+      "Tell me about frame composition",
+      "How to shoot vertical video?",
+      "Best effects for Reels",
+      "How to add subtitles to video?",
+      "Tell me about slow motion shooting",
+      "How to work with green screen?",
+      "Tips for night video shooting",
+      "How to make stop motion animation?",
+    ];
+    const pool = language === "ru" ? allRu : allEn;
+    const indices = new Set<number>();
+    while (indices.size < 3) {
+      indices.add(Math.floor(Math.random() * pool.length));
+    }
+    return Array.from(indices).map(i => pool[i]);
+  }, [language, quickPromptsKey]);
 
   const closeWelcome = () => {
     localStorage.setItem("assistant-welcome-seen", "true");
@@ -719,9 +775,18 @@ export default function AssistantPage() {
               <>
                 {allMessages.map((msg, idx) => (
                   <div key={msg.id || idx} className={`flex gap-2 ${msg.role === "user" ? "flex-row-reverse" : ""}`} data-testid={`chat-message-mobile-${msg.id || idx}`}>
-                    <div className={`w-6 h-6 rounded flex-shrink-0 flex items-center justify-center ${msg.role === "user" ? "bg-accent" : "bg-primary/20"}`}>
-                      {msg.role === "user" ? <User className="h-3 w-3" /> : <Bot className="h-3 w-3 text-primary" />}
-                    </div>
+                    {msg.role === "user" && user?.avatarId && user.avatarId > 0 ? (
+                      <Avatar className="w-6 h-6 flex-shrink-0">
+                        <AvatarImage src={getAvatarById(user.avatarId)} alt={user.nickname || "User"} className="object-cover" />
+                        <AvatarFallback className="bg-accent text-[10px]">
+                          {user?.nickname ? user.nickname.charAt(0).toUpperCase() : <User className="h-3 w-3" />}
+                        </AvatarFallback>
+                      </Avatar>
+                    ) : (
+                      <div className={`w-6 h-6 rounded flex-shrink-0 flex items-center justify-center ${msg.role === "user" ? "bg-accent" : "bg-primary/20"}`}>
+                        {msg.role === "user" ? (user?.nickname ? <span className="text-[10px]">{user.nickname.charAt(0).toUpperCase()}</span> : <User className="h-3 w-3" />) : <Bot className="h-3 w-3 text-primary" />}
+                      </div>
+                    )}
                     <div className={`flex flex-col max-w-[85%] ${msg.role === "user" ? "items-end" : "items-start"}`}>
                       <div className={`px-3 py-2 rounded-lg text-sm ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted/80 border border-border/50"}`}>
                         {msg.role === "assistant" ? (
@@ -781,6 +846,23 @@ export default function AssistantPage() {
                     </div>
                   </div>
                 ))}
+                {isStreaming && !streamingContent && (
+                  <div className="flex gap-2">
+                    <div className="w-6 h-6 rounded flex-shrink-0 flex items-center justify-center bg-primary/20 animate-pulse">
+                      <Bot className="h-3 w-3 text-primary" />
+                    </div>
+                    <div className="flex flex-col max-w-[85%]">
+                      <div className="px-3 py-2 rounded-lg text-sm bg-muted/80 border border-primary/30 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-typing-dot" style={{ animationDelay: "0ms" }} />
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-typing-dot" style={{ animationDelay: "150ms" }} />
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-typing-dot" style={{ animationDelay: "300ms" }} />
+                      </div>
+                      <span className="text-[9px] text-primary mt-0.5 px-1 font-mono flex items-center gap-1">
+                        {language === "ru" ? "думает..." : "thinking..."}
+                      </span>
+                    </div>
+                  </div>
+                )}
                 {streamingContent && (
                   <div className="flex gap-2">
                     <div className="w-6 h-6 rounded flex-shrink-0 flex items-center justify-center bg-primary/20 animate-pulse">
@@ -1072,11 +1154,14 @@ export default function AssistantPage() {
                       data-testid={`chat-message-${msg.id || idx}`}
                     >
                       <Avatar className="w-8 h-8 flex-shrink-0">
+                        {msg.role === "user" && user?.avatarId && user.avatarId > 0 ? (
+                          <AvatarImage src={getAvatarById(user.avatarId)} alt={user.nickname || "User"} className="object-cover" />
+                        ) : null}
                         <AvatarFallback className={msg.role === "user" 
                           ? "bg-accent text-accent-foreground" 
                           : "bg-gradient-to-br from-primary to-primary/70 text-primary-foreground"
                         }>
-                          {msg.role === "user" ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+                          {msg.role === "user" ? (user?.nickname ? user.nickname.charAt(0).toUpperCase() : <User className="h-4 w-4" />) : <Bot className="h-4 w-4" />}
                         </AvatarFallback>
                       </Avatar>
                       
@@ -1150,6 +1235,26 @@ export default function AssistantPage() {
                     </div>
                   ))}
                   
+                  {isStreaming && !streamingContent && (
+                    <div className="flex gap-3 flex-row">
+                      <Avatar className="w-8 h-8 flex-shrink-0">
+                        <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 text-primary-foreground animate-pulse">
+                          <Bot className="h-4 w-4" />
+                        </AvatarFallback>
+                      </Avatar>
+                      
+                      <div className="flex flex-col max-w-[80%] items-start">
+                        <div className="px-4 py-2.5 rounded-2xl rounded-bl-md text-sm bg-muted flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-primary animate-typing-dot" style={{ animationDelay: "0ms" }} />
+                          <span className="w-2 h-2 rounded-full bg-primary animate-typing-dot" style={{ animationDelay: "150ms" }} />
+                          <span className="w-2 h-2 rounded-full bg-primary animate-typing-dot" style={{ animationDelay: "300ms" }} />
+                        </div>
+                        <span className="text-[10px] text-muted-foreground mt-1 px-1 flex items-center gap-1">
+                          {language === "ru" ? "Думает..." : "Thinking..."}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                   {streamingContent && (
                     <div className="flex gap-3 flex-row">
                       <Avatar className="w-8 h-8 flex-shrink-0">

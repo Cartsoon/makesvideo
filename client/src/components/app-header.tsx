@@ -37,7 +37,7 @@ export function AppHeader({ title = "IDENGINE" }: AppHeaderProps) {
                 {title}
               </span>
               <span className="text-[8px] text-neutral-500 leading-tight tracking-[0.12em] uppercase">
-                Shorts Factory
+                VIDEO FACTORY
               </span>
             </div>
           </div>

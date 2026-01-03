@@ -17,10 +17,10 @@ export function DesktopSidebar() {
 
   const navItems = [
     { href: "/", icon: Clapperboard, label: t("nav.dashboard") },
+    { href: "/assistant", icon: Bot, label: language === "ru" ? "Ассистент AI" : "AI Assistant" },
     { href: "/sources", icon: Radar, label: t("nav.sources") },
     { href: "/topics", icon: Scissors, label: t("nav.topics") },
     { href: "/scripts", icon: Film, label: t("nav.scripts") },
-    { href: "/assistant", icon: Bot, label: language === "ru" ? "AI-Ассистент" : "AI Assistant" },
     { href: "/kb-admin", icon: BookOpen, label: language === "ru" ? "База знаний" : "Knowledge Base" },
     { href: "/settings", icon: Settings, label: t("nav.settings") },
   ];
@@ -47,7 +47,7 @@ export function DesktopSidebar() {
                 IDENGINE
               </span>
               <span className="text-[9px] text-neutral-500 leading-tight tracking-[0.15em] uppercase">
-                Shorts Factory
+                VIDEO FACTORY
               </span>
             </div>
           </div>

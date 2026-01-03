@@ -282,7 +282,7 @@ export class RealLLMProvider implements LLMProvider {
       // OpenRouter requires additional headers
       if (this.apiUrl.includes("openrouter")) {
         headers["HTTP-Referer"] = "https://idengine.repl.co";
-        headers["X-Title"] = "IDENGINE Shorts Factory";
+        headers["X-Title"] = "IDENGINE VIDEO FACTORY";
       }
 
       const response = await fetch(this.apiUrl, {

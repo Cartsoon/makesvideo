@@ -565,3 +565,17 @@
 .animate-float-heart {
   animation: float-heart 1s ease-out forwards;
 }
+
+/* Typing indicator dots animation */
+@keyframes typing-dot {
+  0%, 60%, 100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-4px);
+  }
+}
+
+.animate-typing-dot {
+  animation: typing-dot 1s ease-in-out infinite;
+}

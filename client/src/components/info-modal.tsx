@@ -124,7 +124,7 @@ export function InfoModal({ variant = "default", trigger }: InfoModalProps) {
                   </span>
                 </span>
                 <span className="block text-[10px] sm:text-xs text-neutral-400 uppercase tracking-[0.3em] mt-1 sm:mt-2">
-                  Shorts Factory
+                  VIDEO FACTORY
                 </span>
               </DialogTitle>
             </DialogHeader>
