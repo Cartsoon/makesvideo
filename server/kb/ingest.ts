@@ -4,13 +4,13 @@ import { db } from "../db";
 import { kbDocuments, kbChunks, kbEmbeddings } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { chunkText, sha256Hex } from "../utils/text";
-import { getProvider } from "../ai/provider";
+import { getProviderWithSettings } from "../ai/provider";
 import { parseFile } from "./parsers";
 
 const SEED_DIR = path.join(process.cwd(), "server/kb/seed");
 
 export async function ingestSeedFolder(seedDir: string) {
-  const provider = getProvider();
+  const provider = await getProviderWithSettings();
   const embedModel = process.env.AI_EMBED_MODEL ?? "text-embedding-3-large";
 
   const files = walkFiles(seedDir).filter(f => [".md", ".txt", ".json"].includes(path.extname(f).toLowerCase()));
@@ -62,7 +62,7 @@ export async function ingestSeedFolder(seedDir: string) {
 }
 
 export async function ingestFile(absolutePath: string, relativePath: string): Promise<{ docId: string; chunksCount: number }> {
-  const provider = getProvider();
+  const provider = await getProviderWithSettings();
   const embedModel = process.env.AI_EMBED_MODEL ?? "text-embedding-3-large";
   
   const parsed = parseFile(absolutePath);

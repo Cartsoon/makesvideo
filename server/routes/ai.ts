@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getProvider } from "../ai/provider";
+import { getProviderWithSettings } from "../ai/provider";
 import { ragRetrieve, formatRagContext } from "../ai/rag";
 import { MASTER_SYSTEM_PROMPT, buildDeveloperPrompt } from "../ai/prompts";
 import { db } from "../db";
@@ -22,7 +22,7 @@ aiRouter.post("/chat", async (req, res) => {
     const hits = await ragRetrieve(String(message), topK);
     const ragContext = formatRagContext(hits);
 
-    const provider = getProvider();
+    const provider = await getProviderWithSettings();
     const model = process.env.AI_CHAT_MODEL ?? "gpt-4o-mini";
 
     const system = MASTER_SYSTEM_PROMPT;

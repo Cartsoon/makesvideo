@@ -24,9 +24,12 @@ import {
   Zap,
   Lightbulb,
   BookOpen,
-  Sparkles
+  Sparkles,
+  Key,
+  AlertTriangle
 } from "lucide-react";
 import { useTipsVisibility } from "@/components/tips-bar";
+import { useAdminAccess } from "@/lib/admin-access";
 import type { Setting, Duration, StylePreset } from "@shared/schema";
 import { stylePresetLabels } from "@shared/schema";
 
@@ -35,23 +38,27 @@ interface AIStatus {
   provider: string;
   fallbackMode: boolean;
   model: string;
+  customApiAvailable?: boolean;
 }
 
 interface SettingsData {
   defaultDuration: Duration;
   defaultStylePreset: StylePreset;
   fallbackMode: boolean;
+  useCustomApi: boolean;
 }
 
 const defaultSettings: SettingsData = {
   defaultDuration: "30",
   defaultStylePreset: "cinematic",
   fallbackMode: false,
+  useCustomApi: false,
 };
 
 export default function Settings() {
   const { toast } = useToast();
   const { t, language } = useI18n();
+  const { isUnlocked } = useAdminAccess();
   const [settings, setSettings] = useState<SettingsData>(defaultSettings);
   const { isHidden: tipsHidden, isDisabled: tipsDisabled, showTips, setTipsDisabled } = useTipsVisibility();
 
@@ -102,6 +109,7 @@ export default function Settings() {
         defaultDuration: (settingsMap.get("defaultDuration") as Duration) || "30",
         defaultStylePreset: (settingsMap.get("defaultStylePreset") as StylePreset) || "cinematic",
         fallbackMode: settingsMap.get("fallbackMode") === "true",
+        useCustomApi: settingsMap.get("useCustomApi") === "true",
       });
     }
   }, [savedSettings]);
@@ -216,6 +224,78 @@ export default function Settings() {
             )}
           </CardContent>
         </Card>
+
+        {isUnlocked && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Key className="h-4 w-4" />
+                {language === "ru" ? "Свой API ключ" : "Custom API Key"}
+              </CardTitle>
+              <CardDescription>
+                {language === "ru" 
+                  ? "Использовать собственный OpenAI API ключ вместо встроенного"
+                  : "Use your own OpenAI API key instead of built-in"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="space-y-0.5">
+                  <Label className="font-medium">
+                    {language === "ru" ? "Использовать свой ключ" : "Use custom key"}
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    {language === "ru" 
+                      ? "Переключиться на собственный OpenAI API"
+                      : "Switch to your own OpenAI API"}
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.useCustomApi}
+                  onCheckedChange={(checked) => setSettings({ ...settings, useCustomApi: checked })}
+                  data-testid="switch-custom-api"
+                />
+              </div>
+
+              {settings.useCustomApi && (
+                <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200">
+                  <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm space-y-2">
+                    <p className="font-medium">
+                      {language === "ru" ? "Требуется секрет CUSTOM_OPENAI_API_KEY" : "CUSTOM_OPENAI_API_KEY secret required"}
+                    </p>
+                    <p className="text-amber-700 dark:text-amber-300">
+                      {language === "ru" 
+                        ? "Добавьте секрет CUSTOM_OPENAI_API_KEY во вкладке Secrets в Replit. После сохранения настроек все AI функции будут использовать ваш ключ."
+                        : "Add CUSTOM_OPENAI_API_KEY secret in the Secrets tab in Replit. After saving, all AI features will use your key."}
+                    </p>
+                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                      {language === "ru" 
+                        ? "Ваш ключ должен иметь доступ к GPT-4 и text-embedding-3-large"
+                        : "Your key should have access to GPT-4 and text-embedding-3-large"}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {!settings.useCustomApi && (
+                <div className="flex items-start gap-3 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-200">
+                  <Check className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-medium">
+                      {language === "ru" ? "Используется встроенный AI" : "Using built-in AI"}
+                    </p>
+                    <p className="mt-1 text-emerald-700 dark:text-emerald-300">
+                      {language === "ru" 
+                        ? "Все AI функции работают через Replit AI Integrations"
+                        : "All AI features work via Replit AI Integrations"}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>

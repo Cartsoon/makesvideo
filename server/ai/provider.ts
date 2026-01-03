@@ -7,24 +7,56 @@ export interface AIProvider {
   chat(opts: { model: string; messages: ChatMessage[]; temperature?: number }): Promise<string>;
 }
 
-export function getProvider(): AIProvider {
+let cachedUseCustomApi: boolean | null = null;
+
+export async function checkUseCustomApi(): Promise<boolean> {
+  if (cachedUseCustomApi !== null) return cachedUseCustomApi;
+  try {
+    const { storage } = await import("../storage");
+    const settings = await storage.getSettings();
+    const setting = settings.find(s => s.key === "useCustomApi");
+    cachedUseCustomApi = setting?.value === "true";
+    return cachedUseCustomApi;
+  } catch {
+    return false;
+  }
+}
+
+export function resetCustomApiCache() {
+  cachedUseCustomApi = null;
+}
+
+export function getProvider(forceCustom?: boolean): AIProvider {
   const provider = process.env.AI_PROVIDER ?? "openai";
   if (provider !== "openai") {
     throw new Error(`AI_PROVIDER ${provider} not implemented yet`);
   }
   
-  // For chat: use Replit AI Integrations (baseURL + dummy key)
-  const chatApiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
-  const chatBaseUrl = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
+  const useCustom = forceCustom ?? false;
+  const customApiKey = process.env.CUSTOM_OPENAI_API_KEY;
   
-  // For embeddings: MUST use real OpenAI API key (Replit Integrations doesn't support embeddings)
-  const embedApiKey = process.env.OPENAI_API_KEY;
+  // For chat: use custom key if enabled, otherwise Replit AI Integrations
+  let chatApiKey: string | undefined;
+  let chatBaseUrl: string | undefined;
+  
+  if (useCustom && customApiKey) {
+    chatApiKey = customApiKey;
+    chatBaseUrl = undefined;
+    console.log("[AIProvider] Using custom OpenAI API key");
+  } else {
+    chatApiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+    chatBaseUrl = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
+    console.log("[AIProvider] Using Replit AI Integrations");
+  }
+  
+  // For embeddings: prefer custom key if available, otherwise use OPENAI_API_KEY
+  const embedApiKey = (useCustom && customApiKey) ? customApiKey : process.env.OPENAI_API_KEY;
   
   if (!chatApiKey) {
     throw new Error("OpenAI API key not configured");
   }
   
-  // Chat client uses Replit AI Integrations if available
+  // Chat client
   const chatClient = new OpenAI({ 
     apiKey: chatApiKey,
     baseURL: chatBaseUrl,
@@ -54,4 +86,9 @@ export function getProvider(): AIProvider {
       return res.choices[0]?.message?.content ?? "";
     },
   };
+}
+
+export async function getProviderWithSettings(): Promise<AIProvider> {
+  const useCustom = await checkUseCustomApi();
+  return getProvider(useCustom);
 }

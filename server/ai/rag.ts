@@ -1,6 +1,6 @@
 import { db } from "../db";
 import { kbChunks, kbEmbeddings, kbDocuments, type ChunkLevel, type ChunkAnchor } from "@shared/schema";
-import { getProvider } from "./provider";
+import { getProviderWithSettings } from "./provider";
 import { cosineSimilarity } from "../utils/text";
 import { eq, inArray } from "drizzle-orm";
 import * as fs from "fs";
@@ -61,7 +61,7 @@ function detectRelevantAnchors(query: string): ChunkAnchor[] {
 }
 
 export async function ragRetrieve(query: string, topK: number): Promise<RagHit[]> {
-  const provider = getProvider();
+  const provider = await getProviderWithSettings();
   const [qVec] = await provider.embed([query]);
 
   const rows = await db.select().from(kbEmbeddings).innerJoin(kbChunks, eq(kbEmbeddings.chunkId, kbChunks.id));

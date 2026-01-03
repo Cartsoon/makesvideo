@@ -1,6 +1,6 @@
 import type { Script, StoryboardScene, MusicConfig, StylePreset, Duration, Language, TopicInsights, Topic } from "@shared/schema";
 import { storage } from "./storage";
-import { getProvider } from "./ai/provider";
+import { getProviderWithSettings, resetCustomApiCache } from "./ai/provider";
 
 // Words per second for timing calculations (~2.5 words/sec for natural speech)
 const WORDS_PER_SECOND = 2.5;
@@ -242,7 +242,7 @@ export class UnifiedLLMProvider implements LLMProvider {
 
   private async callLLM(systemPrompt: string, userPrompt: string, maxTokens: number = 1000): Promise<string> {
     try {
-      const provider = getProvider();
+      const provider = await getProviderWithSettings();
       const result = await provider.chat({
         model: this.model,
         temperature: 0.7,
@@ -2999,22 +2999,29 @@ export class FallbackMusicProvider implements MusicProvider {
 // Unified provider factory - uses Replit AI Integrations (OpenAI)
 export async function createLLMProvider(): Promise<LLMProvider> {
   try {
+    // Check settings first
+    const settings = await storage.getSettings();
+    const settingsMap = new Map(settings.map(s => [s.key, s.value]));
+    const fallbackMode = settingsMap.get("fallbackMode") === "true";
+    const useCustomApi = settingsMap.get("useCustomApi") === "true";
+    
+    if (fallbackMode) {
+      console.log("[Providers] Fallback mode enabled, using template provider");
+      return new FallbackLLMProvider();
+    }
+    
+    // Check if custom API is enabled and available
+    if (useCustomApi && process.env.CUSTOM_OPENAI_API_KEY) {
+      console.log("[Providers] Using custom OpenAI API key");
+      return new UnifiedLLMProvider();
+    }
+    
     // Check if OpenAI API is available via Replit AI Integrations
     const hasOpenAI = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
     
     if (hasOpenAI) {
       console.log("[Providers] Using unified OpenAI provider via Replit AI Integrations");
       return new UnifiedLLMProvider();
-    }
-    
-    // Check if fallback mode is explicitly enabled
-    const settings = await storage.getSettings();
-    const settingsMap = new Map(settings.map(s => [s.key, s.value]));
-    const fallbackMode = settingsMap.get("fallbackMode") === "true";
-    
-    if (fallbackMode) {
-      console.log("[Providers] Fallback mode enabled, using template provider");
-      return new FallbackLLMProvider();
     }
     
     console.log("[Providers] No OpenAI API configured, using fallback template provider");

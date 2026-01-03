@@ -5,7 +5,7 @@ import { db } from "../db";
 import { kbDocuments, kbChunks, kbEmbeddings } from "@shared/schema";
 import { eq, sql, desc } from "drizzle-orm";
 import { ingestFile, deleteDocumentByFilePath } from "../kb/ingest";
-import { getProvider } from "../ai/provider";
+import { getProviderWithSettings } from "../ai/provider";
 
 const router = Router();
 const SEED_DIR = path.join(process.cwd(), "server/kb/seed");
@@ -554,7 +554,7 @@ router.put("/index/chunk/:chunkId", async (req: Request, res: Response) => {
     
     await db.update(kbChunks).set(updateData).where(eq(kbChunks.id, chunkId));
     
-    const provider = getProvider();
+    const provider = await getProviderWithSettings();
     const embedModel = process.env.AI_EMBED_MODEL ?? "text-embedding-3-large";
     const [embedding] = await provider.embed([content]);
     
@@ -596,7 +596,7 @@ router.post("/index/generateChunks", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Content required" });
     }
     
-    const provider = getProvider();
+    const provider = await getProviderWithSettings();
     
     const prompt = `Ты эксперт по созданию базы знаний для RAG-системы.
 
@@ -689,7 +689,7 @@ router.post("/index/saveGeneratedChunks", async (req: Request, res: Response) =>
     // Import utilities first
     const { sha256Hex } = await import("../utils/text");
     const { v4: uuidv4 } = await import("uuid");
-    const provider = getProvider();
+    const provider = await getProviderWithSettings();
     const embedModel = process.env.AI_EMBED_MODEL ?? "text-embedding-3-large";
     
     // Delete existing chunks and embeddings for this document
@@ -769,7 +769,7 @@ router.post("/index/addChunk", async (req: Request, res: Response) => {
     
     const { sha256Hex } = await import("../utils/text");
     const { v4: uuidv4 } = await import("uuid");
-    const provider = getProvider();
+    const provider = await getProviderWithSettings();
     const embedModel = process.env.AI_EMBED_MODEL ?? "text-embedding-3-large";
     
     const existingChunks = await db.select({ chunkIndex: kbChunks.chunkIndex })
@@ -819,7 +819,7 @@ router.post("/retrieve", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Query required" });
     }
     
-    const provider = getProvider();
+    const provider = await getProviderWithSettings();
     const [queryEmbedding] = await provider.embed([query]);
     
     const allEmbeddings = await db.select({
