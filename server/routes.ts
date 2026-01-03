@@ -361,7 +361,7 @@ export async function registerRoutes(
       });
 
       // Update topic status
-      await storage.updateTopic(req.params.id, { status: "selected" });
+      await storage.updateTopic(req.params.id, { status: "in_progress" });
 
       res.status(201).json({ topic, script, scriptId: script.id });
     } catch (error) {
@@ -1055,7 +1055,7 @@ Distribute time evenly: scenes 3-7 seconds each. Only JSON array.`;
             rawText: null,
             language: language || "ru",
             score: 100,
-            status: "selected",
+            status: "in_progress",
             extractionStatus: "done",
           });
         }

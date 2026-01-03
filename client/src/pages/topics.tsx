@@ -89,11 +89,11 @@ export default function Topics() {
     },
   });
 
-  const ignoreMutation = useMutation({
-    mutationFn: (topicId: string) => apiRequest("PATCH", `/api/topics/${topicId}`, { status: "ignored" }),
+  const missMutation = useMutation({
+    mutationFn: (topicId: string) => apiRequest("PATCH", `/api/topics/${topicId}`, { status: "missed" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/topics"] });
-      toast({ title: t("topics.topicIgnored"), description: t("topics.topicIgnoredDesc") });
+      toast({ title: t("topics.topicMissed"), description: t("topics.topicMissedDesc") });
     },
   });
 
@@ -107,15 +107,15 @@ export default function Topics() {
   const statusCounts = {
     all: topics?.length || 0,
     new: topics?.filter((t) => t.status === "new").length || 0,
-    selected: topics?.filter((t) => t.status === "selected").length || 0,
-    ignored: topics?.filter((t) => t.status === "ignored").length || 0,
+    in_progress: topics?.filter((t) => t.status === "in_progress").length || 0,
+    missed: topics?.filter((t) => t.status === "missed").length || 0,
   };
 
   const statusLabels: Record<string, string> = {
     all: t("topics.all"),
     new: t("topics.new"),
-    selected: t("topics.selected"),
-    ignored: t("topics.ignored"),
+    in_progress: t("topics.inProgress"),
+    missed: t("topics.missed"),
   };
 
   return (
@@ -144,7 +144,7 @@ export default function Topics() {
         </div>
 
         <div className="flex flex-wrap gap-1 items-center">
-          {(["all", "new", "selected", "ignored"] as const).map((status) => (
+          {(["all", "new", "in_progress", "missed"] as const).map((status) => (
             <Button
               key={status}
               variant={statusFilter === status ? "default" : "outline"}
@@ -265,9 +265,9 @@ export default function Topics() {
                         </Button>
                         <Button
                           variant="outline"
-                          onClick={() => ignoreMutation.mutate(topic.id)}
-                          disabled={ignoreMutation.isPending}
-                          data-testid={`button-ignore-${topic.id}`}
+                          onClick={() => missMutation.mutate(topic.id)}
+                          disabled={missMutation.isPending}
+                          data-testid={`button-miss-${topic.id}`}
                           size="sm"
                           className="text-[10px] sm:text-xs h-7 px-2"
                         >

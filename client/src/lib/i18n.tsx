@@ -135,8 +135,8 @@ const translations: Record<Language, Record<string, string>> = {
     "topics.clickRefresh": "Click 'Refresh Topics' to fetch content from your sources",
     "topics.all": "All",
     "topics.new": "New",
-    "topics.selected": "Selected",
-    "topics.ignored": "Ignored",
+    "topics.inProgress": "In Progress",
+    "topics.missed": "Missed",
     "topics.sortByScore": "By Score",
     "topics.sortByDate": "By Date",
     "topics.select": "Select",
@@ -149,8 +149,8 @@ const translations: Record<Language, Record<string, string>> = {
     "topics.selectError": "Failed to create script",
     "topics.noFilteredTopics": "No topics found",
     "topics.noFilteredDesc": "No topics with this status",
-    "topics.topicIgnored": "Topic ignored",
-    "topics.topicIgnoredDesc": "Topic has been marked as ignored",
+    "topics.topicMissed": "Topic missed",
+    "topics.topicMissedDesc": "Topic has been marked as missed",
     "dashboard.fetchError": "Failed to start topic fetch",
     
     // Scripts
@@ -596,8 +596,8 @@ const translations: Record<Language, Record<string, string>> = {
     "topics.clickRefresh": "Нажмите 'Обновить топики' для загрузки контента из источников",
     "topics.all": "Все",
     "topics.new": "Новые",
-    "topics.selected": "Выбранные",
-    "topics.ignored": "Пропущенные",
+    "topics.inProgress": "В работе",
+    "topics.missed": "Упущенные",
     "topics.sortByScore": "По рейтингу",
     "topics.sortByDate": "По дате",
     "topics.select": "Выбрать",
@@ -610,8 +610,8 @@ const translations: Record<Language, Record<string, string>> = {
     "topics.selectError": "Не удалось создать скрипт",
     "topics.noFilteredTopics": "Топиков не найдено",
     "topics.noFilteredDesc": "Нет топиков с этим статусом",
-    "topics.topicIgnored": "Топик пропущен",
-    "topics.topicIgnoredDesc": "Топик отмечен как пропущенный",
+    "topics.topicMissed": "Топик упущен",
+    "topics.topicMissedDesc": "Топик отмечен как упущенный",
     "dashboard.fetchError": "Не удалось начать загрузку топиков",
     
     // Scripts
