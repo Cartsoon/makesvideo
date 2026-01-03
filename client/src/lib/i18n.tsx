@@ -16,6 +16,7 @@ const translations: Record<Language, Record<string, string>> = {
     "nav.topics": "Topics",
     "nav.scripts": "Scripts",
     "nav.settings": "Settings",
+    "nav.assistant": "Assistant",
     "nav.info": "Information",
     
     // Dashboard
@@ -476,6 +477,7 @@ const translations: Record<Language, Record<string, string>> = {
     "nav.topics": "Топики",
     "nav.scripts": "Скрипты",
     "nav.settings": "Настройки",
+    "nav.assistant": "Ассистент",
     "nav.info": "Информация",
     
     // Dashboard

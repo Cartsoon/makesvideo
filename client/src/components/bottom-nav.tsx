@@ -11,7 +11,7 @@ export function BottomNav() {
     { href: "/", icon: LayoutDashboard, label: t("nav.dashboard") },
     { href: "/sources", icon: Rss, label: t("nav.sources") },
     { href: "/scripts", icon: FileText, label: t("nav.scripts") },
-    { href: "/assistant", icon: Bot, label: "AI" },
+    { href: "/assistant", icon: Bot, label: t("nav.assistant") },
     { href: "/settings", icon: Settings, label: t("nav.settings") },
   ];
 
