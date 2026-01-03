@@ -2996,35 +2996,26 @@ export class FallbackMusicProvider implements MusicProvider {
   }
 }
 
-// Unified provider factory - uses Replit AI Integrations (OpenAI)
+// Unified provider factory - uses OPENAI_API_KEY
 export async function createLLMProvider(): Promise<LLMProvider> {
   try {
     // Check settings first
     const settings = await storage.getSettings();
     const settingsMap = new Map(settings.map(s => [s.key, s.value]));
     const fallbackMode = settingsMap.get("fallbackMode") === "true";
-    const useCustomApi = settingsMap.get("useCustomApi") === "true";
     
     if (fallbackMode) {
       console.log("[Providers] Fallback mode enabled, using template provider");
       return new FallbackLLMProvider();
     }
     
-    // Check if custom API is enabled - uses direct OPENAI_API_KEY
-    if (useCustomApi && process.env.OPENAI_API_KEY) {
-      console.log("[Providers] Using direct OpenAI API key (custom mode)");
+    // Check if OPENAI_API_KEY is available
+    if (process.env.OPENAI_API_KEY) {
+      console.log("[Providers] Using OPENAI_API_KEY");
       return new UnifiedLLMProvider();
     }
     
-    // Check if OpenAI API is available via Replit AI Integrations
-    const hasOpenAI = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
-    
-    if (hasOpenAI && !useCustomApi) {
-      console.log("[Providers] Using OpenAI via Replit AI Integrations");
-      return new UnifiedLLMProvider();
-    }
-    
-    console.log("[Providers] No OpenAI API configured, using fallback template provider");
+    console.log("[Providers] No OPENAI_API_KEY configured, using fallback template provider");
     return new FallbackLLMProvider();
   } catch (error) {
     console.error("[Providers] Error creating LLM provider:", error);

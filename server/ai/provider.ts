@@ -7,79 +7,36 @@ export interface AIProvider {
   chat(opts: { model: string; messages: ChatMessage[]; temperature?: number }): Promise<string>;
 }
 
-let cachedUseCustomApi: boolean | null = null;
+export function resetCustomApiCache() {
+  // No-op, kept for compatibility
+}
 
 export async function checkUseCustomApi(): Promise<boolean> {
-  if (cachedUseCustomApi !== null) return cachedUseCustomApi;
-  try {
-    const { storage } = await import("../storage");
-    const settings = await storage.getSettings();
-    const setting = settings.find(s => s.key === "useCustomApi");
-    cachedUseCustomApi = setting?.value === "true";
-    return cachedUseCustomApi;
-  } catch {
-    return false;
-  }
+  return true; // Always use custom API
 }
 
-export function resetCustomApiCache() {
-  cachedUseCustomApi = null;
-}
-
-export function getProvider(forceCustom?: boolean): AIProvider {
-  const provider = process.env.AI_PROVIDER ?? "openai";
-  if (provider !== "openai") {
-    throw new Error(`AI_PROVIDER ${provider} not implemented yet`);
+export function getProvider(): AIProvider {
+  const apiKey = process.env.OPENAI_API_KEY;
+  
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY not configured");
   }
   
-  const useCustom = forceCustom ?? false;
-  // Custom API uses OPENAI_API_KEY directly (bypassing Replit AI Integrations)
-  const directApiKey = process.env.OPENAI_API_KEY;
+  console.log("[AIProvider] Using OPENAI_API_KEY");
   
-  // For chat: use direct key if custom mode enabled, otherwise Replit AI Integrations
-  let chatApiKey: string | undefined;
-  let chatBaseUrl: string | undefined;
-  
-  if (useCustom && directApiKey) {
-    chatApiKey = directApiKey;
-    chatBaseUrl = undefined; // Direct OpenAI API
-    console.log("[AIProvider] Using direct OpenAI API key (custom mode)");
-  } else {
-    chatApiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
-    chatBaseUrl = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
-    console.log("[AIProvider] Using Replit AI Integrations");
-  }
-  
-  // For embeddings: always use direct OpenAI API key
-  const embedApiKey = process.env.OPENAI_API_KEY;
-  
-  if (!chatApiKey) {
-    throw new Error("OpenAI API key not configured");
-  }
-  
-  // Chat client
-  const chatClient = new OpenAI({ 
-    apiKey: chatApiKey,
-    baseURL: chatBaseUrl,
-  });
-  
-  // Embed client uses direct OpenAI API
-  const embedClient = embedApiKey ? new OpenAI({ apiKey: embedApiKey }) : null;
+  const client = new OpenAI({ apiKey });
 
   return {
     async embed(texts: string[]) {
-      if (!embedClient) {
-        throw new Error("OPENAI_API_KEY required for embeddings (Replit AI Integrations doesn't support embeddings API)");
-      }
       const model = process.env.AI_EMBED_MODEL ?? "text-embedding-3-large";
-      const res = await embedClient.embeddings.create({
+      const res = await client.embeddings.create({
         model,
         input: texts,
       });
       return res.data.map(d => d.embedding as unknown as number[]);
     },
     async chat({ model, messages, temperature }) {
-      const res = await chatClient.chat.completions.create({
+      const res = await client.chat.completions.create({
         model,
         messages,
         temperature: temperature ?? 0.7,
@@ -90,30 +47,16 @@ export function getProvider(forceCustom?: boolean): AIProvider {
 }
 
 export async function getProviderWithSettings(): Promise<AIProvider> {
-  const useCustom = await checkUseCustomApi();
-  return getProvider(useCustom);
+  return getProvider();
 }
 
 export async function getOpenAIClientWithSettings(): Promise<OpenAI> {
-  const useCustom = await checkUseCustomApi();
-  const directApiKey = process.env.OPENAI_API_KEY;
-  
-  let apiKey: string | undefined;
-  let baseUrl: string | undefined;
-  
-  if (useCustom && directApiKey) {
-    apiKey = directApiKey;
-    baseUrl = undefined;
-    console.log("[AIProvider] Using direct OpenAI API key (custom mode)");
-  } else {
-    apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
-    baseUrl = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
-    console.log("[AIProvider] Using Replit AI Integrations");
-  }
+  const apiKey = process.env.OPENAI_API_KEY;
   
   if (!apiKey) {
-    throw new Error("OpenAI API key not configured");
+    throw new Error("OPENAI_API_KEY not configured");
   }
   
-  return new OpenAI({ apiKey, baseURL: baseUrl });
+  console.log("[AIProvider] Using OPENAI_API_KEY");
+  return new OpenAI({ apiKey });
 }
