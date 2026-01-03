@@ -339,16 +339,10 @@ export default function AssistantPage() {
                 if (soundEnabled) {
                   playReceiveSound();
                 }
-                const assistantTempId = `temp-assistant-${Date.now()}`;
-                setOptimisticMessages(prev => [...prev, {
-                  id: assistantTempId,
-                  role: "assistant",
-                  content: accumulated,
-                  createdAt: new Date().toISOString(),
-                  isOptimistic: true,
-                }]);
                 setStreamingContent("");
                 setIsStreaming(false);
+                // Clear all optimistic messages and refetch from server to avoid duplicates
+                setOptimisticMessages([]);
                 queryClient.invalidateQueries({ queryKey: ["/api/assistant/chat/page", 1] });
               }
             } catch {}
