@@ -888,6 +888,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async unarchiveChatSession(userId: string, archivedAt: string): Promise<number> {
+    // First, archive any currently active chats so they aren't lost
+    const now = new Date();
+    await db.update(assistantChats)
+      .set({ archivedAt: now })
+      .where(and(
+        eq(assistantChats.userId, userId),
+        isNull(assistantChats.archivedAt)
+      ));
+    
+    // Then restore the requested archived session
     const result = await db.update(assistantChats)
       .set({ archivedAt: null })
       .where(and(
