@@ -1753,16 +1753,14 @@ Distribute time evenly: scenes 3-7 seconds each. Only JSON array.`;
 
   // ============ AI ASSISTANT CHAT ============
   
-  // Check if OpenAI integration is configured
-  const isOpenAIConfigured = Boolean(
-    process.env.AI_INTEGRATIONS_OPENAI_API_KEY && 
-    process.env.AI_INTEGRATIONS_OPENAI_BASE_URL
-  );
+  // Import dynamic provider function
+  const { getOpenAIClientWithSettings } = await import("./ai/provider");
   
-  const openai = isOpenAIConfigured ? new OpenAI({
-    apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-    baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-  }) : null;
+  // Check if any OpenAI key is available
+  const isOpenAIAvailable = Boolean(
+    process.env.AI_INTEGRATIONS_OPENAI_API_KEY || 
+    process.env.OPENAI_API_KEY
+  );
   
   // Zod schema for chat message
   const chatMessageSchema = z.object({
@@ -1822,10 +1820,13 @@ Distribute time evenly: scenes 3-7 seconds each. Only JSON array.`;
   // Send message and get AI response (streaming)
   app.post("/api/assistant/chat", async (req, res) => {
     try {
-      // Check if OpenAI is configured
-      if (!openai) {
+      // Check if OpenAI is available
+      if (!isOpenAIAvailable) {
         return res.status(503).json({ error: "AI Assistant is not configured. Please set up OpenAI integration." });
       }
+      
+      // Get dynamic OpenAI client based on settings
+      const openai = await getOpenAIClientWithSettings();
       
       const sessionId = req.cookies?.session_id;
       if (!sessionId) {

@@ -93,3 +93,27 @@ export async function getProviderWithSettings(): Promise<AIProvider> {
   const useCustom = await checkUseCustomApi();
   return getProvider(useCustom);
 }
+
+export async function getOpenAIClientWithSettings(): Promise<OpenAI> {
+  const useCustom = await checkUseCustomApi();
+  const directApiKey = process.env.OPENAI_API_KEY;
+  
+  let apiKey: string | undefined;
+  let baseUrl: string | undefined;
+  
+  if (useCustom && directApiKey) {
+    apiKey = directApiKey;
+    baseUrl = undefined;
+    console.log("[AIProvider] Using direct OpenAI API key (custom mode)");
+  } else {
+    apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+    baseUrl = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
+    console.log("[AIProvider] Using Replit AI Integrations");
+  }
+  
+  if (!apiKey) {
+    throw new Error("OpenAI API key not configured");
+  }
+  
+  return new OpenAI({ apiKey, baseURL: baseUrl });
+}
