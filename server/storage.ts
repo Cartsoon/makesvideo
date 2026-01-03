@@ -840,6 +840,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async clearAssistantChats(userId: string): Promise<void> {
+    // First, get all chat IDs for this user to delete related feedback
+    const userChats = await db.select({ id: assistantChats.id })
+      .from(assistantChats)
+      .where(eq(assistantChats.userId, userId));
+    
+    const chatIds = userChats.map(c => c.id);
+    
+    // Delete feedback for these chats first (foreign key constraint)
+    if (chatIds.length > 0) {
+      for (const chatId of chatIds) {
+        await db.delete(assistantFeedback).where(eq(assistantFeedback.messageId, chatId));
+      }
+    }
+    
+    // Now delete the chats
     await db.delete(assistantChats).where(eq(assistantChats.userId, userId));
   }
 
