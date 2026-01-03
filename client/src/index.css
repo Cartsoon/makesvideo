@@ -354,6 +354,27 @@
     scrollbar-color: hsl(38 92% 58% / 0.7) hsl(var(--muted) / 0.3);
   }
 
+  /* Notebook lined paper effect */
+  .notebook-lined {
+    background-image: repeating-linear-gradient(
+      transparent,
+      transparent 23px,
+      hsl(var(--muted-foreground) / 0.1) 23px,
+      hsl(var(--muted-foreground) / 0.1) 24px
+    );
+    background-position: 0 8px;
+    line-height: 24px !important;
+  }
+
+  .dark .notebook-lined {
+    background-image: repeating-linear-gradient(
+      transparent,
+      transparent 23px,
+      hsl(var(--muted-foreground) / 0.15) 23px,
+      hsl(var(--muted-foreground) / 0.15) 24px
+    );
+  }
+
   /* Studio theme utilities */
   .studio-gradient {
     background: var(--gradient-studio);

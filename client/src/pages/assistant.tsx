@@ -1088,7 +1088,7 @@ export default function AssistantPage() {
                     value={notes}
                     onChange={(e) => handleNotesChange(e.target.value)}
                     placeholder={language === "ru" ? "Записывайте важные идеи из чата здесь..." : "Write down important ideas from chat here..."}
-                    className="flex-1 resize-none border-0 rounded-none bg-gradient-to-b from-amber-500/5 via-transparent to-orange-500/5 focus-visible:ring-0 text-sm leading-relaxed px-4 notes-scrollbar"
+                    className="flex-1 resize-none border-0 rounded-none bg-gradient-to-b from-amber-500/5 via-transparent to-orange-500/5 focus-visible:ring-0 text-sm px-4 notes-scrollbar notebook-lined"
                     data-testid="input-notes-drawer"
                   />
                 </div>
@@ -1494,7 +1494,7 @@ export default function AssistantPage() {
                   ? "Записывайте важные идеи, ссылки, советы из чата..."
                   : "Write down important ideas, links, tips from the chat..."
                 }
-                className="h-full w-full resize-none border-0 rounded-none bg-card focus-visible:ring-0 text-sm leading-relaxed p-3 overflow-y-auto notes-scrollbar"
+                className="h-full w-full resize-none border-0 rounded-none bg-card focus-visible:ring-0 text-sm p-3 overflow-y-auto notes-scrollbar notebook-lined"
                 data-testid="input-notes"
               />
             </div>
