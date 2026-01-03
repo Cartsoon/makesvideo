@@ -35,6 +35,7 @@ export default function Topics() {
   const [, navigate] = useLocation();
   const [statusFilter, setStatusFilter] = useState<TopicStatus | "all">("all");
   const [sortBy, setSortBy] = useState<"score" | "date">("score");
+  const [processedJobIds, setProcessedJobIds] = useState<Set<string>>(new Set());
 
   const { data: topics, isLoading } = useQuery<Topic[]>({
     queryKey: ["/api/topics"],
@@ -46,12 +47,18 @@ export default function Topics() {
   });
 
   useEffect(() => {
-    const fetchTopicsJobs = jobs?.filter(j => j.kind === "fetch_topics") || [];
-    const hasCompletedFetch = fetchTopicsJobs.some(j => j.status === "done");
-    if (hasCompletedFetch) {
+    const fetchTopicsJobs = jobs?.filter(j => j.kind === "fetch_topics" && j.status === "done") || [];
+    const newlyCompletedJobs = fetchTopicsJobs.filter(j => !processedJobIds.has(j.id));
+    
+    if (newlyCompletedJobs.length > 0) {
       queryClient.invalidateQueries({ queryKey: ["/api/topics"] });
+      setProcessedJobIds(prev => {
+        const next = new Set(prev);
+        newlyCompletedJobs.forEach(j => next.add(j.id));
+        return next;
+      });
     }
-  }, [jobs]);
+  }, [jobs, processedJobIds]);
 
   const fetchMutation = useMutation({
     mutationFn: () => apiRequest("POST", "/api/jobs", { kind: "fetch_topics", payload: {} }),

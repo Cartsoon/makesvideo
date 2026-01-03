@@ -34,6 +34,7 @@ export default function Dashboard() {
   const { toast } = useToast();
   const { t, language } = useI18n();
   const [comingSoonOpen, setComingSoonOpen] = useState(false);
+  const [processedJobIds, setProcessedJobIds] = useState<Set<string>>(new Set());
   
   const { data: topics, isLoading: topicsLoading } = useQuery<Topic[]>({
     queryKey: ["/api/topics"],
@@ -49,13 +50,19 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
-    const fetchTopicsJobs = jobs?.filter(j => j.kind === "fetch_topics") || [];
-    const hasCompletedFetch = fetchTopicsJobs.some(j => j.status === "done");
-    if (hasCompletedFetch) {
+    const fetchTopicsJobs = jobs?.filter(j => j.kind === "fetch_topics" && j.status === "done") || [];
+    const newlyCompletedJobs = fetchTopicsJobs.filter(j => !processedJobIds.has(j.id));
+    
+    if (newlyCompletedJobs.length > 0) {
       queryClient.invalidateQueries({ queryKey: ["/api/topics"] });
       queryClient.invalidateQueries({ queryKey: ["/api/scripts"] });
+      setProcessedJobIds(prev => {
+        const next = new Set(prev);
+        newlyCompletedJobs.forEach(j => next.add(j.id));
+        return next;
+      });
     }
-  }, [jobs]);
+  }, [jobs, processedJobIds]);
 
   const activeJobs = jobs?.filter(j => j.status === "running" || j.status === "queued") || [];
   const hasPendingFetchTopics = activeJobs.some(j => j.kind === "fetch_topics");
