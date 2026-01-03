@@ -7,6 +7,11 @@ export function BottomNav() {
   const [location] = useLocation();
   const { t } = useI18n();
 
+  // Hide bottom nav on assistant page (it has its own mobile UI)
+  if (location === "/assistant") {
+    return null;
+  }
+
   const navItems = [
     { href: "/", icon: LayoutDashboard, label: t("nav.dashboard") },
     { href: "/sources", icon: Rss, label: t("nav.sources") },
