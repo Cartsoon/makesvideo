@@ -41,7 +41,9 @@ import {
   Sparkles,
   Clock,
   TrendingUp,
-  AlertTriangle
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import type { Topic, TopicStatus, Job } from "@shared/schema";
 import placeholderImage from "@assets/file_0000000078a471f4af18c4a74cc26e4a_1767488305862.png";
@@ -53,6 +55,7 @@ export default function Topics() {
   const [statusFilter, setStatusFilter] = useState<TopicStatus | "all">("all");
   const [sortBy, setSortBy] = useState<"score" | "date">("score");
   const [processedJobIds, setProcessedJobIds] = useState<Set<string>>(new Set());
+  const [expandedTopicId, setExpandedTopicId] = useState<string | null>(null);
 
   const { data: topics, isLoading } = useQuery<Topic[]>({
     queryKey: ["/api/topics"],
@@ -328,7 +331,37 @@ export default function Topics() {
                       {getDisplayTitle(topic)}
                     </h3>
                   </div>
+                  
+                  <button
+                    onClick={() => setExpandedTopicId(expandedTopicId === topic.id ? null : topic.id)}
+                    className="absolute bottom-2 right-2 p-1 bg-black/60 text-white transition-colors"
+                    style={{ borderRadius: '2px' }}
+                    data-testid={`button-expand-${topic.id}`}
+                  >
+                    {expandedTopicId === topic.id ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                  </button>
                 </div>
+
+                {expandedTopicId === topic.id && (
+                  <div className="p-3 bg-muted/50 border-t border-border space-y-2">
+                    <div>
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wide">{language === "ru" ? "Заголовок" : "Title"}</span>
+                      <p className="text-sm font-medium">{getDisplayTitle(topic)}</p>
+                    </div>
+                    {(topic.insights?.summary || topic.rawText) && (
+                      <div>
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-wide">{language === "ru" ? "Описание" : "Description"}</span>
+                        <p className="text-xs text-muted-foreground whitespace-pre-wrap">
+                          {topic.insights?.summary || topic.rawText}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div className="p-3 space-y-2">
                   {topic.tags && topic.tags.length > 0 && (
