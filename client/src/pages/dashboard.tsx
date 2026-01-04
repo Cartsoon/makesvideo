@@ -574,9 +574,13 @@ export default function Dashboard() {
                 <div className="space-y-1.5">
                   {recentTopics.map((topic, index) => {
                     const isNewlyAdded = newlyAddedIds.has(topic.id);
-                    const isDesktopOnly = index >= 6; // Show items 7-8 only on larger screens
+                    // Responsive visibility: 5 on small, 6 on md, 7 on lg, 8 on xl
+                    let visibilityClass = "";
+                    if (index === 5) visibilityClass = "hidden md:block"; // 6th item: md+
+                    else if (index === 6) visibilityClass = "hidden lg:block"; // 7th item: lg+
+                    else if (index === 7) visibilityClass = "hidden xl:block"; // 8th item: xl+
                     return (
-                    <Link key={topic.id} href={`/topics?highlight=${topic.id}`} className={isDesktopOnly ? "hidden lg:block" : ""}>
+                    <Link key={topic.id} href={`/topics?highlight=${topic.id}`} className={visibilityClass}>
                       <div
                         className={`group flex items-center gap-2 p-1.5 bg-neutral-800/50 border border-rose-500/20 hover-elevate cursor-pointer transition-all duration-300 ${
                           isNewlyAdded ? "animate-new-item border-emerald-400/30" : ""
