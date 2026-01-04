@@ -27,7 +27,8 @@ import {
   Loader2,
   ArrowUpDown,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Trash2
 } from "lucide-react";
 import type { Topic, TopicStatus, Job } from "@shared/schema";
 
@@ -112,6 +113,17 @@ export default function Topics() {
     },
   });
 
+  const clearAllMutation = useMutation({
+    mutationFn: () => apiRequest("DELETE", "/api/topics"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/topics"] });
+      toast({ title: t("topics.cleared") || "Очищено", description: t("topics.clearedDesc") || "Все топики удалены" });
+    },
+    onError: () => {
+      toast({ title: t("common.error"), description: t("topics.clearError") || "Не удалось очистить топики", variant: "destructive" });
+    },
+  });
+
   const filteredTopics = topics
     ?.filter((topic) => statusFilter === "all" || topic.status === statusFilter)
     ?.sort((a, b) => {
@@ -143,19 +155,40 @@ export default function Topics() {
               {t("topics.subtitle")}
             </p>
           </div>
-          <Button
-            onClick={() => fetchMutation.mutate()}
-            disabled={fetchMutation.isPending}
-            className="w-full sm:w-auto"
-            data-testid="button-refresh-topics"
-          >
-            {fetchMutation.isPending ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4 mr-2" />
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button
+              onClick={() => fetchMutation.mutate()}
+              disabled={fetchMutation.isPending}
+              className="flex-1 sm:flex-none"
+              data-testid="button-refresh-topics"
+            >
+              {fetchMutation.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              )}
+              {t("topics.refresh")}
+            </Button>
+            {(topics?.length || 0) > 0 && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (confirm(t("topics.clearConfirm") || "Удалить все топики?")) {
+                    clearAllMutation.mutate();
+                  }
+                }}
+                disabled={clearAllMutation.isPending}
+                className="text-destructive hover:text-destructive"
+                data-testid="button-clear-topics"
+              >
+                {clearAllMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+              </Button>
             )}
-            {t("topics.refresh")}
-          </Button>
+          </div>
         </div>
 
         <div className="space-y-2">

@@ -339,6 +339,16 @@ export async function registerRoutes(
     }
   });
 
+  // Delete all topics
+  app.delete("/api/topics", async (req, res) => {
+    try {
+      const count = await storage.deleteAllTopics();
+      res.json({ deleted: count });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete topics" });
+    }
+  });
+
   // Select topic and create script
   app.post("/api/topics/:id/select", async (req, res) => {
     try {

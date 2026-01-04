@@ -35,6 +35,7 @@ export interface IStorage {
   createTopic(topic: InsertTopic): Promise<Topic>;
   updateTopic(id: string, updates: Partial<InsertTopic>): Promise<Topic | undefined>;
   deleteTopic(id: string): Promise<boolean>;
+  deleteAllTopics(): Promise<number>;
   deleteTopicsBySourceId(sourceId: string): Promise<number>;
   deleteScriptsBySourceId(sourceId: string): Promise<number>;
 
@@ -268,6 +269,11 @@ export class DatabaseStorage implements IStorage {
   async deleteTopic(id: string): Promise<boolean> {
     const result = await db.delete(topics).where(eq(topics.id, id));
     return (result.rowCount ?? 0) > 0;
+  }
+
+  async deleteAllTopics(): Promise<number> {
+    const result = await db.delete(topics);
+    return result.rowCount ?? 0;
   }
 
   async deleteTopicsBySourceId(sourceId: string): Promise<number> {

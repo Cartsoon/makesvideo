@@ -151,6 +151,10 @@ const translations: Record<Language, Record<string, string>> = {
     "topics.noFilteredDesc": "No topics with this status",
     "topics.topicMissed": "Topic missed",
     "topics.topicMissedDesc": "Topic has been marked as missed",
+    "topics.cleared": "Topics cleared",
+    "topics.clearedDesc": "All topics have been deleted",
+    "topics.clearConfirm": "Delete all topics?",
+    "topics.clearError": "Failed to clear topics",
     "dashboard.fetchError": "Failed to start topic fetch",
     
     // Scripts
@@ -614,6 +618,10 @@ const translations: Record<Language, Record<string, string>> = {
     "topics.noFilteredDesc": "Нет топиков с этим статусом",
     "topics.topicMissed": "Топик упущен",
     "topics.topicMissedDesc": "Топик отмечен как упущенный",
+    "topics.cleared": "Топики очищены",
+    "topics.clearedDesc": "Все топики удалены",
+    "topics.clearConfirm": "Удалить все топики?",
+    "topics.clearError": "Не удалось очистить топики",
     "dashboard.fetchError": "Не удалось начать загрузку топиков",
     
     // Scripts
