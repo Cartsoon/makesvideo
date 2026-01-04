@@ -41,38 +41,65 @@ const EXCLUDED_WORDS_EN = new Set([
 ]);
 
 /**
- * Extracts 2-4 relevant tags from title - only proper nouns and key entities
- * Focus on: names, countries, companies, brands, events
+ * Extracts 2-4 relevant tags from title - proper nouns, names, abbreviations
+ * Focus on: full names (multiple words), brands, abbreviations, key terms
  */
 function extractTopicTags(title: string, content: string | null, language: string): string[] {
   const excludedWords = language === 'ru' ? EXCLUDED_WORDS_RU : EXCLUDED_WORDS_EN;
-  const fullText = `${title} ${content || ''}`;
+  const tags: string[] = [];
+  const seen = new Set<string>();
   
-  // Find words that start with uppercase letter (proper nouns)
-  // This regex matches words starting with uppercase followed by lowercase
-  const properNouns = fullText.match(/[A-ZА-ЯЁ][a-zа-яё]{2,}/g) || [];
+  // Helper to add tag if valid
+  const addTag = (tag: string) => {
+    const normalized = tag.trim();
+    const lower = normalized.toLowerCase();
+    if (normalized.length < 2 || normalized.length > 30) return;
+    if (excludedWords.has(lower)) return;
+    if (seen.has(lower)) return;
+    seen.add(lower);
+    tags.push(normalized);
+  };
   
-  // Count occurrences and filter
-  const tagCounts = new Map<string, number>();
-  for (const word of properNouns) {
-    const lower = word.toLowerCase();
-    if (excludedWords.has(lower)) continue;
-    if (word.length < 3 || word.length > 20) continue;
-    tagCounts.set(word, (tagCounts.get(word) || 0) + 1);
+  // 1. Extract full names (2-3 consecutive capitalized words): "Том Хендерсон", "Elon Musk"
+  const fullNameRegex = /([A-ZА-ЯЁ][a-zа-яё]+(?:\s+[A-ZА-ЯЁ][a-zа-яё]+){1,2})/g;
+  const fullNames = title.match(fullNameRegex) || [];
+  for (const name of fullNames) {
+    addTag(name);
   }
   
-  // Sort by frequency, prefer title matches
-  const titleWords = new Set((title.match(/[A-ZА-ЯЁ][a-zа-яё]{2,}/g) || []).map(w => w));
-  const sortedTags = Array.from(tagCounts.entries())
-    .sort((a, b) => {
-      const aInTitle = titleWords.has(a[0]) ? 10 : 0;
-      const bInTitle = titleWords.has(b[0]) ? 10 : 0;
-      return (b[1] + bInTitle) - (a[1] + aInTitle);
-    })
-    .map(([tag]) => tag);
+  // 2. Extract abbreviations and alphanumeric brands: GTA, PS5, iPhone, Xbox, etc.
+  const abbreviations = title.match(/\b[A-Z]{2,6}\s*\d*\b/g) || [];
+  for (const abbr of abbreviations) {
+    addTag(abbr.trim());
+  }
+  
+  // 3. Extract brand-like words (caps + number): "GTA 6", "PS5", "iPhone 15"
+  const brandRegex = /\b([A-Z][A-Za-z]*\s*\d+)\b/g;
+  const brands = title.match(brandRegex) || [];
+  for (const brand of brands) {
+    addTag(brand.trim());
+  }
+  
+  // 4. Extract quoted text as potential tags
+  const quoted = title.match(/["«]([^"»]+)["»]/g) || [];
+  for (const q of quoted) {
+    const inner = q.replace(/["«»]/g, '').trim();
+    if (inner.length >= 3 && inner.length <= 20 && !inner.includes(' ')) {
+      addTag(inner);
+    }
+  }
+  
+  // 5. If not enough tags, extract single proper nouns (not part of full names already)
+  if (tags.length < 3) {
+    const singleNouns = title.match(/[A-ZА-ЯЁ][a-zа-яё]{3,}/g) || [];
+    for (const word of singleNouns) {
+      if (tags.length >= 4) break;
+      addTag(word);
+    }
+  }
   
   // Return 2-4 unique tags
-  return sortedTags.slice(0, 4);
+  return tags.slice(0, 4);
 }
 
 let isProcessing = false;
