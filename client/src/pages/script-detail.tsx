@@ -105,25 +105,23 @@ function TopicDescription({ topic, language }: { topic: Topic; language: string 
       
       {isExpanded && (
         <div className="mt-3 p-3 bg-neutral-800/50 border border-neutral-700/50 text-sm text-neutral-300 leading-relaxed">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-3">
-              <span className="text-[10px] uppercase tracking-wide text-neutral-500">
-                {language === "ru" ? "Содержание новости" : "Article Content"}
-              </span>
-              {topic.url && (
-                <a 
-                  href={topic.url} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-xs text-rose-400 hover:text-rose-300 underline"
-                >
-                  {language === "ru" ? "Открыть источник" : "Open source"}
-                </a>
-              )}
-            </div>
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <span className="text-[10px] uppercase tracking-wide text-neutral-500">
+              {language === "ru" ? "Содержание новости" : "Article Content"}
+            </span>
+            {topic.url && (
+              <a 
+                href={topic.url} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-xs text-rose-400 hover:text-rose-300 underline"
+              >
+                {language === "ru" ? "Открыть источник" : "Open source"}
+              </a>
+            )}
             <button
               onClick={() => setIsExpanded(false)}
-              className="flex items-center gap-1 text-xs text-rose-400 hover:text-rose-300 transition-colors"
+              className="flex items-center gap-1 text-xs text-rose-400 hover:text-rose-300 transition-colors ml-auto"
               data-testid="button-collapse-topic"
             >
               <ChevronUp className="h-3 w-3" />
