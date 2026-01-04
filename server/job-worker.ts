@@ -51,28 +51,32 @@ function extractTopicTags(title: string, content: string | null, language: strin
   const seen = new Set<string>();
   const usedWords = new Set<string>(); // Track individual words from multi-word tags
   
+  // Helper to check if any word in tag already used
+  const hasWordOverlap = (tag: string): boolean => {
+    const words = tag.split(/\s+/);
+    return words.some(w => usedWords.has(w.toLowerCase()));
+  };
+  
   // Helper to add tag if valid
-  const addTag = (tag: string, trackWords = false) => {
+  const addTag = (tag: string, trackWords = true) => {
     const normalized = tag.trim();
     const lower = normalized.toLowerCase();
     if (normalized.length < 2 || normalized.length > 30) return false;
     if (excludedWords.has(lower)) return false;
     if (seen.has(lower)) return false;
     
-    // Check if this single word is part of an already-added multi-word tag
-    if (!normalized.includes(' ') && usedWords.has(lower)) return false;
+    // Check if ANY word in this tag is already used (prevents "Classic" when "Trine Classic" exists)
+    if (hasWordOverlap(normalized)) return false;
     
     seen.add(lower);
     tags.push(normalized);
     
-    // Track individual words from multi-word tags to prevent duplicates
-    if (trackWords && normalized.includes(' ')) {
-      normalized.split(/\s+/).forEach(word => usedWords.add(word.toLowerCase()));
-    }
+    // Always track words from added tags to prevent duplicates
+    normalized.split(/\s+/).forEach(word => usedWords.add(word.toLowerCase()));
     return true;
   };
   
-  // 1. Extract full names (2-4 consecutive capitalized words): "Сказки Нового Года", "Том Хендерсон"
+  // 1. Extract full names (2-4 consecutive capitalized words): "My Winter Car", "Том Хендерсон"
   // Prioritize longer matches first
   const fullNameRegex = /([A-ZА-ЯЁ][a-zа-яё]+(?:\s+[A-ZА-ЯЁ][a-zа-яё]+){1,3})/g;
   const fullNames = title.match(fullNameRegex) || [];
@@ -83,49 +87,54 @@ function extractTopicTags(title: string, content: string | null, language: strin
     const words = name.split(/\s+/);
     const nonExcludedWords = words.filter(w => !excludedWords.has(w.toLowerCase()));
     if (nonExcludedWords.length >= 2) {
-      addTag(name, true);
+      addTag(name);
     }
   }
   
-  // 1b. Extract "Capitalized + lowercase" phrases: "Запись стрима", "Опрос читателей"
-  const mixedCaseRegex = /([A-ZА-ЯЁ][a-zа-яё]+\s+[a-zа-яё]{4,})/g;
-  const mixedPhrases = title.match(mixedCaseRegex) || [];
-  for (const phrase of mixedPhrases) {
-    const words = phrase.split(/\s+/);
-    // Only add if first word is meaningful and not excluded
-    if (!excludedWords.has(words[0].toLowerCase()) && !excludedWords.has(words[1].toLowerCase())) {
-      addTag(phrase, true);
-    }
-  }
-  
-  // 2. Extract abbreviations and alphanumeric brands: GTA, PS5, iPhone, Xbox, etc.
-  const abbreviations = title.match(/\b[A-Z]{2,6}\s*\d*\b/g) || [];
-  for (const abbr of abbreviations) {
-    addTag(abbr.trim(), false);
-  }
-  
-  // 3. Extract brand-like words (caps + number): "GTA 6", "PS5", "iPhone 15"
-  const brandRegex = /\b([A-Z][A-Za-z]*\s*\d+)\b/g;
-  const brands = title.match(brandRegex) || [];
-  for (const brand of brands) {
-    addTag(brand.trim(), false);
-  }
-  
-  // 4. Extract quoted text as potential tags (allow multi-word)
+  // 2. Extract quoted text - look for key phrases inside quotes (more permissive)
   const quoted = title.match(/["«]([^"»]+)["»]/g) || [];
   for (const q of quoted) {
     const inner = q.replace(/["«»]/g, '').trim();
-    if (inner.length >= 3 && inner.length <= 25) {
-      addTag(inner, true);
+    // Try to find "Capitalized + word(s)" patterns (like "Новый год", "Black Friday")
+    // For quoted content, be more permissive - these are intentionally highlighted
+    const phraseRegex = /([A-ZА-ЯЁ][a-zа-яё]+(?:\s+[a-zа-яёA-ZА-ЯЁ]+){1,2})/g;
+    const innerPhrases = inner.match(phraseRegex) || [];
+    for (const phrase of innerPhrases) {
+      if (phrase.length >= 5 && phrase.length <= 25) {
+        const words = phrase.split(/\s+/);
+        // For quotes: allow even if words are "common" - the quote makes it significant
+        if (words.length >= 2 && words.length <= 3) {
+          // Skip adding words to usedWords check here - quotes are special
+          const normalized = phrase.trim();
+          if (!seen.has(normalized.toLowerCase()) && !hasWordOverlap(normalized)) {
+            seen.add(normalized.toLowerCase());
+            tags.push(normalized);
+            normalized.split(/\s+/).forEach(word => usedWords.add(word.toLowerCase()));
+          }
+        }
+      }
     }
   }
   
-  // 5. If not enough tags, extract single proper nouns (NOT already used in multi-word tags)
+  // 3. Extract abbreviations and alphanumeric brands: GTA, PS5, iPhone, Xbox, etc.
+  const abbreviations = title.match(/\b[A-Z]{2,6}\s*\d*\b/g) || [];
+  for (const abbr of abbreviations) {
+    addTag(abbr.trim());
+  }
+  
+  // 4. Extract brand-like words (caps + number): "GTA 6", "PS5", "iPhone 15"
+  const brandRegex = /\b([A-Z][A-Za-z]*\s*\d+)\b/g;
+  const brands = title.match(brandRegex) || [];
+  for (const brand of brands) {
+    addTag(brand.trim());
+  }
+  
+  // 5. If not enough tags, extract single proper nouns (NOT already used)
   if (tags.length < 2) {
     const singleNouns = title.match(/[A-ZА-ЯЁ][a-zа-яё]{3,}/g) || [];
     for (const word of singleNouns) {
       if (tags.length >= 4) break;
-      addTag(word, false);
+      addTag(word);
     }
   }
   
