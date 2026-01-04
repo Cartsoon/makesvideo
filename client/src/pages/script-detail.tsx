@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
 import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -76,6 +76,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 function TopicDescription({ topic, language }: { topic: Topic; language: string }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { t } = useI18n();
+  const queryClient = useQueryClient();
   
   const fullTitle = language === "en" 
     ? (topic.translatedTitleEn || topic.generatedTitle || topic.title) 
@@ -83,6 +84,21 @@ function TopicDescription({ topic, language }: { topic: Topic; language: string 
   
   const fullContent = topic.fullContent || "";
   const hasContent = fullContent.length > 0;
+  
+  const extractMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/jobs", { kind: "extract_content", payload: { topicId: topic.id } }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/topics", topic.id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/jobs"] });
+    },
+  });
+  
+  const handleExpand = () => {
+    setIsExpanded(true);
+    if (!hasContent && topic.extractionStatus !== "extracting" && topic.extractionStatus !== "done" && topic.url) {
+      extractMutation.mutate();
+    }
+  };
   
   return (
     <div className="mt-2">
@@ -94,7 +110,7 @@ function TopicDescription({ topic, language }: { topic: Topic; language: string 
         <span className="text-neutral-300">{fullTitle}</span>
         {!isExpanded && (
           <button
-            onClick={() => setIsExpanded(true)}
+            onClick={handleExpand}
             className="ml-1 text-rose-400 hover:text-rose-300 transition-colors font-medium"
             data-testid="button-expand-topic"
           >
@@ -136,7 +152,7 @@ function TopicDescription({ topic, language }: { topic: Topic; language: string 
           ) : (
             <div className="text-center py-2">
               <p className="text-neutral-500 text-xs">
-                {topic.extractionStatus === "extracting" 
+                {topic.extractionStatus === "extracting" || topic.extractionStatus === "pending" || extractMutation.isPending
                   ? (language === "ru" ? "Загрузка контента..." : "Loading content...")
                   : (language === "ru" ? "Содержание недоступно" : "Content not available")}
               </p>
@@ -169,6 +185,12 @@ export default function ScriptDetail() {
   const { data: topic } = useQuery<Topic>({
     queryKey: ["/api/topics", script?.topicId],
     enabled: !!script?.topicId,
+    refetchInterval: (data) => {
+      if (data?.state?.data?.extractionStatus === "extracting" || data?.state?.data?.extractionStatus === "pending") {
+        return 2000;
+      }
+      return false;
+    },
   });
 
   const { data: jobs } = useQuery<Job[]>({
