@@ -26,7 +26,8 @@ import {
   FolderUp,
   Play,
   ChevronRight,
-  TrendingUp
+  TrendingUp,
+  Settings
 } from "lucide-react";
 import type { Topic, Script, Job } from "@shared/schema";
 import { ComingSoonModal } from "@/components/coming-soon-modal";
@@ -166,26 +167,22 @@ export default function Dashboard() {
                 </h1>
               </div>
             </div>
-            <button
-              onClick={handleFetchTopics}
-              disabled={fetchTopicsMutation.isPending || hasPendingFetchTopics}
-              className="relative overflow-hidden px-4 py-2.5 sm:px-5 sm:py-3 bg-gradient-to-r from-rose-500 to-amber-500 text-white font-semibold text-sm uppercase tracking-wide hover-elevate active-elevate-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 w-full sm:w-auto flex-shrink-0"
-              data-testid="button-fetch-topics"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-rose-600 to-amber-600 opacity-0 hover:opacity-100 transition-opacity" />
-              <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-white/30" />
-              <div className="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-white/30" />
-              <div className="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2 border-white/30" />
-              <div className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-white/30" />
-              <span className="relative flex items-center gap-2">
-                {(fetchTopicsMutation.isPending || hasPendingFetchTopics) ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4" />
-                )}
-                {t("dashboard.updateTopics")}
-              </span>
-            </button>
+            <Link href="/settings">
+              <div
+                className="relative overflow-hidden px-4 py-2.5 sm:px-5 sm:py-3 border border-neutral-600/50 bg-neutral-800/80 text-white font-semibold text-sm uppercase tracking-wide hover-elevate active-elevate-2 flex items-center justify-center gap-2 w-full sm:w-auto flex-shrink-0 cursor-pointer"
+                data-testid="button-settings"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-neutral-700/20 via-transparent to-neutral-600/20" />
+                <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-neutral-500" />
+                <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-neutral-500" />
+                <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-neutral-600" />
+                <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-neutral-600" />
+                <span className="relative flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  {t("nav.settings")}
+                </span>
+              </div>
+            </Link>
           </div>
         </div>
 
@@ -469,6 +466,19 @@ export default function Dashboard() {
                 <div className="flex items-center gap-2">
                   <Scissors className="h-4 w-4 text-rose-400" />
                   <h3 className="text-sm font-semibold text-white uppercase tracking-wide">{t("dashboard.recentTopics")}</h3>
+                  <button
+                    onClick={handleFetchTopics}
+                    disabled={fetchTopicsMutation.isPending || hasPendingFetchTopics}
+                    className="p-1 text-rose-400/70 hover:text-rose-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    data-testid="button-refresh-topics"
+                    title={t("dashboard.updateTopics")}
+                  >
+                    {(fetchTopicsMutation.isPending || hasPendingFetchTopics) ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-3.5 w-3.5" />
+                    )}
+                  </button>
                 </div>
                 <Link href="/topics">
                   <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-rose-300 hover:text-rose-200" data-testid="link-view-all-topics">
