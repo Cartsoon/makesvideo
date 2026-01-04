@@ -127,6 +127,18 @@ async function processJob(job: Job): Promise<void> {
   }
 }
 
+// Helper to decode HTML entities
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(parseInt(code, 10)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, code) => String.fromCharCode(parseInt(code, 16)));
+}
+
 // Simple RSS parser - extracts items from RSS/Atom XML
 function parseRSSItems(xml: string): Array<{ title: string; link: string; description: string; imageUrl?: string }> {
   const items: Array<{ title: string; link: string; description: string; imageUrl?: string }> = [];
@@ -192,10 +204,13 @@ function parseRSSItems(xml: string): Array<{ title: string; link: string; descri
     const linkMatch = itemContent.match(/<link[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/link>/i);
     const descMatch = itemContent.match(/<description[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/description>/i);
     
-    const title = titleMatch ? titleMatch[1].trim().replace(/<!\[CDATA\[|\]\]>/g, '').trim() : '';
+    const titleRaw = titleMatch ? titleMatch[1].trim().replace(/<!\[CDATA\[|\]\]>/g, '').trim() : '';
     const link = linkMatch ? linkMatch[1].trim().replace(/<!\[CDATA\[|\]\]>/g, '').trim() : '';
-    const description = descMatch ? descMatch[1].trim().replace(/<!\[CDATA\[|\]\]>/g, '').replace(/<[^>]+>/g, '').trim() : '';
+    const descRaw = descMatch ? descMatch[1].trim().replace(/<!\[CDATA\[|\]\]>/g, '').replace(/<[^>]+>/g, '').trim() : '';
     const imageUrl = extractImageUrl(itemContent);
+    
+    const title = decodeHtmlEntities(titleRaw);
+    const description = decodeHtmlEntities(descRaw);
     
     if (title) {
       items.push({ title, link, description, imageUrl });
@@ -213,10 +228,13 @@ function parseRSSItems(xml: string): Array<{ title: string; link: string; descri
       const summaryMatch = entryContent.match(/<summary[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/summary>/i);
       const contentMatch = entryContent.match(/<content[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/content>/i);
       
-      const title = titleMatch ? titleMatch[1].trim().replace(/<!\[CDATA\[|\]\]>/g, '').trim() : '';
+      const titleRaw = titleMatch ? titleMatch[1].trim().replace(/<!\[CDATA\[|\]\]>/g, '').trim() : '';
       const link = linkMatch ? linkMatch[1].trim() : '';
-      const description = (summaryMatch ? summaryMatch[1] : contentMatch ? contentMatch[1] : '').trim().replace(/<!\[CDATA\[|\]\]>/g, '').replace(/<[^>]+>/g, '').trim();
+      const descRaw = (summaryMatch ? summaryMatch[1] : contentMatch ? contentMatch[1] : '').trim().replace(/<!\[CDATA\[|\]\]>/g, '').replace(/<[^>]+>/g, '').trim();
       const imageUrl = extractImageUrl(entryContent);
+      
+      const title = decodeHtmlEntities(titleRaw);
+      const description = decodeHtmlEntities(descRaw);
       
       if (title) {
         items.push({ title, link, description, imageUrl });
