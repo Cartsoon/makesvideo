@@ -158,7 +158,7 @@ export default function Topics() {
           </Button>
         </div>
 
-        <div className="flex gap-1 items-center">
+        <div className="flex flex-wrap gap-1.5 items-center">
           {(["all", "new", "in_progress", "missed"] as const).map((status) => (
             <Button
               key={status}
@@ -166,24 +166,24 @@ export default function Topics() {
               size="sm"
               onClick={() => setStatusFilter(status)}
               data-testid={`filter-${status}`}
-              className="text-[9px] sm:text-xs px-1.5 sm:px-3 h-7 flex-shrink-0 gap-1"
+              className="text-xs px-2.5 h-8 gap-1.5"
             >
               {statusLabels[status]}
               <span className={`
-                inline-flex items-center justify-center min-w-[1.1rem] h-[1.1rem] px-1 rounded-full text-[9px] font-bold
+                inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[10px] font-semibold
                 ${statusFilter === status 
-                  ? "bg-background/25 text-primary-foreground" 
-                  : "bg-primary/10 text-foreground"}
+                  ? "bg-background/30" 
+                  : "bg-muted"}
               `}>
                 {statusCounts[status]}
               </span>
             </Button>
           ))}
-          <div className="flex-1" />
+          <div className="flex-1 min-w-4" />
           <Select value={sortBy} onValueChange={(v) => setSortBy(v as "score" | "date")}>
-            <SelectTrigger className="w-[70px] sm:w-[130px] text-[10px] sm:text-xs h-7 flex-shrink-0" data-testid="select-sort">
-              <ArrowUpDown className="h-3 w-3" />
-              <span className="hidden sm:inline ml-1"><SelectValue /></span>
+            <SelectTrigger className="w-[130px] text-xs h-8" data-testid="select-sort">
+              <ArrowUpDown className="h-3 w-3 mr-1" />
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="score">{t("topics.sortByScore")}</SelectItem>
