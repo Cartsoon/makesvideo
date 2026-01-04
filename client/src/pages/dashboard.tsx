@@ -493,31 +493,29 @@ export default function Dashboard() {
         </div>
 
         {activeJobs.length > 0 && (
-          <div className="space-y-1">
-            {activeJobs.map((job) => {
-              const isCompleting = completingJobIds.has(job.id);
-              const progress = isCompleting ? 100 : Math.max(job.progress || 0, 5);
+          <div className="px-1">
+            {(() => {
+              const avgProgress = Math.round(activeJobs.reduce((sum, j) => sum + (j.progress || 0), 0) / activeJobs.length);
+              const progress = Math.max(avgProgress, 5);
+              const allCompleting = activeJobs.every(j => completingJobIds.has(j.id));
               return (
-                <div 
-                  key={job.id} 
-                  className={`flex items-center gap-2 px-1 transition-opacity duration-300 ${isCompleting ? 'opacity-0' : 'opacity-100'}`}
-                >
-                  <div className="flex-1 h-1 bg-neutral-800/50 overflow-hidden rounded-full">
+                <div className={`flex items-center gap-2 transition-opacity duration-300 ${allCompleting ? 'opacity-0' : 'opacity-100'}`}>
+                  <div className="flex-1 h-1.5 bg-neutral-800/50 overflow-hidden rounded-full">
                     <div 
                       className={`h-full rounded-full transition-all duration-300 ease-out ${
-                        isCompleting 
+                        allCompleting 
                           ? 'bg-green-500' 
                           : 'bg-gradient-to-r from-amber-500 via-orange-400 to-amber-500 bg-[length:200%_100%] animate-[shimmer_1.5s_ease-in-out_infinite]'
                       }`}
-                      style={{ width: `${progress}%` }}
+                      style={{ width: `${allCompleting ? 100 : progress}%` }}
                     />
                   </div>
-                  <span className={`text-[10px] font-medium min-w-[3ch] text-right tabular-nums ${isCompleting ? 'text-green-500' : 'text-neutral-500'}`}>
-                    {progress}%
+                  <span className={`text-[10px] font-medium min-w-[3ch] text-right tabular-nums ${allCompleting ? 'text-green-500' : 'text-neutral-500'}`}>
+                    {activeJobs.length > 1 ? `${activeJobs.length}` : `${progress}%`}
                   </span>
                 </div>
               );
-            })}
+            })()}
           </div>
         )}
 
