@@ -106,18 +106,19 @@ function TopicDescription({ topic, language }: { topic: Topic; language: string 
       {isExpanded && (
         <div className="mt-3 p-3 bg-neutral-800/50 border border-neutral-700/50 text-sm text-neutral-300 leading-relaxed">
           <div className="flex flex-wrap items-center gap-2 mb-2">
-            <span className="text-[10px] uppercase tracking-wide text-neutral-500">
-              {language === "ru" ? "Содержание новости" : "Article Content"}
-            </span>
-            {topic.url && (
+            {topic.url ? (
               <a 
                 href={topic.url} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="text-xs text-rose-400 hover:text-rose-300 underline"
+                className="text-[10px] uppercase tracking-wide text-rose-400 hover:text-rose-300 underline"
               >
-                {language === "ru" ? "Открыть источник" : "Open source"}
+                {language === "ru" ? "Содержание новости" : "Article Content"}
               </a>
+            ) : (
+              <span className="text-[10px] uppercase tracking-wide text-neutral-500">
+                {language === "ru" ? "Содержание новости" : "Article Content"}
+              </span>
             )}
             <button
               onClick={() => setIsExpanded(false)}
