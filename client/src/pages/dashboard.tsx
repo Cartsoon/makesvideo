@@ -310,27 +310,23 @@ export default function Dashboard() {
               <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-amber-400" />
               <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-amber-400" />
               
-              <div className="relative flex flex-col gap-3">
+              <div className="relative flex flex-col gap-4">
                 <Link href="/text-to-video">
-                  <div className="flex items-center gap-3 cursor-pointer hover-elevate active-elevate-2 -m-2 p-2">
-                    <div className="relative flex-shrink-0">
-                      <div className="absolute inset-0 blur-xl bg-rose-400/40" />
-                      <div className="relative flex items-center justify-center">
-                        <div className="absolute w-10 h-10 border border-rose-400/30 rotate-45" />
-                        <div className="w-8 h-8 flex items-center justify-center">
-                          <Type className="h-5 w-5 text-rose-400" />
-                        </div>
-                      </div>
+                  <div className="flex items-start gap-4 cursor-pointer hover-elevate active-elevate-2 -m-2 p-2">
+                    <div className="relative flex-shrink-0 w-14 h-14 flex items-center justify-center">
+                      <div className="absolute inset-0 blur-xl bg-rose-400/30" />
+                      <div className="absolute inset-1 border border-rose-400/40 rotate-45" />
+                      <Type className="h-6 w-6 text-rose-400 relative z-10" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-sm text-white uppercase tracking-wide truncate">
+                    <div className="flex-1 min-w-0 pt-1">
+                      <p className="font-bold text-sm text-white uppercase tracking-wide leading-tight">
                         {t("dashboard.createFromText")}
                       </p>
-                      <p className="text-[10px] text-neutral-400 truncate hidden sm:block">
+                      <p className="text-[10px] text-neutral-400 mt-1 leading-relaxed">
                         {t("dashboard.createFromTextDesc")}
                       </p>
                     </div>
-                    <ArrowRight className="h-4 w-4 text-rose-400/60 flex-shrink-0" />
+                    <ArrowRight className="h-4 w-4 text-rose-400/60 flex-shrink-0 mt-1" />
                   </div>
                 </Link>
                 
