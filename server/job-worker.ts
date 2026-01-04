@@ -41,6 +41,108 @@ const EXCLUDED_WORDS_EN = new Set([
 ]);
 
 /**
+ * Checks if a topic is a routine announcement (new episode release, etc.)
+ * These are NOT newsworthy unless there's a scandal/event around them
+ * Returns true if the topic should be SKIPPED
+ */
+function isRoutineAnnouncement(title: string, description: string): boolean {
+  const combined = (title + ' ' + description).toLowerCase();
+  
+  // Episode patterns: S01E05, 1x05, Season 1 Episode 5, сезон 1 серия 5, etc.
+  const episodePatterns = [
+    /s\d{1,2}e\d{1,2}/i,                           // S01E05
+    /\d{1,2}x\d{1,2}/,                             // 1x05
+    /season\s*\d+\s*episode\s*\d+/i,               // Season 1 Episode 5
+    /сезон\s*\d+\s*серия\s*\d+/i,                  // сезон 1 серия 5
+    /\(\s*s\d{1,2}\s*e\d{1,2}\s*\)/i,             // (S01E05)
+    /серия\s*\d+/i,                                // серия 5
+    /episode\s*\d+/i,                              // episode 5
+    /эпизод\s*\d+/i,                               // эпизод 5
+    /часть\s*\d+/i,                                // часть 5 (part)
+    /part\s*\d+/i,                                 // part 5
+    /глава\s*\d+/i,                                // глава 5 (chapter)
+    /chapter\s*\d+/i,                              // chapter 5
+  ];
+  
+  // Check for episode patterns
+  const hasEpisodePattern = episodePatterns.some(p => p.test(title) || p.test(combined));
+  
+  // Routine announcement keywords (without scandal/event context)
+  const routineKeywords = [
+    'вышла новая серия', 'вышел новый эпизод', 'вышла серия',
+    'новая серия', 'новый эпизод', 'премьера серии', 'премьера эпизода',
+    'выходит серия', 'выходит эпизод', 'уже доступен', 'уже доступна',
+    'смотреть онлайн', 'watch online', 'new episode', 'episode released',
+    'episode is out', 'now streaming', 'now available', 'just released',
+    'трейлер серии', 'трейлер эпизода', 'episode trailer',
+    'дата выхода серии', 'дата выхода эпизода', 'release date',
+    'расписание серий', 'расписание выхода', 'episode schedule',
+    'промо', 'promo', 'тизер', 'teaser', 'сегодня выходит',
+  ];
+  
+  // Newsworthy keywords that make episode news acceptable
+  const newsworthyKeywords = [
+    'скандал', 'scandal', 'controversy', 'контроверс',
+    'смерть', 'death', 'died', 'умер', 'умерла', 'погиб',
+    'арест', 'arrest', 'арестован', 'arrested', 'задержан',
+    'обвинен', 'accused', 'charged', 'обвинение',
+    'иск', 'lawsuit', 'суд', 'court', 'судебный',
+    'разоблачен', 'exposed', 'раскрыт', 'revealed scandal',
+    'харассмент', 'harassment', 'домогательств', 'насилие',
+    'abuse', 'boycott', 'бойкот', 'cancel', 'cancelled',
+    'отменен', 'отменена', 'заблокирован', 'banned', 'запрещен',
+    'провал', 'failure', 'flop', 'фиаско', 'катастрофа',
+    'рекорд', 'record', 'breaking', 'побил', 'установил',
+    'утечка', 'leak', 'leaked', 'слив', 'взлом', 'hack',
+    'протест', 'protest', 'скандальн', 'шокирующ', 'shocking',
+    'трагедия', 'tragedy', 'авария', 'crash', 'катастроф',
+    'критика', 'criticism', 'backlash', 'возмущение', 'outrage',
+    'конфликт', 'conflict', 'fight', 'драка', 'ссора',
+    'разрыв', 'split', 'развод', 'divorce', 'уволен', 'fired',
+    'расследовани', 'investigation', 'investigation',
+  ];
+  
+  // If has episode pattern
+  if (hasEpisodePattern) {
+    // Check for routine keywords
+    const isRoutine = routineKeywords.some(kw => combined.includes(kw));
+    // Check for newsworthy context
+    const isNewsworthy = newsworthyKeywords.some(kw => combined.includes(kw));
+    
+    // Skip if it has episode pattern AND (is routine OR lacks newsworthy context)
+    // If no routine keywords but also no newsworthy keywords, skip it (just episode number)
+    if (isRoutine && !isNewsworthy) {
+      return true; // Skip routine announcement
+    }
+    if (!isNewsworthy) {
+      // Just episode pattern without any context - likely routine
+      return true;
+    }
+  }
+  
+  // Check for pure routine keywords without episode pattern
+  const pureRoutinePatterns = [
+    /вышла?\s+(новая?|очередн)/i,
+    /новый\s+выпуск/i,
+    /новая\s+серия\s+сериала/i,
+    /премьера\s+сериала/i,
+    /watch\s+the\s+new\s+episode/i,
+    /tune\s+in\s+(tonight|today)/i,
+    /catch\s+the\s+latest/i,
+    /don't\s+miss/i,
+  ];
+  
+  const isPureRoutine = pureRoutinePatterns.some(p => p.test(combined));
+  const isNewsworthy = newsworthyKeywords.some(kw => combined.includes(kw));
+  
+  if (isPureRoutine && !isNewsworthy) {
+    return true;
+  }
+  
+  return false;
+}
+
+/**
  * Strips ALL HTML tags, URLs, and special markup from text
  * Used to clean titles and descriptions from RSS feeds
  */
@@ -596,6 +698,13 @@ async function processFetchTopics(job: Job): Promise<void> {
     
     // Block topics with short/missing titles
     if (titleLength < 30 && titleWordCount < 4) {
+      processedItems++;
+      continue;
+    }
+    
+    // Block routine announcements (new episodes, etc.) without newsworthy context
+    if (isRoutineAnnouncement(rawTitle, rawDescription)) {
+      console.log(`[JobWorker] Skipped routine announcement: ${rawTitle.slice(0, 50)}...`);
       processedItems++;
       continue;
     }
