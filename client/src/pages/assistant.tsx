@@ -1140,8 +1140,8 @@ export default function AssistantPage() {
       </div>
 
       {/* DESKTOP LAYOUT */}
-      <div className="hidden lg:flex gap-4 h-[calc(100vh-3.5rem)] mx-6 py-1 overflow-hidden">
-        <div className="flex flex-col flex-1 bg-background rounded-md border overflow-hidden">
+      <div className="hidden lg:flex items-center gap-4 h-[calc(100vh-3.5rem)] mx-6 py-4 overflow-hidden">
+        <div className="flex flex-col flex-1 bg-background rounded-md border overflow-hidden max-h-[calc(100vh-5rem)]">
           <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border/50 flex-shrink-0">
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1.5">
@@ -1425,7 +1425,7 @@ export default function AssistantPage() {
           </div>
         </div>
 
-        <div className="flex flex-col w-80 gap-4 h-full">
+        <div className="flex flex-col w-80 gap-4 max-h-[calc(100vh-5rem)]">
           <Card className="flex flex-col flex-1 min-h-0 overflow-hidden">
             <div className="flex items-center gap-3 px-4 py-3 border-b bg-gradient-to-r from-amber-500/10 to-orange-500/10">
               <div className="w-8 h-8 rounded-md bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
