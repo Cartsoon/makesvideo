@@ -183,111 +183,114 @@ export default function Topics() {
 
   return (
     <Layout title={t("nav.topics")}>
-      <div className="p-3 md:p-4 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary/10 flex items-center justify-center" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 85%, 85% 100%, 0 100%)' }}>
-              <Film className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-lg font-semibold" data-testid="text-page-title">{t("topics.title")}</h1>
-              <p className="text-muted-foreground text-xs">{t("topics.subtitle")}</p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              onClick={() => fetchMutation.mutate()}
-              disabled={fetchMutation.isPending}
-              size="sm"
-              data-testid="button-refresh-topics"
-            >
-              {fetchMutation.isPending ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4 mr-2" />
-              )}
-              {t("topics.refresh")}
-            </Button>
-            {(topics?.length || 0) > 0 && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={clearAllMutation.isPending}
-                    className="text-destructive"
-                    data-testid="button-clear-topics"
-                  >
-                    {clearAllMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-4 w-4" />
-                    )}
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent className="max-w-sm">
-                  <AlertDialogHeader>
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-10 h-10 bg-destructive/10 flex items-center justify-center" style={{ borderRadius: '2px' }}>
-                        <AlertTriangle className="h-5 w-5 text-destructive" />
-                      </div>
-                      <AlertDialogTitle className="text-base">
-                        {language === "ru" ? "Удалить все топики?" : "Delete all topics?"}
-                      </AlertDialogTitle>
-                    </div>
-                    <AlertDialogDescription className="text-sm">
-                      {language === "ru" 
-                        ? `Будет удалено ${topics?.length || 0} топиков. Это действие нельзя отменить.`
-                        : `${topics?.length || 0} topics will be deleted. This action cannot be undone.`
-                      }
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter className="gap-2 sm:gap-0">
-                    <AlertDialogCancel data-testid="button-cancel-clear">
-                      {language === "ru" ? "Отмена" : "Cancel"}
-                    </AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={() => clearAllMutation.mutate()}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      data-testid="button-confirm-clear"
-                    >
-                      {language === "ru" ? "Удалить" : "Delete"}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+      <div className="p-3 md:p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => fetchMutation.mutate()}
+            disabled={fetchMutation.isPending}
+            size="icon"
+            data-testid="button-refresh-topics"
+            className="shrink-0"
+            style={{ borderRadius: '2px' }}
+          >
+            {fetchMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
             )}
+          </Button>
+          
+          <div className="flex-1 overflow-x-auto scrollbar-hide">
+            <div className="flex gap-1 min-w-max">
+              {(["all", "new", "in_progress", "missed"] as const).map((status) => (
+                <button
+                  key={status}
+                  onClick={() => setStatusFilter(status)}
+                  data-testid={`filter-${status}`}
+                  className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors ${
+                    statusFilter === status 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                  }`}
+                  style={{ borderRadius: '2px' }}
+                >
+                  {statusLabels[status]}
+                  <span className={`px-1.5 py-0.5 text-[10px] font-semibold ${
+                    statusFilter === status 
+                      ? 'bg-primary-foreground/20 text-primary-foreground' 
+                      : 'bg-background text-foreground'
+                  }`} style={{ borderRadius: '2px' }}>
+                    {statusCounts[status]}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
 
-        <div className="flex flex-col sm:flex-row gap-2">
-          <div className="flex gap-1 flex-1">
-            {(["all", "new", "in_progress", "missed"] as const).map((status) => (
-              <Button
-                key={status}
-                variant={statusFilter === status ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setStatusFilter(status)}
-                data-testid={`filter-${status}`}
-                className="flex-1 text-xs px-2 h-8 gap-1"
-              >
-                {statusLabels[status]}
-                <Badge variant="secondary" className="h-5 px-1.5 text-[10px] no-default-hover-elevate no-default-active-elevate">
-                  {statusCounts[status]}
-                </Badge>
-              </Button>
-            ))}
-          </div>
           <Select value={sortBy} onValueChange={(v) => setSortBy(v as "score" | "date")}>
-            <SelectTrigger className="w-full sm:w-36 text-xs h-8" data-testid="select-sort">
-              <ArrowUpDown className="h-3 w-3 mr-1" />
-              <SelectValue />
+            <SelectTrigger 
+              className="w-10 h-9 p-0 shrink-0" 
+              data-testid="select-sort"
+              style={{ borderRadius: '2px' }}
+            >
+              <ArrowUpDown className="h-4 w-4" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="score">{t("topics.sortByScore")}</SelectItem>
               <SelectItem value="date">{t("topics.sortByDate")}</SelectItem>
             </SelectContent>
           </Select>
+
+          {(topics?.length || 0) > 0 && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  disabled={clearAllMutation.isPending}
+                  className="text-destructive shrink-0"
+                  data-testid="button-clear-topics"
+                  style={{ borderRadius: '2px' }}
+                >
+                  {clearAllMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="max-w-sm">
+                <AlertDialogHeader>
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 bg-destructive/10 flex items-center justify-center" style={{ borderRadius: '2px' }}>
+                      <AlertTriangle className="h-5 w-5 text-destructive" />
+                    </div>
+                    <AlertDialogTitle className="text-base">
+                      {language === "ru" ? "Удалить все топики?" : "Delete all topics?"}
+                    </AlertDialogTitle>
+                  </div>
+                  <AlertDialogDescription className="text-sm">
+                    {language === "ru" 
+                      ? `Будет удалено ${topics?.length || 0} топиков. Это действие нельзя отменить.`
+                      : `${topics?.length || 0} topics will be deleted. This action cannot be undone.`
+                    }
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter className="gap-2 sm:gap-0">
+                  <AlertDialogCancel data-testid="button-cancel-clear">
+                    {language === "ru" ? "Отмена" : "Cancel"}
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => clearAllMutation.mutate()}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    data-testid="button-confirm-clear"
+                  >
+                    {language === "ru" ? "Удалить" : "Delete"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
 
         {isLoading ? (
