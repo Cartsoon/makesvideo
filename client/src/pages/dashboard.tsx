@@ -157,7 +157,7 @@ export default function Dashboard() {
       const dateB = new Date(b.publishedAt || b.createdAt).getTime();
       return dateB - dateA;
     })
-    .slice(0, 6);
+    .slice(0, 8); // 6 on mobile, 8 on desktop (last 2 hidden on mobile via CSS)
   // For animation tracking, use the filtered list
   const newTopics = filteredTopics;
   const recentScripts = scripts
@@ -572,10 +572,11 @@ export default function Dashboard() {
                 </div>
               ) : (
                 <div className="space-y-1.5">
-                  {recentTopics.map((topic) => {
+                  {recentTopics.map((topic, index) => {
                     const isNewlyAdded = newlyAddedIds.has(topic.id);
+                    const isDesktopOnly = index >= 6; // Show items 7-8 only on larger screens
                     return (
-                    <Link key={topic.id} href={`/topics?highlight=${topic.id}`}>
+                    <Link key={topic.id} href={`/topics?highlight=${topic.id}`} className={isDesktopOnly ? "hidden lg:block" : ""}>
                       <div
                         className={`group flex items-center gap-2 p-1.5 bg-neutral-800/50 border border-rose-500/20 hover-elevate cursor-pointer transition-all duration-300 ${
                           isNewlyAdded ? "animate-new-item border-emerald-400/30" : ""
