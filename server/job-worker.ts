@@ -335,9 +335,17 @@ async function processFetchTopics(job: Job): Promise<void> {
           const rawTitle = item.title;
           const rawDescription = item.description.slice(0, 500);
           
-          const totalTextLength = (rawTitle?.length || 0) + (rawDescription?.length || 0);
-          if (totalTextLength < 80) {
-            console.log(`[JobWorker] Skipping topic with insufficient content (${totalTextLength} chars): "${rawTitle?.slice(0, 50)}..."`);
+          // Quality check: need enough content for video script generation
+          // Minimum: 250 characters OR 40 words across title + description
+          const combinedText = `${rawTitle || ''} ${rawDescription || ''}`.trim();
+          const charCount = combinedText.length;
+          const wordCount = combinedText.split(/\s+/).filter(w => w.length > 1).length;
+          
+          const MIN_CHARS = 250;
+          const MIN_WORDS = 40;
+          
+          if (charCount < MIN_CHARS && wordCount < MIN_WORDS) {
+            console.log(`[JobWorker] Skipping low-quality topic (${charCount} chars, ${wordCount} words): "${rawTitle?.slice(0, 50)}..."`);
             continue;
           }
           
