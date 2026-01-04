@@ -17,6 +17,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { 
   Scissors, 
   RefreshCw, 
@@ -29,7 +40,8 @@ import {
   Film,
   Sparkles,
   Clock,
-  TrendingUp
+  TrendingUp,
+  AlertTriangle
 } from "lucide-react";
 import type { Topic, TopicStatus, Job } from "@shared/schema";
 
@@ -195,24 +207,53 @@ export default function Topics() {
               {t("topics.refresh")}
             </Button>
             {(topics?.length || 0) > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  if (confirm(t("topics.clearConfirm") || "Delete all topics?")) {
-                    clearAllMutation.mutate();
-                  }
-                }}
-                disabled={clearAllMutation.isPending}
-                className="text-destructive"
-                data-testid="button-clear-topics"
-              >
-                {clearAllMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Trash2 className="h-4 w-4" />
-                )}
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={clearAllMutation.isPending}
+                    className="text-destructive"
+                    data-testid="button-clear-topics"
+                  >
+                    {clearAllMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="max-w-sm">
+                  <AlertDialogHeader>
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-10 h-10 bg-destructive/10 flex items-center justify-center" style={{ borderRadius: '2px' }}>
+                        <AlertTriangle className="h-5 w-5 text-destructive" />
+                      </div>
+                      <AlertDialogTitle className="text-base">
+                        {language === "ru" ? "Удалить все топики?" : "Delete all topics?"}
+                      </AlertDialogTitle>
+                    </div>
+                    <AlertDialogDescription className="text-sm">
+                      {language === "ru" 
+                        ? `Будет удалено ${topics?.length || 0} топиков. Это действие нельзя отменить.`
+                        : `${topics?.length || 0} topics will be deleted. This action cannot be undone.`
+                      }
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter className="gap-2 sm:gap-0">
+                    <AlertDialogCancel data-testid="button-cancel-clear">
+                      {language === "ru" ? "Отмена" : "Cancel"}
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => clearAllMutation.mutate()}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      data-testid="button-confirm-clear"
+                    >
+                      {language === "ru" ? "Удалить" : "Delete"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
           </div>
         </div>
