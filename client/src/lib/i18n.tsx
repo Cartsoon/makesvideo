@@ -751,7 +751,7 @@ const translations: Record<Language, Record<string, string>> = {
     "common.edit": "Редактировать",
     "common.view": "Просмотр",
     "common.russian": "Русский",
-    "common.english": "English",
+    "common.english": "Английский",
     "common.open": "Открыть",
     "common.generate": "Сгенерировать",
     "common.showMore": "Показать полностью",
