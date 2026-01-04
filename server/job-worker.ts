@@ -10,48 +10,70 @@ const FETCH_INTERVAL_MS = 3 * 60 * 1000; // 3 minutes
 
 let autoFetchInterval: NodeJS.Timeout | null = null;
 
-// Common stop words to filter out when extracting tags
-const STOP_WORDS_RU = new Set(['и', 'в', 'на', 'с', 'по', 'для', 'от', 'из', 'как', 'что', 'это', 'не', 'но', 'к', 'за', 'о', 'об', 'при', 'из-за', 'а', 'или', 'так', 'уже', 'все', 'его', 'её', 'их', 'мы', 'вы', 'они', 'он', 'она', 'оно', 'был', 'была', 'было', 'были', 'быть', 'есть', 'будет', 'того', 'этого', 'которые', 'который', 'которая', 'которое', 'также', 'более', 'самый', 'только', 'можно', 'нужно', 'надо', 'даже', 'ещё', 'когда', 'если', 'чтобы', 'после', 'перед', 'между', 'через', 'под', 'над', 'около', 'против', 'вместо', 'кроме', 'благодаря', 'несмотря', 'года', 'году', 'год', 'лет', 'время', 'день', 'дней', 'час', 'часов', 'минут', 'сегодня', 'вчера', 'завтра', 'теперь', 'потом', 'сначала', 'затем']);
-const STOP_WORDS_EN = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'as', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'must', 'can', 'this', 'that', 'these', 'those', 'it', 'its', 'they', 'them', 'their', 'he', 'she', 'his', 'her', 'we', 'you', 'your', 'our', 'who', 'which', 'what', 'when', 'where', 'why', 'how', 'all', 'each', 'every', 'both', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'not', 'only', 'same', 'so', 'than', 'too', 'very', 'just', 'also', 'now', 'here', 'there', 'about', 'after', 'before', 'between', 'into', 'through', 'during', 'under', 'over', 'above', 'below', 'out', 'off', 'up', 'down', 'again', 'further', 'then', 'once', 'new', 'first', 'last', 'year', 'years', 'day', 'days', 'time', 'today', 'yesterday', 'tomorrow']);
+// Common verbs and generic words to exclude from tags (Russian)
+const EXCLUDED_WORDS_RU = new Set([
+  'и', 'в', 'на', 'с', 'по', 'для', 'от', 'из', 'как', 'что', 'это', 'не', 'но', 'к', 'за', 'о', 'об', 'при',
+  'а', 'или', 'так', 'уже', 'все', 'его', 'её', 'их', 'мы', 'вы', 'они', 'он', 'она', 'оно',
+  'был', 'была', 'было', 'были', 'быть', 'есть', 'будет', 'стал', 'стала', 'стало', 'стали',
+  'того', 'этого', 'которые', 'который', 'которая', 'которое', 'также', 'более', 'самый', 'только',
+  'можно', 'нужно', 'надо', 'даже', 'ещё', 'когда', 'если', 'чтобы', 'после', 'перед', 'между',
+  'года', 'году', 'год', 'лет', 'время', 'день', 'дней', 'час', 'часов', 'минут',
+  'сегодня', 'вчера', 'завтра', 'теперь', 'потом', 'сначала', 'затем', 'новый', 'новая', 'новое', 'новые',
+  'сообщил', 'сообщила', 'сообщили', 'заявил', 'заявила', 'заявили', 'рассказал', 'рассказала',
+  'стало', 'известно', 'пользователи', 'обнаружили', 'нашли', 'узнали', 'показал', 'показала',
+  'получил', 'получила', 'получили', 'решил', 'решила', 'решили', 'начал', 'начала', 'начали',
+  'первый', 'первая', 'первое', 'второй', 'вторая', 'третий', 'последний', 'последняя',
+  'большой', 'большая', 'маленький', 'маленькая', 'хороший', 'хорошая', 'плохой', 'плохая',
+  'против', 'около', 'через', 'почему', 'зачем', 'откуда', 'куда', 'где', 'кто', 'чем',
+  'своем', 'своей', 'своих', 'свой', 'своя', 'свои', 'этот', 'эта', 'эти', 'тот', 'та', 'те',
+  'раскрыли', 'подробности', 'увидели', 'необычную', 'деталь', 'окружили', 'ликвидировали',
+  'регистрацию', 'домена', 'связанного'
+]);
+const EXCLUDED_WORDS_EN = new Set([
+  'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from',
+  'as', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did',
+  'will', 'would', 'could', 'should', 'may', 'might', 'must', 'can', 'this', 'that', 'these', 'those',
+  'it', 'its', 'they', 'them', 'their', 'he', 'she', 'his', 'her', 'we', 'you', 'your', 'our',
+  'who', 'which', 'what', 'when', 'where', 'why', 'how', 'all', 'each', 'every', 'both', 'few',
+  'more', 'most', 'other', 'some', 'such', 'no', 'not', 'only', 'same', 'so', 'than', 'too', 'very',
+  'just', 'also', 'now', 'here', 'there', 'about', 'after', 'before', 'between', 'new', 'first', 'last',
+  'year', 'years', 'day', 'days', 'time', 'today', 'says', 'said', 'told', 'reports', 'announces',
+  'users', 'found', 'discovered', 'revealed', 'shows', 'according', 'sources', 'officials'
+]);
 
 /**
- * Extracts 2-5 relevant tags from title and content
- * Tags are short keywords that describe the topic's subject matter
+ * Extracts 2-4 relevant tags from title - only proper nouns and key entities
+ * Focus on: names, countries, companies, brands, events
  */
 function extractTopicTags(title: string, content: string | null, language: string): string[] {
-  const text = `${title} ${content || ''}`.toLowerCase();
-  const stopWords = language === 'ru' ? STOP_WORDS_RU : STOP_WORDS_EN;
+  const excludedWords = language === 'ru' ? EXCLUDED_WORDS_RU : EXCLUDED_WORDS_EN;
+  const fullText = `${title} ${content || ''}`;
   
-  // Extract words and their frequencies
-  const wordFreq = new Map<string, number>();
-  const words = text.match(/[\p{L}]+/gu) || [];
+  // Find words that start with uppercase letter (proper nouns)
+  // This regex matches words starting with uppercase followed by lowercase
+  const properNouns = fullText.match(/[A-ZА-ЯЁ][a-zа-яё]{2,}/g) || [];
   
-  for (const word of words) {
-    if (word.length < 3 || word.length > 25) continue;
-    if (stopWords.has(word)) continue;
-    if (/^\d+$/.test(word)) continue; // Skip pure numbers
-    
-    wordFreq.set(word, (wordFreq.get(word) || 0) + 1);
+  // Count occurrences and filter
+  const tagCounts = new Map<string, number>();
+  for (const word of properNouns) {
+    const lower = word.toLowerCase();
+    if (excludedWords.has(lower)) continue;
+    if (word.length < 3 || word.length > 20) continue;
+    tagCounts.set(word, (tagCounts.get(word) || 0) + 1);
   }
   
-  // Sort by frequency and get top words
-  const sortedWords = Array.from(wordFreq.entries())
-    .sort((a, b) => b[1] - a[1])
-    .map(([word]) => word);
+  // Sort by frequency, prefer title matches
+  const titleWords = new Set((title.match(/[A-ZА-ЯЁ][a-zа-яё]{2,}/g) || []).map(w => w));
+  const sortedTags = Array.from(tagCounts.entries())
+    .sort((a, b) => {
+      const aInTitle = titleWords.has(a[0]) ? 10 : 0;
+      const bInTitle = titleWords.has(b[0]) ? 10 : 0;
+      return (b[1] + bInTitle) - (a[1] + aInTitle);
+    })
+    .map(([tag]) => tag);
   
-  // Extract meaningful n-grams from title (more likely to be relevant)
-  const titleWords = title.toLowerCase().match(/[\p{L}]+/gu) || [];
-  const titleKeywords = titleWords
-    .filter(w => w.length >= 3 && !stopWords.has(w) && !/^\d+$/.test(w))
-    .slice(0, 3);
-  
-  // Combine title keywords with frequent words, deduplicating
-  const tagCandidates = [...new Set([...titleKeywords, ...sortedWords])];
-  
-  // Return 2-5 tags, capitalizing first letter
-  return tagCandidates
-    .slice(0, 5)
-    .map(tag => tag.charAt(0).toUpperCase() + tag.slice(1));
+  // Return 2-4 unique tags
+  return sortedTags.slice(0, 4);
 }
 
 let isProcessing = false;
