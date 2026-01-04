@@ -642,8 +642,46 @@ export default function ScriptDetail() {
             </svg>
           </div>
           
-          <div className="relative px-4 py-3 border-b border-neutral-700/50 bg-neutral-800/50">
-            <div className="flex items-center gap-2">
+          <div className="relative px-4 py-3 border-b border-neutral-700/50 bg-neutral-800/50 overflow-hidden">
+            {/* Decorative icons in header background */}
+            <div className="absolute inset-0 flex items-center justify-end gap-3 pr-4 opacity-[0.06]">
+              {/* Sliders icon */}
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white">
+                <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" />
+                <line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" />
+                <line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" />
+                <circle cx="4" cy="12" r="2" /><circle cx="12" cy="10" r="2" /><circle cx="20" cy="14" r="2" />
+              </svg>
+              {/* Film icon */}
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white">
+                <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18" />
+                <line x1="7" y1="2" x2="7" y2="22" /><line x1="17" y1="2" x2="17" y2="22" />
+                <line x1="2" y1="12" x2="22" y2="12" />
+                <line x1="2" y1="7" x2="7" y2="7" /><line x1="2" y1="17" x2="7" y2="17" />
+                <line x1="17" y1="17" x2="22" y2="17" /><line x1="17" y1="7" x2="22" y2="7" />
+              </svg>
+              {/* Monitor/play icon */}
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                <line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" />
+                <polygon points="10,8 10,12 14,10" />
+              </svg>
+              {/* Equalizer bars */}
+              <div className="flex items-end gap-0.5 h-5">
+                <div className="w-1 h-2 bg-white/80" />
+                <div className="w-1 h-4 bg-white/80" />
+                <div className="w-1 h-3 bg-white/80" />
+                <div className="w-1 h-5 bg-white/80" />
+                <div className="w-1 h-2 bg-white/80" />
+              </div>
+              {/* Timer/clock */}
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12,6 12,12 16,14" />
+              </svg>
+            </div>
+            
+            <div className="relative flex items-center gap-2">
               <div className="w-1 h-3 bg-gradient-to-b from-rose-500/60 to-amber-500/60" />
               <h3 className="text-sm font-semibold text-white uppercase tracking-wide">{t("script.settings")}</h3>
             </div>
