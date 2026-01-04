@@ -10,18 +10,19 @@ interface StatusBadgeProps {
 
 const statusStyles: Record<string, string> = {
   // Script statuses  
-  draft: "bg-muted text-muted-foreground",
-  in_progress: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
-  done: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400",
-  generating: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
-  error: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-  // Topic statuses
-  new: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-  selected: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400",
-  ignored: "bg-muted text-muted-foreground",
+  draft: "bg-zinc-600 text-white",
+  in_progress: "bg-amber-500 text-white dark:bg-amber-500 dark:text-white",
+  done: "bg-emerald-500 text-white dark:bg-emerald-500 dark:text-white",
+  generating: "bg-amber-500 text-white dark:bg-amber-500 dark:text-white",
+  error: "bg-red-500 text-white dark:bg-red-500 dark:text-white",
+  // Topic statuses - bright colors for visibility
+  new: "bg-blue-500 text-white dark:bg-blue-500 dark:text-white",
+  selected: "bg-emerald-500 text-white dark:bg-emerald-500 dark:text-white",
+  ignored: "bg-zinc-500 text-white dark:bg-zinc-500 dark:text-white",
+  missed: "bg-orange-500 text-white dark:bg-orange-500 dark:text-white",
   // Job statuses
-  queued: "bg-muted text-muted-foreground",
-  running: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
+  queued: "bg-zinc-500 text-white dark:bg-zinc-500 dark:text-white",
+  running: "bg-amber-500 text-white dark:bg-amber-500 dark:text-white",
 };
 
 const statusLabelsRu: Record<string, string> = {

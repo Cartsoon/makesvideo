@@ -310,11 +310,11 @@ export default function Topics() {
                   <img
                     src={getTopicImage(topic)}
                     alt=""
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    className="w-full h-full object-cover transition-all duration-300 group-hover:scale-105 brightness-90 group-hover:brightness-100"
                     onError={() => handleImageError(topic.id)}
                     loading="lazy"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent transition-opacity duration-300 group-hover:opacity-80" />
                   
                   <div className="absolute top-2 left-2 right-2 flex items-start justify-between gap-2">
                     <StatusBadge status={topic.status} className="text-[10px]" />
