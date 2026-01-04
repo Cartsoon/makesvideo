@@ -353,7 +353,7 @@ export default function Topics() {
                   fadingOutIds.has(topic.id) ? 'opacity-0 scale-95 -translate-y-2' : 'opacity-100 scale-100'
                 } ${
                   highlightedId === topic.id 
-                    ? 'ring-2 ring-amber-400 border-amber-400 animate-pulse shadow-lg shadow-amber-400/30' 
+                    ? 'border-2 animate-highlight-glow' 
                     : 'border-border'
                 }`}
                 style={{ borderRadius: '2px' }}
