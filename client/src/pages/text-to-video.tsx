@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/layout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -108,10 +108,15 @@ interface GenerationResult {
 
 export default function TextToVideo() {
   const [, navigate] = useLocation();
+  const searchString = useSearch();
   const { toast } = useToast();
   const { t, language: uiLanguage } = useI18n();
   
-  const [inputText, setInputText] = useState("");
+  // Get initial text from URL parameter
+  const urlParams = new URLSearchParams(searchString);
+  const initialText = urlParams.get("text") || "";
+  
+  const [inputText, setInputText] = useState(initialText);
   const [genLanguage, setGenLanguage] = useState<Language>("ru");
   const [stylePreset, setStylePreset] = useState<StylePreset>("news");
   const [duration, setDuration] = useState(60);

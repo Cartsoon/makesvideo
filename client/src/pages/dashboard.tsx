@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,12 +35,20 @@ import placeholderImage from "@assets/file_0000000078a471f4af18c4a74cc26e4a_1767
 export default function Dashboard() {
   const { toast } = useToast();
   const { t, language } = useI18n();
+  const [, navigate] = useLocation();
   const [comingSoonOpen, setComingSoonOpen] = useState(false);
   const [processedJobIds, setProcessedJobIds] = useState<Set<string>>(new Set());
+  const [quickText, setQuickText] = useState("");
   
   const [prevTopicIds, setPrevTopicIds] = useState<Set<string>>(new Set());
   const [newlyAddedIds, setNewlyAddedIds] = useState<Set<string>>(new Set());
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
+  
+  const handleQuickTextSubmit = () => {
+    if (quickText.trim()) {
+      navigate(`/text-to-video?text=${encodeURIComponent(quickText.trim())}`);
+    }
+  };
 
   const getTopicImage = (topic: Topic): string => {
     if (topic.imageUrl && !imageErrors.has(topic.id)) {
@@ -276,10 +284,9 @@ export default function Dashboard() {
         <div className="flex flex-col gap-3">
 
           <div className="grid grid-cols-2 gap-3">
-            <Link href="/text-to-video">
-            <button
-              className="group relative overflow-hidden p-4 sm:p-5 border border-rose-500/30 bg-neutral-900/90 dark:bg-neutral-900/90 hover-elevate active-elevate-2 transition-all cursor-pointer w-full"
-              data-testid="button-create-from-text"
+            <div
+              className="group relative overflow-hidden p-4 sm:p-5 border border-rose-500/30 bg-neutral-900/90 dark:bg-neutral-900/90 transition-all w-full"
+              data-testid="panel-create-from-text"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-rose-500/20 via-transparent to-amber-500/20 opacity-60" />
               
@@ -303,29 +310,55 @@ export default function Dashboard() {
               <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-amber-400" />
               <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-amber-400" />
               
-              <div className="relative flex flex-col items-center gap-3 text-center">
-                <div className="relative">
-                  <div className="absolute inset-0 blur-xl bg-rose-400/40" />
-                  <div className="relative flex items-center justify-center">
-                    <div className="absolute w-14 h-14 sm:w-16 sm:h-16 border border-rose-400/30 rotate-45" />
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center">
-                      <Type className="h-6 w-6 sm:h-7 sm:w-7 text-rose-400" />
+              <div className="relative flex flex-col gap-3">
+                <Link href="/text-to-video">
+                  <div className="flex items-center gap-3 cursor-pointer hover-elevate active-elevate-2 -m-2 p-2">
+                    <div className="relative flex-shrink-0">
+                      <div className="absolute inset-0 blur-xl bg-rose-400/40" />
+                      <div className="relative flex items-center justify-center">
+                        <div className="absolute w-10 h-10 border border-rose-400/30 rotate-45" />
+                        <div className="w-8 h-8 flex items-center justify-center">
+                          <Type className="h-5 w-5 text-rose-400" />
+                        </div>
+                      </div>
                     </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-sm text-white uppercase tracking-wide truncate">
+                        {t("dashboard.createFromText")}
+                      </p>
+                      <p className="text-[10px] text-neutral-400 truncate hidden sm:block">
+                        {t("dashboard.createFromTextDesc")}
+                      </p>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-rose-400/60 flex-shrink-0" />
                   </div>
-                </div>
-                <div>
-                  <p className="font-bold text-sm sm:text-base text-white uppercase tracking-wide">
-                    <span className="hidden sm:inline">{t("dashboard.createFromText")}</span>
-                    <span className="sm:hidden">{t("dashboard.createFromTextShort")}</span>
-                  </p>
-                  <p className="text-[10px] sm:text-xs text-neutral-400 mt-1 hidden sm:block">
-                    {t("dashboard.createFromTextDesc")}
-                  </p>
+                </Link>
+                
+                <div className="relative flex gap-2">
+                  <input
+                    type="text"
+                    value={quickText}
+                    onChange={(e) => setQuickText(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleQuickTextSubmit()}
+                    placeholder={language === "ru" ? "Вставьте текст или ссылку..." : "Paste text or link..."}
+                    className="flex-1 h-9 px-3 bg-neutral-800/80 border border-neutral-700/50 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-rose-400/50 transition-colors"
+                    style={{ borderRadius: '2px' }}
+                    data-testid="input-quick-text"
+                  />
+                  <button
+                    onClick={handleQuickTextSubmit}
+                    disabled={!quickText.trim()}
+                    className="h-9 px-3 bg-gradient-to-r from-rose-500 to-amber-500 text-white text-xs font-semibold uppercase tracking-wide disabled:opacity-40 disabled:cursor-not-allowed hover-elevate active-elevate-2 transition-all flex items-center gap-1.5"
+                    style={{ borderRadius: '2px' }}
+                    data-testid="button-quick-submit"
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">{language === "ru" ? "Создать" : "Create"}</span>
+                  </button>
                 </div>
               </div>
               <Sparkles className="absolute top-3 right-3 h-4 w-4 text-amber-400/60" />
-            </button>
-            </Link>
+            </div>
 
             <button
               className="group relative overflow-hidden p-4 sm:p-5 border border-blue-500/30 bg-neutral-900/90 dark:bg-neutral-900/90 hover-elevate active-elevate-2 transition-all cursor-pointer"
