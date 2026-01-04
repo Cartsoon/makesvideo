@@ -436,13 +436,42 @@ export default function ScriptDetail() {
   return (
     <Layout title={t("script.title")}>
       <div className="p-4 md:p-6 space-y-4">
-        <div className="relative overflow-visible border border-border/50 bg-card/50">
-          <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-primary/60" />
-          <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-primary/60" />
-          <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-accent/60" />
-          <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-accent/60" />
+        <div className="relative overflow-hidden border border-neutral-700/50 bg-neutral-900/90">
+          {/* Film strip decoration - left */}
+          <div className="absolute left-0 top-0 bottom-0 w-6 bg-neutral-800/50 flex flex-col justify-around py-2">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="w-3 h-2 bg-neutral-700/60 mx-auto" />
+            ))}
+          </div>
           
-          <div className="p-4">
+          {/* Film strip decoration - right */}
+          <div className="absolute right-0 top-0 bottom-0 w-6 bg-neutral-800/50 flex flex-col justify-around py-2">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="w-3 h-2 bg-neutral-700/60 mx-auto" />
+            ))}
+          </div>
+          
+          {/* Background grid pattern */}
+          <div className="absolute inset-0 opacity-[0.03]" style={{
+            backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 20px, rgba(255,255,255,0.1) 20px, rgba(255,255,255,0.1) 21px),
+                              repeating-linear-gradient(90deg, transparent, transparent 20px, rgba(255,255,255,0.1) 20px, rgba(255,255,255,0.1) 21px)`
+          }} />
+          
+          {/* Gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-r from-rose-500/5 via-transparent to-amber-500/5" />
+          
+          {/* Corner markers */}
+          <div className="absolute top-0 left-6 w-3 h-3 border-t-2 border-l-2 border-rose-500/60" />
+          <div className="absolute top-0 right-6 w-3 h-3 border-t-2 border-r-2 border-rose-500/60" />
+          <div className="absolute bottom-0 left-6 w-3 h-3 border-b-2 border-l-2 border-amber-500/60" />
+          <div className="absolute bottom-0 right-6 w-3 h-3 border-b-2 border-r-2 border-amber-500/60" />
+          
+          {/* Timecode decoration */}
+          <div className="absolute top-1 right-8 text-[8px] font-mono text-neutral-600 tracking-wider">
+            00:00:00:00
+          </div>
+          
+          <div className="relative p-4 pl-10 pr-10">
             <div className="flex items-center gap-3">
               <Link href="/scripts">
                 <Button variant="ghost" size="icon" data-testid="button-back" className="flex-shrink-0">
