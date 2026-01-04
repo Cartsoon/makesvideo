@@ -812,72 +812,6 @@ export default function ScriptDetail() {
           </div>
         </div>
 
-        {(script.seo?.seoTitle || script.seo?.hashtags?.length) && (
-          <div className="relative border border-neutral-700/50 bg-neutral-900/80">
-            <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-rose-500/60" />
-            <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-rose-500/60" />
-            <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-amber-500/60" />
-            <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-amber-500/60" />
-            
-            <div className="px-4 py-3 border-b border-neutral-700/50 bg-neutral-800/50">
-              <h3 className="text-sm font-semibold text-white uppercase tracking-wide">SEO</h3>
-            </div>
-            
-            <div className="p-4 space-y-4">
-              {script.seo?.seoTitleOptions && script.seo.seoTitleOptions.length > 0 && (
-                <div className="space-y-2">
-                  <Label className="text-[10px] uppercase tracking-wide text-neutral-400">{script.language === "ru" ? "Варианты заголовка" : "Title Options"}</Label>
-                  <div className="space-y-1">
-                    {script.seo.seoTitleOptions.map((title, idx) => (
-                      <div 
-                        key={idx} 
-                        className={`p-2 text-sm cursor-pointer transition-colors border ${
-                          script.seo?.seoTitle === title 
-                            ? "bg-rose-500/10 border-rose-500/30 text-white" 
-                            : "bg-neutral-800/50 border-neutral-700/50 text-neutral-300 hover:bg-neutral-700/50"
-                        }`}
-                        onClick={() => {
-                          if (script.seo) {
-                            updateMutation.mutate({ seo: { ...script.seo, seoTitle: title } });
-                          }
-                        }}
-                        data-testid={`seo-title-option-${idx}`}
-                      >
-                        {title}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {script.seo?.hashtags && script.seo.hashtags.length > 0 && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <Label className="text-[10px] uppercase tracking-wide text-neutral-400">{script.language === "ru" ? "Хештеги" : "Hashtags"}</Label>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        navigator.clipboard.writeText(script.seo?.hashtags?.join(" ") || "");
-                        toast({ title: t("copied") });
-                      }}
-                      data-testid="button-copy-hashtags"
-                    >
-                      <Copy className="h-3 w-3 mr-1" />
-                      {t("common.copy")}
-                    </Button>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {script.seo.hashtags.map((tag, idx) => (
-                      <Badge key={idx} variant="secondary" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
         <div className="relative border border-neutral-700/50 bg-neutral-900/80">
           <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-rose-500/60" />
@@ -1495,7 +1429,7 @@ export default function ScriptDetail() {
                 {script.seoTitles?.length ? <CheckCircle2 className="h-4 w-4" /> : "4"}
               </div>
               <h3 className="text-sm font-semibold text-white uppercase tracking-wide">
-                {script.language === "ru" ? "SEO Заголовки" : "SEO Titles"}
+                {script.language === "ru" ? "SEO Заголовки для видео" : "SEO Titles for Video"}
               </h3>
             </div>
             <Button
@@ -1598,6 +1532,36 @@ export default function ScriptDetail() {
                 </div>
               )}
             </div>
+
+            {/* Hashtags */}
+            {script.seo?.hashtags && script.seo.hashtags.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[10px] uppercase tracking-wide text-neutral-400 font-medium">
+                    {script.language === "ru" ? "Хештеги" : "Hashtags"}
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(script.seo?.hashtags?.join(" ") || "");
+                      toast({ title: t("copied") });
+                    }}
+                    data-testid="button-copy-hashtags"
+                  >
+                    <Copy className="h-3 w-3 mr-1" />
+                    {t("common.copy")}
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {script.seo.hashtags.map((tag, idx) => (
+                    <Badge key={idx} variant="secondary" className="text-xs">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
