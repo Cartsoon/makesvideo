@@ -27,7 +27,7 @@ import {
   Play,
   ChevronRight,
   TrendingUp,
-  Settings
+  Bot
 } from "lucide-react";
 import type { Topic, Script, Job } from "@shared/schema";
 import { ComingSoonModal } from "@/components/coming-soon-modal";
@@ -208,19 +208,19 @@ export default function Dashboard() {
                 </h1>
               </div>
             </div>
-            <Link href="/settings">
+            <Link href="/assistant">
               <div
-                className="relative overflow-hidden px-3 py-1.5 sm:px-4 sm:py-2 border border-neutral-600/50 bg-neutral-800/80 text-white font-semibold text-sm uppercase tracking-wide hover-elevate active-elevate-2 flex items-center justify-center gap-2 w-full sm:w-auto flex-shrink-0 cursor-pointer"
-                data-testid="button-settings"
+                className="relative overflow-hidden px-3 py-1.5 sm:px-4 sm:py-2 border border-rose-500/50 bg-gradient-to-r from-rose-500/20 to-amber-500/20 text-white font-semibold text-sm uppercase tracking-wide hover-elevate active-elevate-2 flex items-center justify-center gap-2 w-full sm:w-auto flex-shrink-0 cursor-pointer"
+                data-testid="button-assistant"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-neutral-700/20 via-transparent to-neutral-600/20" />
-                <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-neutral-500" />
-                <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-neutral-500" />
-                <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-neutral-600" />
-                <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-neutral-600" />
+                <div className="absolute inset-0 bg-gradient-to-br from-rose-500/10 via-transparent to-amber-500/10" />
+                <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-rose-400" />
+                <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-rose-400" />
+                <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-amber-500" />
+                <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-amber-500" />
                 <span className="relative flex items-center gap-2">
-                  <Settings className="h-4 w-4" />
-                  {t("nav.settings")}
+                  <Bot className="h-4 w-4" />
+                  {t("nav.assistant")}
                 </span>
               </div>
             </Link>
