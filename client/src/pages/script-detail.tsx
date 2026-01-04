@@ -525,24 +525,18 @@ export default function ScriptDetail() {
             00:00:00:00
           </div>
           
-          {/* Back button - mobile: top left corner, desktop: inline */}
-          <Link href="/scripts" className="absolute top-2 left-2 z-10 sm:hidden">
-            <Button variant="ghost" size="icon" data-testid="button-back-mobile" className="h-8 w-8 bg-neutral-800/80">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
-          
           <div className="relative p-4 pl-8 pr-8 sm:pl-10 sm:pr-10">
-            <div className="flex items-center gap-3">
-              <Link href="/scripts" className="hidden sm:block">
-                <Button variant="ghost" size="icon" data-testid="button-back" className="flex-shrink-0">
-                  <ArrowLeft className="h-5 w-5" />
-                </Button>
-              </Link>
-              
-              <div className="flex-1 min-w-0">
+            <div className="space-y-2">
+              {/* Title row with back button */}
+              <div className="flex items-center gap-2">
+                <Link href="/scripts">
+                  <Button variant="ghost" size="icon" data-testid="button-back" className="flex-shrink-0 h-8 w-8 sm:h-9 sm:w-9">
+                    <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
+                  </Button>
+                </Link>
+                
                 {isEditingTitle ? (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
                     <Input
                       ref={titleInputRef}
                       value={titleValue}
@@ -562,41 +556,42 @@ export default function ScriptDetail() {
                     </Button>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-between gap-3 flex-wrap">
-                    <div className="flex items-center gap-2 group min-w-0 flex-1">
-                      <h1 
-                        className="text-base sm:text-xl font-bold truncate cursor-pointer" 
-                        data-testid="text-script-title" 
-                        title={script.displayName || script.hook || topic?.title || t("scripts.untitled")}
-                        onClick={startEditTitle}
-                      >
-                        {(script.displayName || script.hook || topic?.title || t("scripts.untitled")).slice(0, 50)}
-                        {(script.displayName || script.hook || topic?.title || "").length > 50 ? "..." : ""}
-                      </h1>
-                      <Button 
-                        size="icon" 
-                        variant="ghost" 
-                        className="h-7 w-7 opacity-50 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                        onClick={startEditTitle}
-                        data-testid="button-edit-title"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                    <div className="flex-shrink-0">
-                      <ScriptStatusSelector 
-                        status={script.status} 
-                        onChange={(newStatus) => updateMutation.mutate({ status: newStatus })}
-                        disabled={updateMutation.isPending}
-                      />
-                    </div>
+                  <div className="flex items-center gap-2 group flex-1 min-w-0">
+                    <h1 
+                      className="text-lg sm:text-xl font-bold cursor-pointer break-words" 
+                      data-testid="text-script-title" 
+                      title={script.displayName || script.hook || topic?.title || t("scripts.untitled")}
+                      onClick={startEditTitle}
+                    >
+                      {script.displayName || script.hook || topic?.title || t("scripts.untitled")}
+                    </h1>
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      className="h-7 w-7 opacity-50 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                      onClick={startEditTitle}
+                      data-testid="button-edit-title"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
                   </div>
                 )}
-                
-                {topic && !isEditingTitle && (
-                  <TopicDescription topic={topic} language={language} />
-                )}
               </div>
+              
+              {/* Status tags row - separate line */}
+              {!isEditingTitle && (
+                <div className="pl-10 sm:pl-12">
+                  <ScriptStatusSelector 
+                    status={script.status} 
+                    onChange={(newStatus) => updateMutation.mutate({ status: newStatus })}
+                    disabled={updateMutation.isPending}
+                  />
+                </div>
+              )}
+                
+              {topic && !isEditingTitle && (
+                <TopicDescription topic={topic} language={language} />
+              )}
             </div>
           </div>
         </div>
