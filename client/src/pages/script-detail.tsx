@@ -66,8 +66,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { Script, Topic, Job, StoryboardScene, Duration, StylePreset, Language, AccentPreset, Platform } from "@shared/schema";
-import { stylePresetLabels, accentLabels, platformLabels } from "@shared/schema";
+import type { Script, Topic, Job, StoryboardScene, Duration, StylePreset, Language, AccentPreset, Platform, VideoFormat } from "@shared/schema";
+import { stylePresetLabels, accentLabels, platformLabels, formatLabels } from "@shared/schema";
 import { Link } from "wouter";
 import { VoiceGenerator } from "@/components/voice-generator";
 import { useI18n } from "@/lib/i18n";
@@ -513,19 +513,41 @@ export default function ScriptDetail() {
           </Card>
         )}
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">{t("script.settings")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
+        <div className="relative border border-neutral-700/50 bg-neutral-900/80">
+          <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-rose-500/60" />
+          <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-rose-500/60" />
+          <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-amber-500/60" />
+          <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-amber-500/60" />
+          
+          <div className="px-4 py-3 border-b border-neutral-700/50 bg-neutral-800/50">
+            <h3 className="text-sm font-semibold text-white uppercase tracking-wide">{t("script.settings")}</h3>
+          </div>
+          
+          <div className="p-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">{t("script.duration")}</Label>
+                <Label className="text-[10px] uppercase tracking-wide text-neutral-400">{t("script.format")}</Label>
+                <Select
+                  value={script.format || "shorts"}
+                  onValueChange={(v) => updateMutation.mutate({ format: v as VideoFormat })}
+                >
+                  <SelectTrigger data-testid="select-format" className="bg-neutral-800 border-neutral-600 h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="shorts">{t("script.formatShorts")}</SelectItem>
+                    <SelectItem value="horizontal">{t("script.formatHorizontal")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] uppercase tracking-wide text-neutral-400">{t("script.duration")}</Label>
                 <Select
                   value={script.durationSec}
                   onValueChange={(v) => updateMutation.mutate({ durationSec: v as Duration })}
                 >
-                  <SelectTrigger data-testid="select-duration">
+                  <SelectTrigger data-testid="select-duration" className="bg-neutral-800 border-neutral-600 h-9">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -538,29 +560,12 @@ export default function ScriptDetail() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">{t("script.scriptStyle")}</Label>
-                <Select
-                  value={script.stylePreset}
-                  onValueChange={(v) => updateMutation.mutate({ stylePreset: v as StylePreset })}
-                >
-                  <SelectTrigger data-testid="select-style">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(stylePresetLabels).map(([value, label]) => (
-                      <SelectItem key={value} value={value}>{label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">{t("script.accent")}</Label>
+                <Label className="text-[10px] uppercase tracking-wide text-neutral-400">{t("script.accent")}</Label>
                 <Select
                   value={script.accent || "classic"}
                   onValueChange={(v) => updateMutation.mutate({ accent: v as AccentPreset })}
                 >
-                  <SelectTrigger data-testid="select-accent">
+                  <SelectTrigger data-testid="select-accent" className="bg-neutral-800 border-neutral-600 h-9">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -572,12 +577,12 @@ export default function ScriptDetail() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">{t("script.language")}</Label>
+                <Label className="text-[10px] uppercase tracking-wide text-neutral-400">{t("script.language")}</Label>
                 <Select
                   value={script.language}
                   onValueChange={(v) => updateMutation.mutate({ language: v as Language })}
                 >
-                  <SelectTrigger data-testid="select-language">
+                  <SelectTrigger data-testid="select-language" className="bg-neutral-800 border-neutral-600 h-9">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -586,26 +591,9 @@ export default function ScriptDetail() {
                   </SelectContent>
                 </Select>
               </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">{script.language === "ru" ? "Платформа" : "Platform"}</Label>
-                <Select
-                  value={script.platform || "youtube_shorts"}
-                  onValueChange={(v) => updateMutation.mutate({ platform: v as Platform })}
-                >
-                  <SelectTrigger data-testid="select-platform">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(platformLabels).map(([value, label]) => (
-                      <SelectItem key={value} value={value}>{label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {(script.seo?.seoTitle || script.seo?.hashtags?.length) && (
           <Card>

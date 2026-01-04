@@ -88,6 +88,7 @@ export const scripts = pgTable("scripts", {
   voiceStylePreset: varchar("voice_style_preset", { length: 50 }).default("classic").notNull(),
   accent: varchar("accent", { length: 50 }).default("classic").notNull(),
   platform: varchar("platform", { length: 50 }).default("youtube_shorts").notNull(),
+  format: varchar("format", { length: 20 }).default("shorts").notNull(),
   keywords: jsonb("keywords").default([]).notNull(),
   constraints: jsonb("constraints"),
   seo: jsonb("seo"),
@@ -280,6 +281,14 @@ export type Platform = z.infer<typeof Platform>;
 
 export const Duration = z.enum(["30", "45", "60", "120"]);
 export type Duration = z.infer<typeof Duration>;
+
+export const VideoFormat = z.enum(["shorts", "horizontal"]);
+export type VideoFormat = z.infer<typeof VideoFormat>;
+
+export const formatLabels: Record<VideoFormat, { ru: string; en: string }> = {
+  shorts: { ru: "Shorts", en: "Shorts" },
+  horizontal: { ru: "Горизонтальное видео", en: "Horizontal Video" }
+};
 
 export const AccentPreset = z.enum([
   "classic",
@@ -598,6 +607,7 @@ export interface Script {
   voiceStylePreset: StylePreset;
   accent: AccentPreset;
   platform: Platform;
+  format: VideoFormat;
   keywords: string[];
   constraints: ScriptConstraints | null;
   seo: SeoOutputs | null;
@@ -624,6 +634,7 @@ export const insertScriptSchema = z.object({
   voiceStylePreset: StylePreset.default("classic"),
   accent: AccentPreset.default("classic"),
   platform: Platform.default("youtube_shorts"),
+  format: VideoFormat.default("shorts"),
   keywords: z.array(z.string()).default([]),
   constraints: scriptConstraintsSchema.nullable().optional(),
   seo: seoOutputsSchema.nullable().optional(),
