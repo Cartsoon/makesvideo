@@ -117,8 +117,8 @@ export default function Dashboard() {
     fetchTopicsMutation.mutate();
   };
 
-  // Filter only "new" status topics and take top 6
-  const newTopics = topics?.filter(t => t.status === "new") || [];
+  // Filter only "new" status topics (excluding system topics) and take top 6
+  const newTopics = topics?.filter(t => t.status === "new" && !t.title?.startsWith("__")) || [];
   const recentTopics = newTopics
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 6);
@@ -149,7 +149,7 @@ export default function Dashboard() {
   }, [newTopics]);
 
   const stats = {
-    totalTopics: topics?.length || 0,
+    totalTopics: topics?.filter(t => !t.title?.startsWith("__")).length || 0,
     totalScripts: scripts?.length || 0,
     readyScripts: scripts?.filter(s => s.status === "done").length || 0,
   };

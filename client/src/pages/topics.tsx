@@ -171,6 +171,8 @@ export default function Topics() {
 
   const filteredTopics = topics
     ?.filter((topic) => {
+      // Exclude system/synthetic topics
+      if (topic.title === "__text_to_video__" || topic.title?.startsWith("__")) return false;
       // Keep fading items visible during animation, but exclude if status already changed
       if (fadingOutIds.has(topic.id) && topic.status !== "missed") return true;
       // For "all" filter, exclude "missed" and "in_progress" topics
