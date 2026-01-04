@@ -285,14 +285,53 @@ export default function Dashboard() {
         <div className="flex flex-col gap-3">
 
           <div className="grid grid-cols-2 gap-3">
+            <Link href="/text-to-video" className="block sm:hidden">
+              <div
+                className="group relative overflow-hidden p-4 border border-rose-500/30 bg-neutral-900/90 dark:bg-neutral-900/90 hover-elevate active-elevate-2 transition-all w-full cursor-pointer"
+                data-testid="panel-create-from-text-mobile"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-rose-500/20 via-transparent to-amber-500/20 opacity-60" />
+                
+                <div className="absolute -right-6 -bottom-6 opacity-[0.04]">
+                  <Type className="w-28 h-28" />
+                </div>
+                
+                <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-rose-400" />
+                <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-rose-400" />
+                <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-amber-400" />
+                <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-amber-400" />
+                
+                <div className="relative flex flex-col items-center gap-3 text-center">
+                  <div className="relative">
+                    <div className="absolute inset-0 blur-xl bg-rose-400/40" />
+                    <div className="relative flex items-center justify-center">
+                      <div className="absolute w-14 h-14 border border-rose-400/30 rotate-45" />
+                      <div className="w-10 h-10 flex items-center justify-center">
+                        <Type className="h-6 w-6 text-rose-400" />
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm text-white uppercase tracking-wide">
+                      {t("dashboard.createFromTextShort")}
+                    </p>
+                    <p className="text-[10px] text-neutral-400 mt-1">
+                      {language === "ru" ? "Текст или ссылка" : "Text or link"}
+                    </p>
+                  </div>
+                </div>
+                <Sparkles className="absolute top-3 right-3 h-4 w-4 text-amber-400/60" />
+              </div>
+            </Link>
+
             <div
-              className="group relative overflow-hidden p-4 sm:p-5 border border-rose-500/30 bg-neutral-900/90 dark:bg-neutral-900/90 transition-all w-full"
+              className="group relative overflow-hidden p-5 border border-rose-500/30 bg-neutral-900/90 dark:bg-neutral-900/90 transition-all w-full hidden sm:block"
               data-testid="panel-create-from-text"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-rose-500/20 via-transparent to-amber-500/20 opacity-60" />
               
               <div className="absolute -right-4 -bottom-4 opacity-[0.04]">
-                <Type className="w-24 h-24 sm:w-32 sm:h-32" />
+                <Type className="w-32 h-32" />
               </div>
               <div className="absolute left-2 top-1/2 -translate-y-1/2 opacity-[0.06]">
                 <div className="flex flex-col gap-1">
@@ -350,7 +389,7 @@ export default function Dashboard() {
                     data-testid="button-quick-submit"
                   >
                     <Sparkles className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">{language === "ru" ? "Создать" : "Create"}</span>
+                    <span>{language === "ru" ? "Создать" : "Create"}</span>
                   </button>
                 </div>
               </div>
