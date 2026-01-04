@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { Layout } from "@/components/layout";
@@ -44,6 +44,7 @@ export default function Dashboard() {
   const [prevTopicIds, setPrevTopicIds] = useState<Set<string>>(new Set());
   const [newlyAddedIds, setNewlyAddedIds] = useState<Set<string>>(new Set());
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
+  const [completingJobs, setCompletingJobs] = useState<Map<string, number>>(new Map()); // jobId -> timestamp
   
   const handleQuickTextSubmit = () => {
     if (quickText.trim()) {
@@ -94,6 +95,36 @@ export default function Dashboard() {
 
   const activeJobs = jobs?.filter(j => j.status === "running" || j.status === "queued") || [];
   const hasPendingFetchTopics = activeJobs.some(j => j.kind === "fetch_topics");
+  
+  // Track jobs that just completed - show 100% briefly before hiding
+  const prevActiveJobIds = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const currentActiveIds = new Set(activeJobs.map(j => j.id));
+    const justCompleted = [...prevActiveJobIds.current].filter(id => !currentActiveIds.has(id));
+    
+    if (justCompleted.length > 0) {
+      setCompletingJobs(prev => {
+        const next = new Map(prev);
+        justCompleted.forEach(id => next.set(id, Date.now()));
+        return next;
+      });
+      // Remove completing jobs after animation
+      setTimeout(() => {
+        setCompletingJobs(prev => {
+          const next = new Map(prev);
+          justCompleted.forEach(id => next.delete(id));
+          return next;
+        });
+      }, 800);
+    }
+    prevActiveJobIds.current = currentActiveIds;
+  }, [activeJobs]);
+  
+  // Combined jobs to display: active + completing (at 100%)
+  const displayJobs = [
+    ...activeJobs.map(j => ({ ...j, isCompleting: false })),
+    ...[...completingJobs.keys()].map(id => ({ id, progress: 100, kind: "completing", isCompleting: true }))
+  ];
 
   const fetchTopicsMutation = useMutation({
     mutationFn: () => apiRequest("POST", "/api/jobs", { kind: "fetch_topics", payload: {} }),
@@ -466,44 +497,31 @@ export default function Dashboard() {
 
         </div>
 
-        {activeJobs.length > 0 && (
-          <div className="relative overflow-hidden border border-amber-500/30 bg-neutral-900/90">
-            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 via-transparent to-orange-500/5" />
-            <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-amber-400/50" />
-            <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-amber-400/50" />
-            <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-orange-400/50" />
-            <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-orange-400/50" />
-            
-            <div className="relative p-3 space-y-3">
-              <div className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin text-amber-400" />
-                <h3 className="text-sm font-semibold text-white uppercase tracking-wide">
-                  {t("dashboard.activeJobs")}
-                </h3>
-              </div>
-              
-              <div className="space-y-2">
-                {activeJobs.map((job) => {
-                  const progress = Math.max(job.progress || 0, job.status === "running" ? 5 : 0);
-                  return (
-                    <div key={job.id} className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-neutral-300">
-                          {t(`job.${job.kind}`) || job.kind.replace(/_/g, " ")}
-                        </span>
-                        <span className="text-[10px] font-mono text-amber-400">{progress}%</span>
-                      </div>
-                      <div className="h-1.5 bg-neutral-800 overflow-hidden">
-                        <div 
-                          className="h-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-500 ease-out"
-                          style={{ width: `${progress}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+        {displayJobs.length > 0 && (
+          <div className="space-y-1">
+            {displayJobs.map((job) => {
+              const progress = job.isCompleting ? 100 : Math.max(job.progress || 0, 5);
+              return (
+                <div 
+                  key={job.id} 
+                  className={`flex items-center gap-2 px-1 transition-opacity duration-500 ${job.isCompleting ? 'opacity-0' : 'opacity-100'}`}
+                >
+                  <div className="flex-1 h-1 bg-neutral-800/50 overflow-hidden rounded-full">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-300 ease-out ${
+                        job.isCompleting 
+                          ? 'bg-green-500' 
+                          : 'bg-gradient-to-r from-amber-500 via-orange-400 to-amber-500 bg-[length:200%_100%] animate-[shimmer_1.5s_ease-in-out_infinite]'
+                      }`}
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                  <span className={`text-[10px] font-medium min-w-[3ch] text-right tabular-nums ${job.isCompleting ? 'text-green-500' : 'text-neutral-500'}`}>
+                    {progress}%
+                  </span>
+                </div>
+              );
+            })}
           </div>
         )}
 

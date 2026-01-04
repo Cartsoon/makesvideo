@@ -645,3 +645,13 @@
   animation: new-item-glow 2s ease-in-out infinite;
   background: linear-gradient(135deg, rgba(74, 222, 128, 0.08) 0%, transparent 50%);
 }
+
+/* Shimmer animation for progress bars */
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
