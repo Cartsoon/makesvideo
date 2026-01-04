@@ -533,7 +533,10 @@ export default function Dashboard() {
               <div className="flex items-center justify-between gap-2 mb-3">
                 <div className="flex items-center gap-2">
                   <Scissors className="h-4 w-4 text-rose-400" />
-                  <h3 className="text-sm font-semibold text-white uppercase tracking-wide">{t("dashboard.recentTopics")}</h3>
+                  <h3 className="text-sm font-semibold text-white uppercase tracking-wide">
+                    <span className="sm:hidden">{t("dashboard.recentTopicsShort")}</span>
+                    <span className="hidden sm:inline">{t("dashboard.recentTopics")}</span>
+                  </h3>
                   <button
                     onClick={handleFetchTopics}
                     disabled={fetchTopicsMutation.isPending || hasPendingFetchTopics}
@@ -632,7 +635,10 @@ export default function Dashboard() {
               <div className="flex items-center justify-between gap-2 mb-3">
                 <div className="flex items-center gap-2">
                   <Film className="h-4 w-4 text-blue-400" />
-                  <h3 className="text-sm font-semibold text-white uppercase tracking-wide">{t("dashboard.recentScripts")}</h3>
+                  <h3 className="text-sm font-semibold text-white uppercase tracking-wide">
+                    <span className="sm:hidden">{t("dashboard.recentScriptsShort")}</span>
+                    <span className="hidden sm:inline">{t("dashboard.recentScripts")}</span>
+                  </h3>
                 </div>
                 <Link href="/scripts">
                   <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-blue-300 hover:text-blue-200" data-testid="link-view-all-scripts">
