@@ -465,7 +465,7 @@ export default function ScriptDetail() {
 
   return (
     <Layout title={t("script.title")}>
-      <div className="p-4 md:p-6 space-y-4">
+      <div className="p-4 md:p-6 space-y-4 overflow-x-hidden">
         <div className="relative overflow-hidden border border-neutral-700/50 bg-neutral-900/90">
           {/* Film strip decoration - left */}
           <div className="absolute left-0 top-0 bottom-0 w-6 bg-neutral-800/50 flex flex-col justify-around py-2">
@@ -1511,7 +1511,7 @@ export default function ScriptDetail() {
                         <span className="flex-shrink-0 w-5 h-5 flex items-center justify-center text-[10px] font-bold bg-gradient-to-br from-rose-500/20 to-amber-500/20 text-rose-400">
                           {idx + 1}
                         </span>
-                        <p className="text-sm text-neutral-200 flex-1">{title}</p>
+                        <p className="text-sm text-neutral-200 flex-1 break-words">{title}</p>
                         <Copy className="h-4 w-4 text-neutral-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
                     </div>
@@ -1564,7 +1564,7 @@ export default function ScriptDetail() {
                   data-testid="video-description-content"
                 >
                   {script.videoDescription ? (
-                    <p className="text-sm whitespace-pre-wrap text-neutral-200">{script.videoDescription}</p>
+                    <p className="text-sm whitespace-pre-wrap text-neutral-200 break-words">{script.videoDescription}</p>
                   ) : (
                     <p className="text-sm text-neutral-500 italic">
                       {script.language === "ru" 
