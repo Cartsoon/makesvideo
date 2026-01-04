@@ -309,7 +309,7 @@ export default function Dashboard() {
               
               <div className="relative flex flex-col gap-4">
                 <Link href="/text-to-video">
-                  <div className="flex items-start gap-4 cursor-pointer hover-elevate active-elevate-2 -m-2 p-2">
+                  <div className="flex items-start gap-4 cursor-pointer -m-2 p-2">
                     <div className="relative flex-shrink-0 w-14 h-14 flex items-center justify-center">
                       <div className="absolute inset-0 blur-xl bg-rose-400/30" />
                       <div className="absolute inset-1 border border-rose-400/40 rotate-45" />
