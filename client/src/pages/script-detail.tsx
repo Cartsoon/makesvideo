@@ -76,7 +76,6 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 function TopicDescription({ topic, language }: { topic: Topic; language: string }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { t } = useI18n();
-  const { toast } = useToast();
   
   const fullTitle = language === "en" 
     ? (topic.translatedTitleEn || topic.generatedTitle || topic.title) 
@@ -84,19 +83,6 @@ function TopicDescription({ topic, language }: { topic: Topic; language: string 
   
   const fullContent = topic.fullContent || "";
   const hasContent = fullContent.length > 0;
-  
-  const extractMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest("POST", `/api/topics/${topic.id}/extract`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/topics", topic.id] });
-      toast({
-        title: language === "ru" ? "Извлечение запущено" : "Extraction started",
-        description: language === "ru" ? "Контент будет загружен в ближайшее время" : "Content will be loaded shortly"
-      });
-    }
-  });
   
   return (
     <div className="mt-2">
@@ -137,39 +123,19 @@ function TopicDescription({ topic, language }: { topic: Topic; language: string 
           ) : (
             <div className="text-center py-4">
               <p className="text-neutral-500 text-sm mb-3">
-                {language === "ru" ? "Содержание ещё не загружено" : "Content not extracted yet"}
+                {topic.extractionStatus === "extracting" 
+                  ? (language === "ru" ? "Загрузка контента..." : "Loading content...")
+                  : (language === "ru" ? "Содержание недоступно" : "Content not available")}
               </p>
               {topic.url && (
-                <div className="flex items-center justify-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => extractMutation.mutate()}
-                    disabled={extractMutation.isPending || topic.extractionStatus === "extracting"}
-                    className="border-neutral-600 bg-neutral-800"
-                    data-testid="button-extract-content"
-                  >
-                    {extractMutation.isPending || topic.extractionStatus === "extracting" ? (
-                      <>
-                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                        {language === "ru" ? "Загрузка..." : "Loading..."}
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="h-3 w-3 mr-1" />
-                        {language === "ru" ? "Загрузить контент" : "Extract Content"}
-                      </>
-                    )}
-                  </Button>
-                  <a 
-                    href={topic.url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-xs text-rose-400 hover:text-rose-300 underline"
-                  >
-                    {language === "ru" ? "Открыть источник" : "Open source"}
-                  </a>
-                </div>
+                <a 
+                  href={topic.url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-xs text-rose-400 hover:text-rose-300 underline"
+                >
+                  {language === "ru" ? "Открыть источник" : "Open source"}
+                </a>
               )}
             </div>
           )}
