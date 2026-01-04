@@ -44,7 +44,7 @@ export default function Dashboard() {
   const [prevTopicIds, setPrevTopicIds] = useState<Set<string>>(new Set());
   const [newlyAddedIds, setNewlyAddedIds] = useState<Set<string>>(new Set());
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
-  const [completingJobs, setCompletingJobs] = useState<Map<string, number>>(new Map()); // jobId -> timestamp
+  const [completingJobIds, setCompletingJobIds] = useState<Set<string>>(new Set());
   
   const handleQuickTextSubmit = () => {
     if (quickText.trim()) {
@@ -97,34 +97,29 @@ export default function Dashboard() {
   const hasPendingFetchTopics = activeJobs.some(j => j.kind === "fetch_topics");
   
   // Track jobs that just completed - show 100% briefly before hiding
-  const prevActiveJobIds = useRef<Set<string>>(new Set());
+  const prevActiveJobIdsRef = useRef<Set<string>>(new Set());
   useEffect(() => {
     const currentActiveIds = new Set(activeJobs.map(j => j.id));
-    const justCompleted = Array.from(prevActiveJobIds.current).filter(id => !currentActiveIds.has(id));
+    const justCompleted = Array.from(prevActiveJobIdsRef.current).filter(id => !currentActiveIds.has(id));
     
     if (justCompleted.length > 0) {
-      setCompletingJobs(prev => {
-        const next = new Map(prev);
-        justCompleted.forEach(id => next.set(id, Date.now()));
+      // Add to completing set
+      setCompletingJobIds(prev => {
+        const next = new Set(prev);
+        justCompleted.forEach(id => next.add(id));
         return next;
       });
-      // Remove completing jobs after animation
+      // Remove after animation
       setTimeout(() => {
-        setCompletingJobs(prev => {
-          const next = new Map(prev);
+        setCompletingJobIds(prev => {
+          const next = new Set(prev);
           justCompleted.forEach(id => next.delete(id));
           return next;
         });
-      }, 800);
+      }, 600);
     }
-    prevActiveJobIds.current = currentActiveIds;
+    prevActiveJobIdsRef.current = currentActiveIds;
   }, [activeJobs]);
-  
-  // Combined jobs to display: active + completing (at 100%)
-  const displayJobs = [
-    ...activeJobs.map(j => ({ ...j, isCompleting: false })),
-    ...Array.from(completingJobs.keys()).map(id => ({ id, progress: 100, kind: "completing", isCompleting: true }))
-  ];
 
   const fetchTopicsMutation = useMutation({
     mutationFn: () => apiRequest("POST", "/api/jobs", { kind: "fetch_topics", payload: {} }),
@@ -497,26 +492,27 @@ export default function Dashboard() {
 
         </div>
 
-        {displayJobs.length > 0 && (
+        {activeJobs.length > 0 && (
           <div className="space-y-1">
-            {displayJobs.map((job) => {
-              const progress = job.isCompleting ? 100 : Math.max(job.progress || 0, 5);
+            {activeJobs.map((job) => {
+              const isCompleting = completingJobIds.has(job.id);
+              const progress = isCompleting ? 100 : Math.max(job.progress || 0, 5);
               return (
                 <div 
                   key={job.id} 
-                  className={`flex items-center gap-2 px-1 transition-opacity duration-500 ${job.isCompleting ? 'opacity-0' : 'opacity-100'}`}
+                  className={`flex items-center gap-2 px-1 transition-opacity duration-300 ${isCompleting ? 'opacity-0' : 'opacity-100'}`}
                 >
                   <div className="flex-1 h-1 bg-neutral-800/50 overflow-hidden rounded-full">
                     <div 
                       className={`h-full rounded-full transition-all duration-300 ease-out ${
-                        job.isCompleting 
+                        isCompleting 
                           ? 'bg-green-500' 
                           : 'bg-gradient-to-r from-amber-500 via-orange-400 to-amber-500 bg-[length:200%_100%] animate-[shimmer_1.5s_ease-in-out_infinite]'
                       }`}
                       style={{ width: `${progress}%` }}
                     />
                   </div>
-                  <span className={`text-[10px] font-medium min-w-[3ch] text-right tabular-nums ${job.isCompleting ? 'text-green-500' : 'text-neutral-500'}`}>
+                  <span className={`text-[10px] font-medium min-w-[3ch] text-right tabular-nums ${isCompleting ? 'text-green-500' : 'text-neutral-500'}`}>
                     {progress}%
                   </span>
                 </div>

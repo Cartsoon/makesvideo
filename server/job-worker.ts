@@ -403,7 +403,7 @@ async function canFetchMoreTopics(): Promise<{ allowed: boolean; remainingDaily:
 }
 
 async function processFetchTopics(job: Job): Promise<void> {
-  await storage.updateJob(job.id, { progress: 10 });
+  await storage.updateJob(job.id, { progress: 5 });
   
   const quota = await canFetchMoreTopics();
   if (!quota.allowed) {
@@ -424,120 +424,140 @@ async function processFetchTopics(job: Job): Promise<void> {
     await storage.updateJob(job.id, { progress: 100 });
     return;
   }
-  
-  let progress = 10;
-  const progressPerSource = 80 / enabledSources.length;
 
-  for (const source of enabledSources) {
-    if (topicsAdded >= maxTopicsThisFetch) break;
-    
+  // Phase 1: Parallel fetch all RSS feeds (fast network phase)
+  await storage.updateJob(job.id, { progress: 10 });
+  
+  type FetchResult = { source: typeof enabledSources[0]; items: ReturnType<typeof parseRSSItems>; language: "ru" | "en" };
+  const rssSources = enabledSources.filter(s => s.type === "rss" && (s.config as any)?.url);
+  
+  console.log(`[JobWorker] Fetching ${rssSources.length} RSS sources in parallel...`);
+  
+  const fetchPromises = rssSources.map(async (source): Promise<FetchResult | null> => {
     const config = source.config as { url?: string; language?: string; description?: string };
     const language = (config.language || (config.description?.toLowerCase().includes('рус') ? 'ru' : 'en')) as "ru" | "en";
     
     try {
-      if (source.type === "rss" && config.url) {
-        console.log(`[JobWorker] Fetching RSS from ${config.url}`);
-        
-        const response = await fetch(config.url, {
-          headers: {
-            'User-Agent': 'IDENGINE-Bot/1.0',
-            'Accept': 'application/rss+xml, application/xml, text/xml, application/atom+xml'
-          }
-        });
-        
-        if (!response.ok) {
-          console.error(`[JobWorker] Failed to fetch RSS from ${config.url}: ${response.status}`);
-          continue;
-        }
-        
-        const xml = await response.text();
-        const items = parseRSSItems(xml);
-        
-        const itemsWithImages = items.filter(i => i.imageUrl);
-        console.log(`[JobWorker] Found ${items.length} items from ${source.name} (${itemsWithImages.length} with images)`);
-        
-        for (const item of items) {
-          if (topicsAdded >= maxTopicsThisFetch) break;
-          
-          const rawTitle = item.title;
-          const rawDescription = item.description.slice(0, 500);
-          
-          // Quality check: need basic content for video script generation
-          // Very light filtering - only skip extremely short headlines
-          // Minimum: 30 characters OR at least 4 words in title alone
-          const titleLength = (rawTitle || '').trim().length;
-          const titleWordCount = (rawTitle || '').split(/\s+/).filter(w => w.length > 1).length;
-          
-          const MIN_TITLE_CHARS = 30;
-          const MIN_TITLE_WORDS = 4;
-          
-          if (titleLength < MIN_TITLE_CHARS && titleWordCount < MIN_TITLE_WORDS) {
-            console.log(`[JobWorker] Skipping too-short topic (${titleLength} chars, ${titleWordCount} words): "${rawTitle?.slice(0, 50)}..."`);
-            continue;
-          }
-          
-          const similarityCheck = await checkTopicSimilarity(rawTitle, rawDescription);
-          if (!similarityCheck.passed) {
-            // If this item has an image and the existing topic doesn't, update it
-            if (item.imageUrl && similarityCheck.similarTopicId) {
-              const existingTopic = await storage.getTopic(similarityCheck.similarTopicId);
-              if (existingTopic && !existingTopic.imageUrl) {
-                await storage.updateTopic(similarityCheck.similarTopicId, { imageUrl: item.imageUrl });
-                console.log(`[JobWorker] Updated existing topic with image: "${rawTitle?.slice(0, 40)}..."`);
-              }
-            }
-            console.log(`[JobWorker] Skipping duplicate topic (${Math.round(similarityCheck.highestSimilarity * 100)}% similar): "${rawTitle?.slice(0, 50)}..."`);
-            duplicatesSkipped++;
-            continue;
-          }
-          
-          const tags = extractTopicTags(rawTitle, rawDescription, language);
-          await storage.createTopic({
-            sourceId: source.id,
-            title: rawTitle,
-            rawText: rawDescription || null,
-            url: item.link || null,
-            imageUrl: item.imageUrl || null,
-            tags,
-            score: Math.floor(Math.random() * 30) + 70,
-            language: language,
-            status: "new",
-            extractionStatus: "pending",
-            publishedAt: item.pubDate || null
-          });
-          topicsAdded++;
-        }
-      } else if (source.type === "manual" || source.type === "url") {
-        const manualContent = config.description || `Content from ${source.name}`;
-        
-        const similarityCheck = await checkTopicSimilarity(source.name, manualContent);
-        if (!similarityCheck.passed) {
-          console.log(`[JobWorker] Skipping duplicate manual topic: "${source.name}"`);
-          duplicatesSkipped++;
-          continue;
-        }
-        
-        const tags = extractTopicTags(source.name, manualContent, language);
-        
-        await storage.createTopic({
-          sourceId: source.id,
-          title: source.name,
-          rawText: manualContent,
-          url: config.url || null,
-          tags,
-          score: Math.floor(Math.random() * 30) + 70,
-          language: language,
-          status: "new",
-          extractionStatus: "pending"
-        });
-        topicsAdded++;
+      const response = await fetch(config.url!, {
+        headers: {
+          'User-Agent': 'IDENGINE-Bot/1.0',
+          'Accept': 'application/rss+xml, application/xml, text/xml, application/atom+xml'
+        },
+        signal: AbortSignal.timeout(10000) // 10 second timeout per feed
+      });
+      
+      if (!response.ok) {
+        console.error(`[JobWorker] Failed to fetch RSS from ${config.url}: ${response.status}`);
+        return null;
       }
+      
+      const xml = await response.text();
+      const items = parseRSSItems(xml);
+      console.log(`[JobWorker] Fetched ${items.length} items from ${source.name}`);
+      return { source, items, language };
     } catch (error) {
-      console.error(`[JobWorker] Error fetching from ${source.name}:`, error);
+      console.error(`[JobWorker] Error fetching ${source.name}:`, error);
+      return null;
+    }
+  });
+  
+  const fetchResults = (await Promise.all(fetchPromises)).filter((r): r is FetchResult => r !== null);
+  
+  await storage.updateJob(job.id, { progress: 50 });
+  console.log(`[JobWorker] Fetched ${fetchResults.length}/${rssSources.length} RSS sources successfully`);
+  
+  // Phase 2: Process items (sequential for dedup)
+  const allItems: Array<{ item: ReturnType<typeof parseRSSItems>[0]; source: typeof enabledSources[0]; language: "ru" | "en" }> = [];
+  for (const result of fetchResults) {
+    for (const item of result.items) {
+      allItems.push({ item, source: result.source, language: result.language });
+    }
+  }
+  
+  // Shuffle to get variety from different sources
+  allItems.sort(() => Math.random() - 0.5);
+  
+  const progressPerItem = 40 / Math.max(allItems.length, 1);
+  let processedItems = 0;
+  
+  for (const { item, source, language } of allItems) {
+    if (topicsAdded >= maxTopicsThisFetch) break;
+    
+    const rawTitle = item.title;
+    const rawDescription = item.description.slice(0, 500);
+    
+    const titleLength = (rawTitle || '').trim().length;
+    const titleWordCount = (rawTitle || '').split(/\s+/).filter(w => w.length > 1).length;
+    
+    if (titleLength < 30 && titleWordCount < 4) {
+      processedItems++;
+      continue;
     }
     
-    progress += progressPerSource;
-    await storage.updateJob(job.id, { progress: Math.floor(progress) });
+    const similarityCheck = await checkTopicSimilarity(rawTitle, rawDescription);
+    if (!similarityCheck.passed) {
+      if (item.imageUrl && similarityCheck.similarTopicId) {
+        const existingTopic = await storage.getTopic(similarityCheck.similarTopicId);
+        if (existingTopic && !existingTopic.imageUrl) {
+          await storage.updateTopic(similarityCheck.similarTopicId, { imageUrl: item.imageUrl });
+        }
+      }
+      duplicatesSkipped++;
+      processedItems++;
+      continue;
+    }
+    
+    const tags = extractTopicTags(rawTitle, rawDescription, language);
+    await storage.createTopic({
+      sourceId: source.id,
+      title: rawTitle,
+      rawText: rawDescription || null,
+      url: item.link || null,
+      imageUrl: item.imageUrl || null,
+      tags,
+      score: Math.floor(Math.random() * 30) + 70,
+      language: language,
+      status: "new",
+      extractionStatus: "pending",
+      publishedAt: item.pubDate || null
+    });
+    topicsAdded++;
+    processedItems++;
+    
+    // Update progress more frequently
+    if (processedItems % 5 === 0) {
+      await storage.updateJob(job.id, { progress: Math.floor(50 + processedItems * progressPerItem) });
+    }
+  }
+  
+  // Phase 3: Manual sources (quick)
+  const manualSources = enabledSources.filter(s => s.type === "manual" || s.type === "url");
+  for (const source of manualSources) {
+    if (topicsAdded >= maxTopicsThisFetch) break;
+    
+    const config = source.config as { url?: string; language?: string; description?: string };
+    const language = (config.language || 'en') as "ru" | "en";
+    const manualContent = config.description || `Content from ${source.name}`;
+    
+    const similarityCheck = await checkTopicSimilarity(source.name, manualContent);
+    if (!similarityCheck.passed) {
+      duplicatesSkipped++;
+      continue;
+    }
+    
+    const tags = extractTopicTags(source.name, manualContent, language);
+    await storage.createTopic({
+      sourceId: source.id,
+      title: source.name,
+      rawText: manualContent,
+      url: config.url || null,
+      tags,
+      score: Math.floor(Math.random() * 30) + 70,
+      language: language,
+      status: "new",
+      extractionStatus: "pending"
+    });
+    topicsAdded++;
   }
   
   if (topicsAdded > 0) {
