@@ -45,20 +45,7 @@ import {
   Eye
 } from "lucide-react";
 import type { Topic, TopicStatus, Job } from "@shared/schema";
-
-const PLACEHOLDER_IMAGES = [
-  "https://images.unsplash.com/photo-1536240478700-b869070f9279?w=400&h=300&fit=crop",
-  "https://images.unsplash.com/photo-1485846234645-a62644f84728?w=400&h=300&fit=crop",
-  "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=400&h=300&fit=crop",
-  "https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=400&h=300&fit=crop",
-  "https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=400&h=300&fit=crop",
-  "https://images.unsplash.com/photo-1598899134739-24c46f58b8c0?w=400&h=300&fit=crop",
-];
-
-function getPlaceholderImage(id: string): string {
-  const hash = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  return PLACEHOLDER_IMAGES[hash % PLACEHOLDER_IMAGES.length];
-}
+import placeholderImage from "@assets/file_0000000078a471f4af18c4a74cc26e4a_1767488305862.png";
 
 export default function Topics() {
   const { toast } = useToast();
@@ -167,7 +154,7 @@ export default function Topics() {
     if (topic.imageUrl && !imageErrors.has(topic.id)) {
       return topic.imageUrl;
     }
-    return getPlaceholderImage(topic.id);
+    return placeholderImage;
   };
 
   const handleImageError = (topicId: string) => {

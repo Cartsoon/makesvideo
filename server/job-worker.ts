@@ -133,22 +133,50 @@ function parseRSSItems(xml: string): Array<{ title: string; link: string; descri
   
   // Helper to extract image URL from content
   function extractImageUrl(content: string): string | undefined {
-    // Try enclosure (RSS 2.0 standard for media)
-    const enclosureMatch = content.match(/<enclosure[^>]+url=["']([^"']+)["'][^>]*type=["']image[^"']*["']/i) ||
+    // Try enclosure with image type (any order of attributes)
+    const enclosureMatch = content.match(/<enclosure[^>]+url=["']([^"']+)["'][^>]*(?:type=["']image|\.(?:jpg|jpeg|png|gif|webp))/i) ||
                            content.match(/<enclosure[^>]+type=["']image[^"']*["'][^>]*url=["']([^"']+)["']/i);
     if (enclosureMatch) return enclosureMatch[1];
     
-    // Try media:content
-    const mediaContentMatch = content.match(/<media:content[^>]+url=["']([^"']+)["']/i);
+    // Try enclosure without type (just url ending with image extension)
+    const enclosureUrlMatch = content.match(/<enclosure[^>]+url=["']([^"']+\.(?:jpg|jpeg|png|gif|webp)[^"']*)["']/i);
+    if (enclosureUrlMatch) return enclosureUrlMatch[1];
+    
+    // Try media:content with medium="image" or url with image extension
+    const mediaContentMatch = content.match(/<media:content[^>]+url=["']([^"']+)["'][^>]*medium=["']image["']/i) ||
+                              content.match(/<media:content[^>]+medium=["']image["'][^>]*url=["']([^"']+)["']/i) ||
+                              content.match(/<media:content[^>]+url=["']([^"']+\.(?:jpg|jpeg|png|gif|webp)[^"']*)["']/i) ||
+                              content.match(/<media:content[^>]+url=["']([^"']+)["']/i);
     if (mediaContentMatch) return mediaContentMatch[1];
     
     // Try media:thumbnail
     const mediaThumbnailMatch = content.match(/<media:thumbnail[^>]+url=["']([^"']+)["']/i);
     if (mediaThumbnailMatch) return mediaThumbnailMatch[1];
     
-    // Try image tag in description/content
+    // Try image element inside media group
+    const mediaGroupImageMatch = content.match(/<media:group[^>]*>[\s\S]*?<media:thumbnail[^>]+url=["']([^"']+)["']/i);
+    if (mediaGroupImageMatch) return mediaGroupImageMatch[1];
+    
+    // Try image tag in description/content (filter out tracking pixels and small icons)
+    const imgMatches = content.matchAll(/<img[^>]+src=["']([^"']+)["'][^>]*>/gi);
+    for (const match of imgMatches) {
+      const src = match[1];
+      // Skip small tracking pixels, icons, and data URIs
+      if (src.includes('data:') || src.includes('1x1') || src.includes('pixel') || 
+          src.includes('spacer') || src.includes('tracking') || src.length > 500) {
+        continue;
+      }
+      // Prefer images with common extensions
+      if (src.match(/\.(jpg|jpeg|png|gif|webp)/i)) {
+        return src;
+      }
+    }
+    
+    // Fallback: try any img src
     const imgMatch = content.match(/<img[^>]+src=["']([^"']+)["']/i);
-    if (imgMatch) return imgMatch[1];
+    if (imgMatch && !imgMatch[1].includes('data:') && imgMatch[1].length < 500) {
+      return imgMatch[1];
+    }
     
     return undefined;
   }
@@ -298,7 +326,8 @@ async function processFetchTopics(job: Job): Promise<void> {
         const xml = await response.text();
         const items = parseRSSItems(xml);
         
-        console.log(`[JobWorker] Found ${items.length} items from ${source.name}`);
+        const itemsWithImages = items.filter(i => i.imageUrl);
+        console.log(`[JobWorker] Found ${items.length} items from ${source.name} (${itemsWithImages.length} with images)`);
         
         for (const item of items) {
           if (topicsAdded >= maxTopicsThisFetch) break;
