@@ -54,7 +54,7 @@ export default function Topics() {
   const [, navigate] = useLocation();
   const searchString = useSearch();
   const [statusFilter, setStatusFilter] = useState<TopicStatus | "all">("all");
-  const [sortBy, setSortBy] = useState<"score" | "date">("score");
+  const [sortBy, setSortBy] = useState<"score" | "date">("date");
   const [processedJobIds, setProcessedJobIds] = useState<Set<string>>(new Set());
   const [expandedTopicId, setExpandedTopicId] = useState<string | null>(null);
   const [fadingOutIds, setFadingOutIds] = useState<Set<string>>(new Set());
@@ -171,8 +171,13 @@ export default function Topics() {
 
   const filteredTopics = topics
     ?.filter((topic) => {
-      if (fadingOutIds.has(topic.id)) return true;
-      return statusFilter === "all" ? topic.status !== "missed" : topic.status === statusFilter;
+      // Keep fading items visible during animation, but exclude if status already changed
+      if (fadingOutIds.has(topic.id) && topic.status !== "missed") return true;
+      // For "all" filter, exclude "missed" and "in_progress" topics
+      if (statusFilter === "all") {
+        return topic.status !== "missed" && topic.status !== "in_progress";
+      }
+      return topic.status === statusFilter;
     })
     ?.sort((a, b) => {
       if (sortBy === "score") return b.score - a.score;
