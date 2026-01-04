@@ -25,10 +25,12 @@ import {
   Sparkles,
   FolderUp,
   Play,
-  ChevronRight
+  ChevronRight,
+  TrendingUp
 } from "lucide-react";
 import type { Topic, Script, Job } from "@shared/schema";
 import { ComingSoonModal } from "@/components/coming-soon-modal";
+import placeholderImage from "@assets/file_0000000078a471f4af18c4a74cc26e4a_1767488305862.png";
 
 export default function Dashboard() {
   const { toast } = useToast();
@@ -38,6 +40,18 @@ export default function Dashboard() {
   
   const [prevTopicIds, setPrevTopicIds] = useState<Set<string>>(new Set());
   const [newlyAddedIds, setNewlyAddedIds] = useState<Set<string>>(new Set());
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
+
+  const getTopicImage = (topic: Topic): string => {
+    if (topic.imageUrl && !imageErrors.has(topic.id)) {
+      return topic.imageUrl;
+    }
+    return placeholderImage;
+  };
+
+  const handleImageError = (topicId: string) => {
+    setImageErrors(prev => new Set(prev).add(topicId));
+  };
 
   const { data: topics, isLoading: topicsLoading } = useQuery<Topic[]>({
     queryKey: ["/api/topics"],
@@ -450,29 +464,46 @@ export default function Dashboard() {
                   <p className="text-xs text-neutral-400">{t("topics.noTopics")}</p>
                 </div>
               ) : (
-                <div className="space-y-1.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {recentTopics.map((topic) => {
                     const isNewlyAdded = newlyAddedIds.has(topic.id);
                     return (
                     <Link key={topic.id} href="/topics">
                       <div
-                        className={`flex items-center gap-2 p-2 bg-neutral-800/50 border border-rose-500/20 hover-elevate cursor-pointer group transition-all duration-500 ${
-                          isNewlyAdded ? "animate-pulse ring-2 ring-rose-400/50 bg-rose-900/20" : ""
+                        className={`group relative overflow-hidden bg-neutral-800/50 border border-rose-500/20 hover-elevate cursor-pointer transition-all duration-500 ${
+                          isNewlyAdded ? "ring-2 ring-rose-400/50" : ""
                         }`}
+                        style={{ borderRadius: '2px' }}
                         data-testid={`topic-item-${topic.id}`}
                       >
-                        <div className="min-w-0 flex-1">
-                          <p className="font-medium text-xs text-neutral-200 truncate group-hover:text-white">
-                            {language === "en" 
-                              ? (topic.translatedTitleEn || topic.generatedTitle || topic.title)
-                              : (topic.translatedTitle || topic.generatedTitle || topic.title)}
-                          </p>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <span className="text-[10px] text-rose-400 font-medium">{topic.score}</span>
-                            <StatusBadge status={topic.status} />
+                        <div className="relative aspect-[16/9] overflow-hidden bg-neutral-900">
+                          <img
+                            src={getTopicImage(topic)}
+                            alt=""
+                            className={`w-full h-full object-cover transition-all duration-300 group-hover:scale-105 brightness-75 group-hover:brightness-90 ${
+                              isNewlyAdded ? "animate-pulse" : ""
+                            }`}
+                            onError={() => handleImageError(topic.id)}
+                            loading="lazy"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+                          
+                          <div className="absolute top-1.5 left-1.5 right-1.5 flex items-start justify-between gap-1">
+                            <StatusBadge status={topic.status} className="text-[9px] px-1 py-0" />
+                            <div className="flex items-center gap-0.5 bg-black/70 px-1 py-0.5 text-rose-400 text-[9px] font-bold" style={{ borderRadius: '2px' }}>
+                              <TrendingUp className="h-2.5 w-2.5" />
+                              {topic.score}
+                            </div>
+                          </div>
+                          
+                          <div className="absolute bottom-1.5 left-1.5 right-1.5">
+                            <h3 className="font-medium text-white text-[11px] leading-tight line-clamp-2 drop-shadow-lg">
+                              {language === "en" 
+                                ? (topic.translatedTitleEn || topic.generatedTitle || topic.title)
+                                : (topic.translatedTitle || topic.generatedTitle || topic.title)}
+                            </h3>
                           </div>
                         </div>
-                        <ChevronRight className="h-3 w-3 text-neutral-500 group-hover:text-rose-400 flex-shrink-0" />
                       </div>
                     </Link>
                     );
