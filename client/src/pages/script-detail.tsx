@@ -104,7 +104,7 @@ function TopicDescription({ topic, language }: { topic: Topic; language: string 
       </p>
       
       {isExpanded && (
-        <div className="mt-3 p-3 -mx-10 sm:mx-0 px-4 sm:px-3 bg-neutral-800/50 border-y sm:border border-neutral-700/50 text-sm text-neutral-300 leading-relaxed">
+        <div className="mt-3 p-3 -mx-8 sm:mx-0 px-3 sm:px-3 bg-neutral-800/50 border-y sm:border border-neutral-700/50 text-sm text-neutral-300 leading-relaxed">
           <div className="flex flex-wrap items-center gap-2 mb-2">
             {topic.url ? (
               <a 
@@ -525,9 +525,16 @@ export default function ScriptDetail() {
             00:00:00:00
           </div>
           
-          <div className="relative p-4 pl-10 pr-10">
+          {/* Back button - mobile: top left corner, desktop: inline */}
+          <Link href="/scripts" className="absolute top-2 left-2 z-10 sm:hidden">
+            <Button variant="ghost" size="icon" data-testid="button-back-mobile" className="h-8 w-8 bg-neutral-800/80">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          
+          <div className="relative p-4 pl-8 pr-8 sm:pl-10 sm:pr-10">
             <div className="flex items-center gap-3">
-              <Link href="/scripts">
+              <Link href="/scripts" className="hidden sm:block">
                 <Button variant="ghost" size="icon" data-testid="button-back" className="flex-shrink-0">
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
