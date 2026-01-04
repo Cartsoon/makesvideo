@@ -161,8 +161,17 @@ export default function Topics() {
     missed: t("topics.missed"),
   };
 
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
+
   const getTopicImage = (topic: Topic): string => {
+    if (topic.imageUrl && !imageErrors.has(topic.id)) {
+      return topic.imageUrl;
+    }
     return getPlaceholderImage(topic.id);
+  };
+
+  const handleImageError = (topicId: string) => {
+    setImageErrors(prev => new Set(prev).add(topicId));
   };
 
   const getDisplayTitle = (topic: Topic): string => {
@@ -312,6 +321,7 @@ export default function Topics() {
                     src={getTopicImage(topic)}
                     alt=""
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    onError={() => handleImageError(topic.id)}
                     loading="lazy"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
