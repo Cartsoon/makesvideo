@@ -131,7 +131,7 @@ function TopicDescription({ topic, language }: { topic: Topic; language: string 
             </button>
           </div>
           {hasContent ? (
-            <div className="max-h-32 overflow-y-auto">
+            <div className="max-h-40 overflow-y-auto pr-1 content-scrollbar">
               <p className="whitespace-pre-wrap text-xs">{fullContent}</p>
             </div>
           ) : (

@@ -354,6 +354,31 @@
     scrollbar-color: hsl(38 92% 58% / 0.7) hsl(var(--muted) / 0.3);
   }
 
+  /* Content scrollbar with rose theme */
+  .content-scrollbar::-webkit-scrollbar {
+    width: 3px;
+  }
+
+  .content-scrollbar::-webkit-scrollbar-track {
+    background: hsl(24 16% 16%);
+    border-radius: 2px;
+  }
+
+  .content-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, hsl(8 80% 56% / 0.5), hsl(38 92% 58% / 0.4));
+    border-radius: 2px;
+  }
+
+  .content-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, hsl(8 80% 56% / 0.8), hsl(38 92% 58% / 0.6));
+  }
+
+  /* Firefox support */
+  .content-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(8 80% 56% / 0.5) hsl(24 16% 16%);
+  }
+
   /* Notebook lined paper effect */
   .notebook-lined {
     background-image: repeating-linear-gradient(
