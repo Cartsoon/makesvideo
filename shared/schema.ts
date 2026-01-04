@@ -72,6 +72,7 @@ export const topics = pgTable("topics", {
   score: integer("score").default(0).notNull(),
   viewCount: integer("view_count").default(0).notNull(),
   status: varchar("status", { length: 20 }).default("new").notNull(),
+  publishedAt: timestamp("published_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -469,6 +470,7 @@ export interface Topic {
   language: Language;
   score: number;
   status: TopicStatus;
+  publishedAt: string | null;
   createdAt: string;
 }
 
@@ -488,6 +490,7 @@ export const insertTopicSchema = z.object({
   language: Language.default("ru"),
   score: z.number().default(0),
   status: TopicStatus.default("new"),
+  publishedAt: z.date().nullable().optional(),
 });
 
 export type InsertTopic = z.infer<typeof insertTopicSchema>;

@@ -254,6 +254,7 @@ export class DatabaseStorage implements IStorage {
       language: topic.language ?? "ru",
       score: topic.score ?? 0,
       status: topic.status ?? "new",
+      publishedAt: topic.publishedAt ?? null,
     }).returning();
     
     return this.mapTopic(row);
@@ -315,6 +316,7 @@ export class DatabaseStorage implements IStorage {
       language: row.language,
       score: row.score,
       status: row.status,
+      publishedAt: row.publishedAt ? row.publishedAt.toISOString() : null,
       createdAt: row.createdAt.toISOString(),
     };
   }

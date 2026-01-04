@@ -4,8 +4,7 @@ import type { Job, JobKind, Topic, TopicInsights } from "@shared/schema";
 import { checkTopicSimilarity } from "./similarity";
 
 const DAILY_TOPIC_LIMIT = 300;
-const HOURS_PER_DAY = 14;
-const TOPICS_PER_HOUR = Math.ceil(DAILY_TOPIC_LIMIT / HOURS_PER_DAY); // ~21
+const TOPICS_PER_HOUR = 35;
 const FETCH_INTERVAL_MS = 3 * 60 * 1000; // 3 minutes
 
 let autoFetchInterval: NodeJS.Timeout | null = null;
@@ -162,8 +161,8 @@ function decodeHtmlEntities(text: string): string {
 }
 
 // Simple RSS parser - extracts items from RSS/Atom XML
-function parseRSSItems(xml: string): Array<{ title: string; link: string; description: string; imageUrl?: string }> {
-  const items: Array<{ title: string; link: string; description: string; imageUrl?: string }> = [];
+function parseRSSItems(xml: string): Array<{ title: string; link: string; description: string; imageUrl?: string; pubDate?: Date }> {
+  const items: Array<{ title: string; link: string; description: string; imageUrl?: string; pubDate?: Date }> = [];
   
   // Helper to extract image URL from content
   function extractImageUrl(content: string): string | undefined {
@@ -225,17 +224,20 @@ function parseRSSItems(xml: string): Array<{ title: string; link: string; descri
     const titleMatch = itemContent.match(/<title[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/i);
     const linkMatch = itemContent.match(/<link[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/link>/i);
     const descMatch = itemContent.match(/<description[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/description>/i);
+    const pubDateMatch = itemContent.match(/<pubDate[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/pubDate>/i);
     
     const titleRaw = titleMatch ? titleMatch[1].trim().replace(/<!\[CDATA\[|\]\]>/g, '').trim() : '';
     const link = linkMatch ? linkMatch[1].trim().replace(/<!\[CDATA\[|\]\]>/g, '').trim() : '';
     const descRaw = descMatch ? descMatch[1].trim().replace(/<!\[CDATA\[|\]\]>/g, '').replace(/<[^>]+>/g, '').trim() : '';
+    const pubDateRaw = pubDateMatch ? pubDateMatch[1].trim().replace(/<!\[CDATA\[|\]\]>/g, '').trim() : '';
     const imageUrl = extractImageUrl(itemContent);
     
     const title = decodeHtmlEntities(titleRaw);
     const description = decodeHtmlEntities(descRaw);
+    const pubDate = pubDateRaw ? new Date(pubDateRaw) : undefined;
     
     if (title) {
-      items.push({ title, link, description, imageUrl });
+      items.push({ title, link, description, imageUrl, pubDate: pubDate && !isNaN(pubDate.getTime()) ? pubDate : undefined });
     }
   }
   
@@ -249,17 +251,21 @@ function parseRSSItems(xml: string): Array<{ title: string; link: string; descri
       const linkMatch = entryContent.match(/<link[^>]*href=["']([^"']+)["']/i);
       const summaryMatch = entryContent.match(/<summary[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/summary>/i);
       const contentMatch = entryContent.match(/<content[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/content>/i);
+      const updatedMatch = entryContent.match(/<updated[^>]*>([\s\S]*?)<\/updated>/i);
+      const publishedMatch = entryContent.match(/<published[^>]*>([\s\S]*?)<\/published>/i);
       
       const titleRaw = titleMatch ? titleMatch[1].trim().replace(/<!\[CDATA\[|\]\]>/g, '').trim() : '';
       const link = linkMatch ? linkMatch[1].trim() : '';
       const descRaw = (summaryMatch ? summaryMatch[1] : contentMatch ? contentMatch[1] : '').trim().replace(/<!\[CDATA\[|\]\]>/g, '').replace(/<[^>]+>/g, '').trim();
+      const pubDateRaw = (publishedMatch ? publishedMatch[1] : updatedMatch ? updatedMatch[1] : '').trim();
       const imageUrl = extractImageUrl(entryContent);
       
       const title = decodeHtmlEntities(titleRaw);
       const description = decodeHtmlEntities(descRaw);
+      const pubDate = pubDateRaw ? new Date(pubDateRaw) : undefined;
       
       if (title) {
-        items.push({ title, link, description, imageUrl });
+        items.push({ title, link, description, imageUrl, pubDate: pubDate && !isNaN(pubDate.getTime()) ? pubDate : undefined });
       }
     }
   }
@@ -415,7 +421,8 @@ async function processFetchTopics(job: Job): Promise<void> {
             score: Math.floor(Math.random() * 30) + 70,
             language: language,
             status: "new",
-            extractionStatus: "pending"
+            extractionStatus: "pending",
+            publishedAt: item.pubDate || null
           });
           topicsAdded++;
         }
