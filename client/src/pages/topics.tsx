@@ -55,6 +55,7 @@ export default function Topics() {
 
   const { data: topics, isLoading } = useQuery<Topic[]>({
     queryKey: ["/api/topics"],
+    refetchInterval: 60000,
   });
 
   const { data: jobs } = useQuery<Job[]>({

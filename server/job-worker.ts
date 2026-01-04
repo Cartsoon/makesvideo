@@ -211,8 +211,11 @@ async function updateIngestionStats(added: number): Promise<void> {
 
 async function canFetchMoreTopics(): Promise<{ allowed: boolean; remainingDaily: number; remainingHourly: number }> {
   const stats = await getIngestionStats();
-  const remainingDaily = DAILY_TOPIC_LIMIT - stats.dailyCount;
-  const remainingHourly = TOPICS_PER_HOUR - stats.hourlyCount;
+  const remainingDaily = Math.max(0, DAILY_TOPIC_LIMIT - stats.dailyCount);
+  const remainingHourly = Math.max(0, TOPICS_PER_HOUR - stats.hourlyCount);
+  
+  console.log(`[JobWorker] Quota check: daily=${stats.dailyCount}/${DAILY_TOPIC_LIMIT}, hourly=${stats.hourlyCount}/${TOPICS_PER_HOUR}`);
+  
   return {
     allowed: remainingDaily > 0 && remainingHourly > 0,
     remainingDaily,
