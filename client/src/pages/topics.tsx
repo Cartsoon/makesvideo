@@ -73,17 +73,18 @@ export default function Topics() {
 
   useEffect(() => {
     const fetchTopicsJobs = jobs?.filter(j => j.kind === "fetch_topics" && j.status === "done") || [];
-    const newlyCompletedJobs = fetchTopicsJobs.filter(j => !processedJobIds.has(j.id));
     
-    if (newlyCompletedJobs.length > 0) {
-      queryClient.invalidateQueries({ queryKey: ["/api/topics"] });
-      setProcessedJobIds(prev => {
+    setProcessedJobIds(prev => {
+      const newlyCompletedJobs = fetchTopicsJobs.filter(j => !prev.has(j.id));
+      if (newlyCompletedJobs.length > 0) {
+        queryClient.invalidateQueries({ queryKey: ["/api/topics"] });
         const next = new Set(prev);
         newlyCompletedJobs.forEach(j => next.add(j.id));
         return next;
-      });
-    }
-  }, [jobs, processedJobIds]);
+      }
+      return prev;
+    });
+  }, [jobs]);
 
   // Handle highlight parameter from dashboard - scroll to topic and highlight it
   useEffect(() => {
