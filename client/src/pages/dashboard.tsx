@@ -322,7 +322,7 @@ export default function Dashboard() {
                       <p className="font-bold text-sm text-white uppercase tracking-wide leading-tight">
                         {t("dashboard.createFromText")}
                       </p>
-                      <p className="text-[10px] text-neutral-400 mt-1 leading-relaxed">
+                      <p className="text-[10px] text-neutral-300 mt-1 leading-relaxed">
                         {t("dashboard.createFromTextDesc")}
                       </p>
                     </div>
