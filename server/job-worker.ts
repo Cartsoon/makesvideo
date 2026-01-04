@@ -872,28 +872,61 @@ async function processGenerateHook(job: Job, scriptId: string): Promise<void> {
   if (!topic) throw new Error("Topic not found");
 
   await storage.updateScript(scriptId, { status: "generating" });
-  await storage.updateJob(job.id, { progress: 30 });
+  await storage.updateJob(job.id, { progress: 20 });
 
-  // Use context-aware generation if content/insights are available
-  let hook: string;
-  if (topic.fullContent || topic.insights) {
-    const context = createTopicContext(topic);
-    hook = await providers.llm.generateHookFromContext(
-      context,
-      script.stylePreset,
-      script.durationSec
-    );
-  } else {
-    hook = await providers.llm.generateHook(
-      topic.title,
-      script.stylePreset,
-      script.durationSec,
-      script.language
-    );
+  // Generate 3 SEO title variants
+  const seoTitles: string[] = [];
+  const titleContext = topic.fullContent || topic.rawText || topic.title;
+  
+  // Generate 3 different hook/title variants
+  for (let i = 0; i < 3; i++) {
+    await storage.updateJob(job.id, { progress: 20 + (i * 20) });
+    
+    let title: string;
+    if (topic.fullContent || topic.insights) {
+      const context = createTopicContext(topic);
+      title = await providers.llm.generateHookFromContext(
+        context,
+        script.stylePreset,
+        script.durationSec
+      );
+    } else {
+      title = await providers.llm.generateHook(
+        topic.title,
+        script.stylePreset,
+        script.durationSec,
+        script.language
+      );
+    }
+    
+    // Ensure uniqueness
+    if (title && !seoTitles.includes(title)) {
+      seoTitles.push(title);
+    }
   }
 
   await storage.updateJob(job.id, { progress: 80 });
-  await storage.updateScript(scriptId, { hook, status: "draft" });
+  
+  // Also generate video description based on content
+  let videoDescription = "";
+  if (topic.fullContent || topic.rawText) {
+    try {
+      const descPrompt = script.language === "ru"
+        ? `Напиши короткое описание (2-3 предложения) для видео на YouTube Shorts/TikTok на основе этого контента. Стиль: вовлекающий, с интригой. Контент: ${titleContext.slice(0, 500)}`
+        : `Write a short description (2-3 sentences) for a YouTube Shorts/TikTok video based on this content. Style: engaging, intriguing. Content: ${titleContext.slice(0, 500)}`;
+      
+      videoDescription = await providers.llm.generateSummary(descPrompt, script.language);
+    } catch (err) {
+      console.log("[GenerateHook] Video description generation failed:", err);
+    }
+  }
+
+  await storage.updateScript(scriptId, { 
+    hook: seoTitles[0] || "", 
+    seoTitles,
+    videoDescription: videoDescription || null,
+    status: "draft" 
+  });
   await storage.updateJob(job.id, { progress: 100 });
 }
 

@@ -454,7 +454,7 @@ export default function ScriptDetail() {
   }
 
   const completionSteps = [
-    { key: "hook", label: t("script.hook"), done: !!script.hook },
+    { key: "seo", label: t("script.seoTitles") || "SEO", done: !!script.seoTitles?.length },
     { key: "voiceText", label: t("script.voiceScript"), done: !!script.voiceText },
     { key: "storyboard", label: t("script.storyboard"), done: !!script.storyboard?.length },
     { key: "music", label: t("script.music"), done: !!script.music },
@@ -899,59 +899,8 @@ export default function ScriptDetail() {
               <div className="border border-neutral-700/50 bg-neutral-800/30 p-4">
                 <div className="flex items-center justify-between gap-2 mb-3">
                   <div className="flex items-center gap-2">
-                    <div className={`w-6 h-6 flex items-center justify-center text-xs font-bold ${script.hook ? "bg-emerald-500/20 text-emerald-400" : "bg-neutral-700 text-neutral-400"}`}>
-                      {script.hook ? <CheckCircle2 className="h-4 w-4" /> : "1"}
-                    </div>
-                    <h3 className="font-semibold text-white text-sm uppercase tracking-wide">{t("script.hook")}</h3>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => generateMutation.mutate("generate_hook")}
-                    disabled={generateMutation.isPending || !!activeJob}
-                    data-testid="button-generate-hook"
-                    className="border-neutral-600 bg-neutral-800"
-                  >
-                    <Wand2 className="h-4 w-4" />
-                  </Button>
-                </div>
-                {isEditing === "hook" ? (
-                  <div className="space-y-2">
-                    <Textarea
-                      value={editValue}
-                      onChange={(e) => setEditValue(e.target.value)}
-                      className="min-h-[80px] bg-neutral-800 border-neutral-600"
-                      data-testid="textarea-hook"
-                    />
-                    <div className="flex gap-2">
-                      <Button size="sm" onClick={() => handleEditSave("hook")} data-testid="button-save-hook">
-                        {t("common.save")}
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => setIsEditing(null)} className="border-neutral-600">
-                        {t("common.cancel")}
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div
-                    className="p-3 bg-neutral-800/50 border border-neutral-700/50 min-h-[60px] cursor-pointer hover:bg-neutral-700/50 transition-colors"
-                    onClick={() => startEdit("hook", script.hook || "")}
-                    data-testid="hook-content"
-                  >
-                    {script.hook ? (
-                      <p className="text-sm whitespace-pre-wrap text-neutral-200">{script.hook}</p>
-                    ) : (
-                      <p className="text-sm text-neutral-500 italic">{t("script.noHook")}</p>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div className="border border-neutral-700/50 bg-neutral-800/30 p-4">
-                <div className="flex items-center justify-between gap-2 mb-3">
-                  <div className="flex items-center gap-2">
                     <div className={`w-6 h-6 flex items-center justify-center text-xs font-bold ${script.voiceText ? "bg-emerald-500/20 text-emerald-400" : "bg-neutral-700 text-neutral-400"}`}>
-                      {script.voiceText ? <CheckCircle2 className="h-4 w-4" /> : "2"}
+                      {script.voiceText ? <CheckCircle2 className="h-4 w-4" /> : "1"}
                     </div>
                     <h3 className="font-semibold text-white text-sm uppercase tracking-wide">
                       <span className="hidden sm:inline">{t("script.voiceScript")}</span>
@@ -1052,7 +1001,7 @@ export default function ScriptDetail() {
                 <div className="flex items-center justify-between gap-2 mb-3">
                   <div className="flex items-center gap-2">
                     <div className={`w-6 h-6 flex items-center justify-center text-xs font-bold ${script.storyboard?.length ? "bg-emerald-500/20 text-emerald-400" : "bg-neutral-700 text-neutral-400"}`}>
-                      {script.storyboard?.length ? <CheckCircle2 className="h-4 w-4" /> : "3"}
+                      {script.storyboard?.length ? <CheckCircle2 className="h-4 w-4" /> : "2"}
                     </div>
                     <h3 className="font-semibold text-white text-sm uppercase tracking-wide">{t("script.storyboard")}</h3>
                   </div>
@@ -1439,7 +1388,7 @@ export default function ScriptDetail() {
                 <div className="flex items-center justify-between gap-2 mb-3">
                   <div className="flex items-center gap-2">
                     <div className={`w-6 h-6 flex items-center justify-center text-xs font-bold ${script.music ? "bg-emerald-500/20 text-emerald-400" : "bg-neutral-700 text-neutral-400"}`}>
-                      {script.music ? <CheckCircle2 className="h-4 w-4" /> : "4"}
+                      {script.music ? <CheckCircle2 className="h-4 w-4" /> : "3"}
                     </div>
                     <h3 className="font-semibold text-white text-sm uppercase tracking-wide">{t("script.music")}</h3>
                   </div>
@@ -1506,6 +1455,125 @@ export default function ScriptDetail() {
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* SEO TITLES BLOCK */}
+        <div className="relative border border-neutral-700/50 bg-neutral-900/80">
+          <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-rose-500/60" />
+          <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-rose-500/60" />
+          <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-amber-500/60" />
+          <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-amber-500/60" />
+          
+          <div className="px-4 py-3 border-b border-neutral-700/50 bg-neutral-800/50 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <div className={`w-6 h-6 flex items-center justify-center text-xs font-bold ${script.seoTitles?.length ? "bg-emerald-500/20 text-emerald-400" : "bg-neutral-700 text-neutral-400"}`}>
+                {script.seoTitles?.length ? <CheckCircle2 className="h-4 w-4" /> : "4"}
+              </div>
+              <h3 className="text-sm font-semibold text-white uppercase tracking-wide">
+                {script.language === "ru" ? "SEO Заголовки" : "SEO Titles"}
+              </h3>
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => generateMutation.mutate("generate_hook")}
+              disabled={generateMutation.isPending || !!activeJob}
+              data-testid="button-generate-seo"
+              className="border-neutral-600 bg-neutral-800"
+            >
+              <Wand2 className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          <div className="p-4 space-y-4">
+            {/* 3 SEO Title Variants */}
+            <div className="space-y-2">
+              <p className="text-[10px] uppercase tracking-wide text-neutral-400 font-medium">
+                {script.language === "ru" ? "Варианты заголовков" : "Title Variants"}
+              </p>
+              {script.seoTitles?.length ? (
+                <div className="space-y-2">
+                  {script.seoTitles.map((title, idx) => (
+                    <div 
+                      key={idx}
+                      className="group relative p-3 bg-neutral-800/50 border border-neutral-700/50 hover:border-rose-500/30 transition-colors cursor-pointer"
+                      onClick={() => {
+                        navigator.clipboard.writeText(title);
+                        toast({
+                          title: t("copied"),
+                          description: script.language === "ru" ? "Заголовок скопирован" : "Title copied",
+                        });
+                      }}
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="flex-shrink-0 w-5 h-5 flex items-center justify-center text-[10px] font-bold bg-gradient-to-br from-rose-500/20 to-amber-500/20 text-rose-400">
+                          {idx + 1}
+                        </span>
+                        <p className="text-sm text-neutral-200 flex-1">{title}</p>
+                        <Copy className="h-4 w-4 text-neutral-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : script.hook ? (
+                <div className="p-3 bg-neutral-800/50 border border-neutral-700/50">
+                  <p className="text-sm text-neutral-200">{script.hook}</p>
+                  <p className="text-xs text-neutral-500 mt-2 italic">
+                    {script.language === "ru" ? "Нажмите генерацию для 3 вариантов" : "Click generate for 3 variants"}
+                  </p>
+                </div>
+              ) : (
+                <div className="p-4 bg-neutral-800/50 border border-neutral-700/50 text-center">
+                  <FileText className="h-6 w-6 mx-auto text-neutral-500 mb-2" />
+                  <p className="text-sm text-neutral-400">
+                    {script.language === "ru" ? "Нажмите для генерации SEO заголовков" : "Click to generate SEO titles"}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Video Description */}
+            <div className="space-y-2">
+              <p className="text-[10px] uppercase tracking-wide text-neutral-400 font-medium">
+                {script.language === "ru" ? "Описание видео" : "Video Description"}
+              </p>
+              {isEditing === "videoDescription" ? (
+                <div className="space-y-2">
+                  <Textarea
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    className="min-h-[100px] bg-neutral-800 border-neutral-600 text-sm"
+                    placeholder={script.language === "ru" ? "Краткое описание о чём это видео..." : "Brief description of what this video is about..."}
+                    data-testid="textarea-video-description"
+                  />
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => handleEditSave("videoDescription")} data-testid="button-save-description">
+                      {t("common.save")}
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setIsEditing(null)} className="border-neutral-600">
+                      {t("common.cancel")}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  className="p-3 bg-neutral-800/50 border border-neutral-700/50 min-h-[80px] cursor-pointer hover:bg-neutral-700/50 transition-colors"
+                  onClick={() => startEdit("videoDescription", script.videoDescription || "")}
+                  data-testid="video-description-content"
+                >
+                  {script.videoDescription ? (
+                    <p className="text-sm whitespace-pre-wrap text-neutral-200">{script.videoDescription}</p>
+                  ) : (
+                    <p className="text-sm text-neutral-500 italic">
+                      {script.language === "ru" 
+                        ? "Нажмите чтобы добавить описание видео для YouTube/TikTok..." 
+                        : "Click to add video description for YouTube/TikTok..."}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

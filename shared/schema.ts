@@ -93,6 +93,8 @@ export const scripts = pgTable("scripts", {
   constraints: jsonb("constraints"),
   seo: jsonb("seo"),
   hook: text("hook"),
+  seoTitles: jsonb("seo_titles").default([]),
+  videoDescription: text("video_description"),
   voiceText: text("voice_text"),
   onScreenText: text("on_screen_text"),
   transcriptRich: jsonb("transcript_rich"),
@@ -612,6 +614,8 @@ export interface Script {
   constraints: ScriptConstraints | null;
   seo: SeoOutputs | null;
   hook: string | null;
+  seoTitles: string[] | null;
+  videoDescription: string | null;
   voiceText: string | null;
   onScreenText: string | null;
   transcriptRich: TranscriptRich | null;
@@ -639,6 +643,8 @@ export const insertScriptSchema = z.object({
   constraints: scriptConstraintsSchema.nullable().optional(),
   seo: seoOutputsSchema.nullable().optional(),
   hook: z.string().nullable().optional(),
+  seoTitles: z.array(z.string()).nullable().optional(),
+  videoDescription: z.string().nullable().optional(),
   voiceText: z.string().nullable().optional(),
   onScreenText: z.string().nullable().optional(),
   transcriptRich: transcriptRichSchema.nullable().optional(),
