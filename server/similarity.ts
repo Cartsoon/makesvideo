@@ -57,30 +57,48 @@ export async function checkScriptSimilarity(
 
 export async function checkTopicSimilarity(
   newTitle: string,
+  newRawText?: string | null,
   excludeTopicId?: string,
-  threshold: number = 0.5
+  threshold: number = 0.7
 ): Promise<{ passed: boolean; highestSimilarity: number; similarTopicId: string | null }> {
   const topics = await storage.getTopics();
-  const normalizedNew = normalizeText(newTitle);
-  const newWords = new Set(normalizedNew.split(' ').filter(w => w.length > 2));
   
-  if (newWords.size < 2) {
+  const recentTopics = topics.filter(t => {
+    const topicDate = new Date(t.createdAt);
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    return topicDate > weekAgo;
+  });
+  
+  const normalizedNewTitle = normalizeText(newTitle);
+  const newTitleWords = new Set(normalizedNewTitle.split(' ').filter(w => w.length > 2));
+  const newTextNgrams = newRawText ? extractNGrams(newRawText, 4) : new Set<string>();
+  
+  if (newTitleWords.size < 2 && newTextNgrams.size < 3) {
     return { passed: true, highestSimilarity: 0, similarTopicId: null };
   }
   
   let highestSimilarity = 0;
   let similarTopicId: string | null = null;
   
-  for (const topic of topics) {
+  for (const topic of recentTopics) {
     if (excludeTopicId && topic.id === excludeTopicId) continue;
     
     const existingNormalized = normalizeText(topic.title);
-    const existingWords = new Set(existingNormalized.split(' ').filter(w => w.length > 2));
+    const existingTitleWords = new Set(existingNormalized.split(' ').filter(w => w.length > 2));
+    const titleSim = jaccardSimilarity(newTitleWords, existingTitleWords);
     
-    const similarity = jaccardSimilarity(newWords, existingWords);
+    let textSim = 0;
+    if (newRawText && topic.rawText) {
+      const existingNgrams = extractNGrams(topic.rawText, 4);
+      textSim = jaccardSimilarity(newTextNgrams, existingNgrams);
+    }
     
-    if (similarity > highestSimilarity) {
-      highestSimilarity = similarity;
+    const combinedSimilarity = newRawText && topic.rawText 
+      ? titleSim * 0.4 + textSim * 0.6 
+      : titleSim;
+    
+    if (combinedSimilarity > highestSimilarity) {
+      highestSimilarity = combinedSimilarity;
       similarTopicId = topic.id;
     }
   }
