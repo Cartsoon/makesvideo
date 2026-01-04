@@ -448,6 +448,7 @@ const translations: Record<Language, Record<string, string>> = {
     "category.russia_news": "Russia News",
     "category.medicine": "Medicine",
     "category.youtube_trends": "YouTube Trends",
+    "category.pets": "Pets & Animals",
     
     // Profile & Auth
     "profile.title": "Profile",
@@ -915,6 +916,7 @@ const translations: Record<Language, Record<string, string>> = {
     "category.russia_news": "Новости России",
     "category.medicine": "Медицина",
     "category.youtube_trends": "YouTube тренды",
+    "category.pets": "Питомцы и животные",
     
     // Profile & Auth
     "profile.title": "Профиль",

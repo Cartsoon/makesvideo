@@ -1,4 +1,4 @@
-import { Globe, Gamepad2, Laugh, TrendingUp, Shirt, Music, Sparkles, FlaskConical, Film, Tv, Flag, Stethoscope, Youtube, type LucideIcon } from "lucide-react";
+import { Globe, Gamepad2, Laugh, TrendingUp, Shirt, Music, Sparkles, FlaskConical, Film, Tv, Flag, Stethoscope, Youtube, PawPrint, type LucideIcon } from "lucide-react";
 
 export type CategoryId = 
   | "world_news"
@@ -13,7 +13,8 @@ export type CategoryId =
   | "series"
   | "russia_news"
   | "medicine"
-  | "youtube_trends";
+  | "youtube_trends"
+  | "pets";
 
 export interface RSSSource {
   name: string;
@@ -658,6 +659,66 @@ export const categoryPresets: CategoryPreset[] = [
         { name: "Cossa", url: "https://www.cossa.ru/rss/" },
         { name: "Sostav", url: "https://www.sostav.ru/rss/" },
         { name: "AdIndex", url: "https://adindex.ru/rss/" },
+      ],
+    },
+  },
+  {
+    id: "pets",
+    icon: PawPrint,
+    sources: {
+      en: [
+        { name: "PetMD", url: "https://www.petmd.com/rss" },
+        { name: "The Spruce Pets", url: "https://www.thesprucepets.com/rss" },
+        { name: "American Kennel Club", url: "https://www.akc.org/feed/" },
+        { name: "Dogster", url: "https://www.dogster.com/feed" },
+        { name: "Catster", url: "https://www.catster.com/feed" },
+        { name: "Pet Age", url: "https://www.petage.com/feed/" },
+        { name: "Pet Business", url: "https://www.petbusiness.com/feed/" },
+        { name: "Groomer to Groomer", url: "https://www.groomertogroomer.com/feed/" },
+        { name: "Modern Dog Magazine", url: "https://moderndogmagazine.com/feed" },
+        { name: "Daily Paws", url: "https://www.dailypaws.com/feed" },
+        { name: "r/dogs", url: "https://www.reddit.com/r/dogs/.rss" },
+        { name: "r/cats", url: "https://www.reddit.com/r/cats/.rss" },
+        { name: "r/aww", url: "https://www.reddit.com/r/aww/.rss" },
+        { name: "r/pets", url: "https://www.reddit.com/r/Pets/.rss" },
+        { name: "r/doggrooming", url: "https://www.reddit.com/r/doggrooming/.rss" },
+        { name: "Rover Blog", url: "https://www.rover.com/blog/feed/" },
+        { name: "BarkPost", url: "https://barkpost.com/feed/" },
+        { name: "The Dodo", url: "https://www.thedodo.com/rss" },
+        { name: "Vetstreet", url: "https://www.vetstreet.com/rss" },
+        { name: "Fear Free Pets", url: "https://fearfreepets.com/feed/" },
+        { name: "Dog Fashion", url: "https://www.dogfashionblog.com/feed/" },
+        { name: "Posh Puppy Boutique", url: "https://www.poshpuppyboutique.com/blog/feed/" },
+        { name: "Zooplus Magazine", url: "https://www.zooplus.co.uk/magazine/feed" },
+        { name: "Pet Industry News", url: "https://petindustrynews.com/feed/" },
+        { name: "Whole Dog Journal", url: "https://www.whole-dog-journal.com/feed/" },
+      ],
+      ru: [
+        { name: "Petstory", url: "https://petstory.ru/rss" },
+        { name: "Питомцы Mail.ru", url: "https://pets.mail.ru/rss/" },
+        { name: "Petshop.ru", url: "https://www.petshop.ru/rss/" },
+        { name: "Dogsy", url: "https://dogsy.ru/feed/" },
+        { name: "ПроКошек", url: "https://prokoshku.ru/feed/" },
+        { name: "Котофей", url: "https://kotofey.ru/feed/" },
+        { name: "Dog-Care", url: "https://dog-care.ru/feed/" },
+        { name: "Cat-Expert", url: "https://cat-expert.ru/feed/" },
+        { name: "ZooAtlas", url: "https://zooatlas.ru/rss" },
+        { name: "VetInfo", url: "https://vetinfo.ru/feed/" },
+        { name: "Грумер Pro", url: "https://groomerpro.ru/feed/" },
+        { name: "Питомник.ру", url: "https://pitomnik.ru/rss" },
+        { name: "Собака.ру", url: "https://sobaka.ru/feed/" },
+        { name: "Кот и Пёс", url: "https://kotopes.ru/feed/" },
+        { name: "ZooMir", url: "https://zoomir.ru/rss" },
+        { name: "Любимчик", url: "https://lubimchik.ru/feed/" },
+        { name: "Zoo Club", url: "https://zooclub.ru/rss" },
+        { name: "Мир кошек", url: "https://mirkoshki.ru/feed/" },
+        { name: "Мир собак", url: "https://mirsobak.net/feed/" },
+        { name: "Pet Сити", url: "https://petcity.ru/rss" },
+        { name: "Ветеринар онлайн", url: "https://vetmag.ru/feed/" },
+        { name: "Домашние животные", url: "https://domashnie-zhivotnye.ru/feed/" },
+        { name: "Зверополис", url: "https://zveropolis.ru/feed/" },
+        { name: "Grooming Russia", url: "https://grooming-russia.ru/feed/" },
+        { name: "Pet Fashion RU", url: "https://petfashion.ru/feed/" },
       ],
     },
   },
