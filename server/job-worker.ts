@@ -260,6 +260,13 @@ async function processFetchTopics(job: Job): Promise<void> {
             const rawTitle = item.title;
             const rawDescription = item.description.slice(0, 500); // Limit description length
             
+            // Skip topics with insufficient text content (likely photo/video-based)
+            const totalTextLength = (rawTitle?.length || 0) + (rawDescription?.length || 0);
+            if (totalTextLength < 80) {
+              console.log(`[JobWorker] Skipping topic with insufficient content (${totalTextLength} chars): "${rawTitle?.slice(0, 50)}..."`);
+              continue;
+            }
+            
             const tags = extractTopicTags(rawTitle, rawDescription, language);
             await storage.createTopic({
               sourceId: source.id,
