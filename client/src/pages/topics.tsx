@@ -56,6 +56,7 @@ export default function Topics() {
   const [sortBy, setSortBy] = useState<"score" | "date">("score");
   const [processedJobIds, setProcessedJobIds] = useState<Set<string>>(new Set());
   const [expandedTopicId, setExpandedTopicId] = useState<string | null>(null);
+  const [fadingOutIds, setFadingOutIds] = useState<Set<string>>(new Set());
 
   const { data: topics, isLoading } = useQuery<Topic[]>({
     queryKey: ["/api/topics"],
@@ -111,10 +112,21 @@ export default function Topics() {
   });
 
   const missMutation = useMutation({
-    mutationFn: (topicId: string) => apiRequest("PATCH", `/api/topics/${topicId}`, { status: "missed" }),
+    mutationFn: async (topicId: string) => {
+      setFadingOutIds(prev => new Set(prev).add(topicId));
+      await new Promise(resolve => setTimeout(resolve, 300));
+      return apiRequest("PATCH", `/api/topics/${topicId}`, { status: "missed" });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/topics"] });
       toast({ title: t("topics.topicMissed"), description: t("topics.topicMissedDesc") });
+    },
+    onSettled: (_, __, topicId) => {
+      setFadingOutIds(prev => {
+        const next = new Set(prev);
+        next.delete(topicId);
+        return next;
+      });
     },
   });
 
@@ -305,7 +317,9 @@ export default function Topics() {
               <div
                 key={topic.id}
                 data-testid={`topic-card-${topic.id}`}
-                className="group bg-card border border-border overflow-hidden hover-elevate"
+                className={`group bg-card border border-border overflow-hidden hover-elevate transition-all duration-300 ${
+                  fadingOutIds.has(topic.id) ? 'opacity-0 scale-95 -translate-y-2' : 'opacity-100 scale-100'
+                }`}
                 style={{ borderRadius: '2px' }}
               >
                 <div className="relative aspect-video overflow-hidden bg-muted">
