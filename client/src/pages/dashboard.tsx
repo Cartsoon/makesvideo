@@ -100,7 +100,7 @@ export default function Dashboard() {
   const prevActiveJobIds = useRef<Set<string>>(new Set());
   useEffect(() => {
     const currentActiveIds = new Set(activeJobs.map(j => j.id));
-    const justCompleted = [...prevActiveJobIds.current].filter(id => !currentActiveIds.has(id));
+    const justCompleted = Array.from(prevActiveJobIds.current).filter(id => !currentActiveIds.has(id));
     
     if (justCompleted.length > 0) {
       setCompletingJobs(prev => {
@@ -123,7 +123,7 @@ export default function Dashboard() {
   // Combined jobs to display: active + completing (at 100%)
   const displayJobs = [
     ...activeJobs.map(j => ({ ...j, isCompleting: false })),
-    ...[...completingJobs.keys()].map(id => ({ id, progress: 100, kind: "completing", isCompleting: true }))
+    ...Array.from(completingJobs.keys()).map(id => ({ id, progress: 100, kind: "completing", isCompleting: true }))
   ];
 
   const fetchTopicsMutation = useMutation({
@@ -609,7 +609,7 @@ export default function Dashboard() {
                           </p>
                         </div>
                         
-                        <ChevronRight className="h-3 w-3 text-neutral-500 group-hover:text-rose-400 flex-shrink-0" />
+                        <ChevronRight className="h-4 w-4 text-neutral-400 group-hover:text-rose-400 flex-shrink-0" />
                       </div>
                     </Link>
                     );
@@ -671,7 +671,7 @@ export default function Dashboard() {
                             <StatusBadge status={script.status} />
                           </div>
                         </div>
-                        <ChevronRight className="h-3 w-3 text-neutral-500 group-hover:text-blue-400 flex-shrink-0" />
+                        <ChevronRight className="h-4 w-4 text-neutral-400 group-hover:text-blue-400 flex-shrink-0" />
                       </div>
                     </Link>
                   ))}
