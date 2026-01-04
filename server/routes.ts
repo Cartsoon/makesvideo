@@ -387,9 +387,49 @@ export async function registerRoutes(
       // Update topic status
       await storage.updateTopic(req.params.id, { status: "in_progress" });
 
+      // Auto-extract content if not already done
+      if (!topic.fullContent && topic.url && topic.extractionStatus !== "extracting") {
+        await storage.createJob({
+          kind: "extract_content",
+          payload: { topicId: topic.id },
+        });
+      }
+
       res.status(201).json({ topic, script, scriptId: script.id });
     } catch (error) {
       res.status(500).json({ error: "Failed to select topic" });
+    }
+  });
+
+  // Extract content from topic URL
+  app.post("/api/topics/:id/extract", async (req, res) => {
+    try {
+      const topic = await storage.getTopic(req.params.id);
+      if (!topic) {
+        return res.status(404).json({ error: "Topic not found" });
+      }
+
+      if (!topic.url) {
+        return res.status(400).json({ error: "Topic has no URL to extract from" });
+      }
+
+      if (topic.extractionStatus === "extracting") {
+        return res.json({ status: "already_extracting", message: "Content extraction is already in progress" });
+      }
+
+      // Create extraction job
+      const job = await storage.createJob({
+        kind: "extract_content",
+        payload: { topicId: topic.id },
+      });
+
+      // Update topic status
+      await storage.updateTopic(req.params.id, { extractionStatus: "extracting" });
+
+      res.json({ status: "started", jobId: job.id });
+    } catch (error) {
+      console.error("Failed to start extraction:", error);
+      res.status(500).json({ error: "Failed to start content extraction" });
     }
   });
 
