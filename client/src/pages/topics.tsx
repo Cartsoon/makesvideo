@@ -176,7 +176,10 @@ export default function Topics() {
     })
     ?.sort((a, b) => {
       if (sortBy === "score") return b.score - a.score;
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      // Sort by publishedAt (or createdAt as fallback), newest first
+      const dateA = new Date(a.publishedAt || a.createdAt).getTime();
+      const dateB = new Date(b.publishedAt || b.createdAt).getTime();
+      return dateB - dateA;
     }) || [];
 
   const statusCounts = {
