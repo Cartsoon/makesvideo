@@ -985,8 +985,37 @@ async function processExtractTrends(job: Job, categoryId: string): Promise<void>
   await storage.updateJob(job.id, { progress: 100 });
 }
 
+// Clean up stale "running" jobs that have been stuck for more than 5 minutes
+async function cleanupStaleJobs(): Promise<void> {
+  try {
+    const allJobs = await storage.getJobs();
+    const staleThreshold = Date.now() - 5 * 60 * 1000; // 5 minutes
+    
+    for (const job of allJobs) {
+      if (job.status === "running") {
+        const updatedAt = new Date(job.updatedAt).getTime();
+        if (updatedAt < staleThreshold) {
+          console.log(`[JobWorker] Cleaning up stale job ${job.id} (${job.kind})`);
+          await storage.updateJob(job.id, { 
+            status: "error", 
+            error: "Job timed out (stale)" 
+          });
+        }
+      }
+    }
+  } catch (error) {
+    console.error("[JobWorker] Error cleaning up stale jobs:", error);
+  }
+}
+
 export async function startJobWorker(): Promise<void> {
   console.log("[JobWorker] Starting job worker...");
+  
+  // Clean up any stale jobs from previous runs on startup
+  await cleanupStaleJobs();
+  
+  // Periodically clean up stale jobs (every 2 minutes)
+  setInterval(cleanupStaleJobs, 2 * 60 * 1000);
   
   setInterval(async () => {
     if (isProcessing) return;

@@ -78,18 +78,19 @@ export default function Dashboard() {
 
   useEffect(() => {
     const fetchTopicsJobs = jobs?.filter(j => j.kind === "fetch_topics" && j.status === "done") || [];
-    const newlyCompletedJobs = fetchTopicsJobs.filter(j => !processedJobIds.has(j.id));
     
-    if (newlyCompletedJobs.length > 0) {
-      queryClient.invalidateQueries({ queryKey: ["/api/topics"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/scripts"] });
-      setProcessedJobIds(prev => {
+    setProcessedJobIds(prev => {
+      const newlyCompletedJobs = fetchTopicsJobs.filter(j => !prev.has(j.id));
+      if (newlyCompletedJobs.length > 0) {
+        queryClient.invalidateQueries({ queryKey: ["/api/topics"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/scripts"] });
         const next = new Set(prev);
         newlyCompletedJobs.forEach(j => next.add(j.id));
         return next;
-      });
-    }
-  }, [jobs, processedJobIds]);
+      }
+      return prev;
+    });
+  }, [jobs]);
 
   const activeJobs = jobs?.filter(j => j.status === "running" || j.status === "queued") || [];
   const hasPendingFetchTopics = activeJobs.some(j => j.kind === "fetch_topics");
@@ -127,10 +128,11 @@ export default function Dashboard() {
     .slice(0, 4) || [];
 
   // Track newly added topics for animation
+  const topicIdsString = newTopics.map(t => t.id).join(',');
   useEffect(() => {
-    if (!newTopics.length) return;
+    if (!topicIdsString) return;
     
-    const currentIds = new Set(newTopics.map(t => t.id));
+    const currentIds = new Set(topicIdsString.split(',').filter(Boolean));
     
     if (prevTopicIds.size > 0) {
       const newIds = new Set<string>();
@@ -148,7 +150,7 @@ export default function Dashboard() {
     }
     
     setPrevTopicIds(currentIds);
-  }, [newTopics]);
+  }, [topicIdsString]);
 
   const stats = {
     totalTopics: topics?.filter(t => !t.title?.startsWith("__")).length || 0,
