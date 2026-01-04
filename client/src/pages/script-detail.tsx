@@ -106,27 +106,10 @@ function TopicDescription({ topic, language }: { topic: Topic; language: string 
       {isExpanded && (
         <div className="mt-3 p-3 bg-neutral-800/50 border border-neutral-700/50 text-sm text-neutral-300 leading-relaxed">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] uppercase tracking-wide text-neutral-500">
-              {language === "ru" ? "Содержание новости" : "Article Content"}
-            </span>
-            <button
-              onClick={() => setIsExpanded(false)}
-              className="flex items-center gap-1 text-xs text-rose-400 hover:text-rose-300 transition-colors"
-              data-testid="button-collapse-topic"
-            >
-              <ChevronUp className="h-3 w-3" />
-              {t("common.showLess")}
-            </button>
-          </div>
-          {hasContent ? (
-            <p className="whitespace-pre-wrap">{fullContent}</p>
-          ) : (
-            <div className="text-center py-4">
-              <p className="text-neutral-500 text-sm mb-3">
-                {topic.extractionStatus === "extracting" 
-                  ? (language === "ru" ? "Загрузка контента..." : "Loading content...")
-                  : (language === "ru" ? "Содержание недоступно" : "Content not available")}
-              </p>
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] uppercase tracking-wide text-neutral-500">
+                {language === "ru" ? "Содержание новости" : "Article Content"}
+              </span>
               {topic.url && (
                 <a 
                   href={topic.url} 
@@ -137,6 +120,27 @@ function TopicDescription({ topic, language }: { topic: Topic; language: string 
                   {language === "ru" ? "Открыть источник" : "Open source"}
                 </a>
               )}
+            </div>
+            <button
+              onClick={() => setIsExpanded(false)}
+              className="flex items-center gap-1 text-xs text-rose-400 hover:text-rose-300 transition-colors"
+              data-testid="button-collapse-topic"
+            >
+              <ChevronUp className="h-3 w-3" />
+              {t("common.showLess")}
+            </button>
+          </div>
+          {hasContent ? (
+            <div className="max-h-32 overflow-y-auto">
+              <p className="whitespace-pre-wrap text-xs">{fullContent}</p>
+            </div>
+          ) : (
+            <div className="text-center py-2">
+              <p className="text-neutral-500 text-xs">
+                {topic.extractionStatus === "extracting" 
+                  ? (language === "ru" ? "Загрузка контента..." : "Loading content...")
+                  : (language === "ru" ? "Содержание недоступно" : "Content not available")}
+              </p>
             </div>
           )}
         </div>
