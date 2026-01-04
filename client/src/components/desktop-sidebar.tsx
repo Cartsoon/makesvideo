@@ -8,8 +8,6 @@ import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth-context";
 import { useAdminAccess } from "@/lib/admin-access";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { getAvatarById } from "@/lib/avatars";
 
 export function DesktopSidebar() {
   const [location] = useLocation();
@@ -111,24 +109,13 @@ export function DesktopSidebar() {
                 onLogout={logout}
                 trigger={
                   <Button variant="ghost" size="icon" data-testid="button-profile-avatar">
-                    <Avatar className="h-5 w-5 border border-sidebar-border">
-                      {user.avatarId > 0 ? (
-                        <AvatarImage src={getAvatarById(user.avatarId)} alt={user.nickname || "User"} className="object-cover" />
-                      ) : null}
-                      <AvatarFallback className="text-[9px] bg-sidebar-accent">
-                        {user.nickname ? user.nickname.charAt(0).toUpperCase() : <User className="h-3 w-3" />}
-                      </AvatarFallback>
-                    </Avatar>
+                    <User className="h-4 w-4" />
                   </Button>
                 }
               />
             ) : (
               <Button variant="ghost" size="icon" data-testid="button-profile-avatar" onClick={logout}>
-                <Avatar className="h-5 w-5 border border-sidebar-border">
-                  <AvatarFallback className="text-[9px] bg-sidebar-accent">
-                    <User className="h-3 w-3" />
-                  </AvatarFallback>
-                </Avatar>
+                <User className="h-4 w-4" />
               </Button>
             )}
           </div>
