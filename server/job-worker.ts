@@ -985,11 +985,11 @@ async function processExtractTrends(job: Job, categoryId: string): Promise<void>
   await storage.updateJob(job.id, { progress: 100 });
 }
 
-// Clean up stale "running" jobs that have been stuck for more than 5 minutes
+// Clean up stale "running" jobs that have been stuck for more than 1 minute
 async function cleanupStaleJobs(): Promise<void> {
   try {
     const allJobs = await storage.getJobs();
-    const staleThreshold = Date.now() - 5 * 60 * 1000; // 5 minutes
+    const staleThreshold = Date.now() - 60 * 1000; // 1 minute
     
     for (const job of allJobs) {
       if (job.status === "running") {
