@@ -81,8 +81,8 @@ function TopicDescription({ topic, language }: { topic: Topic; language: string 
     ? (topic.translatedTitleEn || topic.generatedTitle || topic.title) 
     : (topic.translatedTitle || topic.generatedTitle || topic.title);
   
-  const truncatedTitle = fullTitle.slice(0, 150);
-  const needsTruncation = fullTitle.length > 150;
+  const fullContent = topic.fullContent || "";
+  const hasContent = fullContent.length > 0;
   
   return (
     <div className="mt-2">
@@ -91,29 +91,35 @@ function TopicDescription({ topic, language }: { topic: Topic; language: string 
         data-testid="text-topic-description"
       >
         <span className="text-neutral-500">{t("script.topicLabel")}:</span>{" "}
-        <span className="text-neutral-300">
-          {isExpanded ? fullTitle : truncatedTitle}
-          {!isExpanded && needsTruncation && "..."}
-        </span>
+        <span className="text-neutral-300">{fullTitle}</span>
+        {hasContent && !isExpanded && (
+          <button
+            onClick={() => setIsExpanded(true)}
+            className="ml-1 text-rose-400 hover:text-rose-300 transition-colors font-medium"
+            data-testid="button-expand-topic"
+          >
+            ...
+          </button>
+        )}
       </p>
-      {needsTruncation && (
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center gap-1 text-xs text-rose-400 hover:text-rose-300 mt-1 transition-colors"
-          data-testid="button-toggle-topic-description"
-        >
-          {isExpanded ? (
-            <>
+      
+      {isExpanded && hasContent && (
+        <div className="mt-3 p-3 bg-neutral-800/50 border border-neutral-700/50 text-sm text-neutral-300 leading-relaxed">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] uppercase tracking-wide text-neutral-500">
+              {language === "ru" ? "Содержание новости" : "Article Content"}
+            </span>
+            <button
+              onClick={() => setIsExpanded(false)}
+              className="flex items-center gap-1 text-xs text-rose-400 hover:text-rose-300 transition-colors"
+              data-testid="button-collapse-topic"
+            >
               <ChevronUp className="h-3 w-3" />
               {t("common.showLess")}
-            </>
-          ) : (
-            <>
-              <ChevronDown className="h-3 w-3" />
-              {t("common.showMore")}
-            </>
-          )}
-        </button>
+            </button>
+          </div>
+          <p className="whitespace-pre-wrap">{fullContent}</p>
+        </div>
       )}
     </div>
   );
