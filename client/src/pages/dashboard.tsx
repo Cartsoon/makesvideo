@@ -504,7 +504,7 @@ export default function Dashboard() {
                     <Link key={topic.id} href={`/topics?highlight=${topic.id}`}>
                       <div
                         className={`group flex items-center gap-2 p-1.5 bg-neutral-800/50 border border-rose-500/20 hover-elevate cursor-pointer transition-all duration-300 ${
-                          isNewlyAdded ? "ring-1 ring-rose-400/50 bg-rose-900/20" : ""
+                          isNewlyAdded ? "animate-new-item border-emerald-400/30" : ""
                         }`}
                         style={{ borderRadius: '2px' }}
                         data-testid={`topic-item-${topic.id}`}
@@ -513,9 +513,7 @@ export default function Dashboard() {
                           <img
                             src={getTopicImage(topic)}
                             alt=""
-                            className={`w-full h-full object-cover transition-transform duration-300 group-hover:scale-110 ${
-                              isNewlyAdded ? "animate-pulse" : ""
-                            }`}
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                             onError={() => handleImageError(topic.id)}
                             loading="lazy"
                           />
