@@ -36,8 +36,12 @@ export default function Dashboard() {
   const [comingSoonOpen, setComingSoonOpen] = useState(false);
   const [processedJobIds, setProcessedJobIds] = useState<Set<string>>(new Set());
   
+  const [prevTopicIds, setPrevTopicIds] = useState<Set<string>>(new Set());
+  const [newlyAddedIds, setNewlyAddedIds] = useState<Set<string>>(new Set());
+
   const { data: topics, isLoading: topicsLoading } = useQuery<Topic[]>({
     queryKey: ["/api/topics"],
+    refetchInterval: 60000, // Auto-refresh every 60 seconds
   });
 
   const { data: scripts, isLoading: scriptsLoading } = useQuery<Script[]>({
@@ -90,13 +94,41 @@ export default function Dashboard() {
     fetchTopicsMutation.mutate();
   };
 
-  const recentTopics = topics?.slice(0, 6) || [];
+  // Filter only "new" status topics and take top 6
+  const newTopics = topics?.filter(t => t.status === "new") || [];
+  const recentTopics = newTopics
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 6);
   const recentScripts = scripts?.slice(0, 4) || [];
+
+  // Track newly added topics for animation
+  useEffect(() => {
+    if (!newTopics.length) return;
+    
+    const currentIds = new Set(newTopics.map(t => t.id));
+    
+    if (prevTopicIds.size > 0) {
+      const newIds = new Set<string>();
+      currentIds.forEach(id => {
+        if (!prevTopicIds.has(id)) {
+          newIds.add(id);
+        }
+      });
+      
+      if (newIds.size > 0) {
+        setNewlyAddedIds(newIds);
+        // Clear animation after 2 seconds
+        setTimeout(() => setNewlyAddedIds(new Set()), 2000);
+      }
+    }
+    
+    setPrevTopicIds(currentIds);
+  }, [newTopics]);
 
   const stats = {
     totalTopics: topics?.length || 0,
     totalScripts: scripts?.length || 0,
-    readyScripts: scripts?.filter(s => s.status === "ready" || s.status === "approved").length || 0,
+    readyScripts: scripts?.filter(s => s.status === "done").length || 0,
   };
 
   return (
@@ -419,10 +451,14 @@ export default function Dashboard() {
                 </div>
               ) : (
                 <div className="space-y-1.5">
-                  {recentTopics.map((topic) => (
+                  {recentTopics.map((topic) => {
+                    const isNewlyAdded = newlyAddedIds.has(topic.id);
+                    return (
                     <Link key={topic.id} href="/topics">
                       <div
-                        className="flex items-center gap-2 p-2 bg-neutral-800/50 border border-rose-500/20 hover-elevate cursor-pointer group"
+                        className={`flex items-center gap-2 p-2 bg-neutral-800/50 border border-rose-500/20 hover-elevate cursor-pointer group transition-all duration-500 ${
+                          isNewlyAdded ? "animate-pulse ring-2 ring-rose-400/50 bg-rose-900/20" : ""
+                        }`}
                         data-testid={`topic-item-${topic.id}`}
                       >
                         <div className="min-w-0 flex-1">
@@ -439,7 +475,8 @@ export default function Dashboard() {
                         <ChevronRight className="h-3 w-3 text-neutral-500 group-hover:text-rose-400 flex-shrink-0" />
                       </div>
                     </Link>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
