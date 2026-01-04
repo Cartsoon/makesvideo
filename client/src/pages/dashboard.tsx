@@ -464,46 +464,47 @@ export default function Dashboard() {
                   <p className="text-xs text-neutral-400">{t("topics.noTopics")}</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="space-y-1.5">
                   {recentTopics.map((topic) => {
                     const isNewlyAdded = newlyAddedIds.has(topic.id);
                     return (
                     <Link key={topic.id} href="/topics">
                       <div
-                        className={`group relative overflow-hidden bg-neutral-800/50 border border-rose-500/20 hover-elevate cursor-pointer transition-all duration-500 ${
-                          isNewlyAdded ? "ring-2 ring-rose-400/50" : ""
+                        className={`group flex items-center gap-2 p-1.5 bg-neutral-800/50 border border-rose-500/20 hover-elevate cursor-pointer transition-all duration-300 ${
+                          isNewlyAdded ? "ring-1 ring-rose-400/50 bg-rose-900/20" : ""
                         }`}
                         style={{ borderRadius: '2px' }}
                         data-testid={`topic-item-${topic.id}`}
                       >
-                        <div className="relative aspect-[16/9] overflow-hidden bg-neutral-900">
+                        <div className="relative w-14 h-10 flex-shrink-0 overflow-hidden bg-neutral-900" style={{ borderRadius: '2px' }}>
                           <img
                             src={getTopicImage(topic)}
                             alt=""
-                            className={`w-full h-full object-cover transition-all duration-300 group-hover:scale-105 brightness-75 group-hover:brightness-90 ${
+                            className={`w-full h-full object-cover transition-transform duration-300 group-hover:scale-110 ${
                               isNewlyAdded ? "animate-pulse" : ""
                             }`}
                             onError={() => handleImageError(topic.id)}
                             loading="lazy"
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
-                          
-                          <div className="absolute top-1.5 left-1.5 right-1.5 flex items-start justify-between gap-1">
-                            <StatusBadge status={topic.status} className="text-[9px] px-1 py-0" />
-                            <div className="flex items-center gap-0.5 bg-black/70 px-1 py-0.5 text-rose-400 text-[9px] font-bold" style={{ borderRadius: '2px' }}>
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent to-neutral-900/30" />
+                        </div>
+                        
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-[11px] text-neutral-200 truncate group-hover:text-white leading-tight">
+                            {language === "en" 
+                              ? (topic.translatedTitleEn || topic.generatedTitle || topic.title)
+                              : (topic.translatedTitle || topic.generatedTitle || topic.title)}
+                          </p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <div className="flex items-center gap-0.5 text-rose-400 text-[9px] font-bold">
                               <TrendingUp className="h-2.5 w-2.5" />
                               {topic.score}
                             </div>
-                          </div>
-                          
-                          <div className="absolute bottom-1.5 left-1.5 right-1.5">
-                            <h3 className="font-medium text-white text-[11px] leading-tight line-clamp-2 drop-shadow-lg">
-                              {language === "en" 
-                                ? (topic.translatedTitleEn || topic.generatedTitle || topic.title)
-                                : (topic.translatedTitle || topic.generatedTitle || topic.title)}
-                            </h3>
+                            <StatusBadge status={topic.status} className="text-[9px]" />
                           </div>
                         </div>
+                        
+                        <ChevronRight className="h-3 w-3 text-neutral-500 group-hover:text-rose-400 flex-shrink-0" />
                       </div>
                     </Link>
                     );
