@@ -240,9 +240,9 @@ async function getIngestionStats(): Promise<IngestionStats> {
   const dateStr = now.toISOString().slice(0, 10);
   const hour = now.getHours();
   
-  const statsJson = await storage.getSetting("topic_ingestion_stats");
-  if (statsJson) {
-    const stats = JSON.parse(statsJson) as IngestionStats;
+  const statsSetting = await storage.getSetting("topic_ingestion_stats");
+  if (statsSetting?.value) {
+    const stats = JSON.parse(statsSetting.value) as IngestionStats;
     if (stats.date === dateStr) {
       if (stats.hour === hour) {
         return stats;
@@ -343,6 +343,14 @@ async function processFetchTopics(job: Job): Promise<void> {
           
           const similarityCheck = await checkTopicSimilarity(rawTitle, rawDescription);
           if (!similarityCheck.passed) {
+            // If this item has an image and the existing topic doesn't, update it
+            if (item.imageUrl && similarityCheck.similarTopicId) {
+              const existingTopic = await storage.getTopic(similarityCheck.similarTopicId);
+              if (existingTopic && !existingTopic.imageUrl) {
+                await storage.updateTopic(similarityCheck.similarTopicId, { imageUrl: item.imageUrl });
+                console.log(`[JobWorker] Updated existing topic with image: "${rawTitle?.slice(0, 40)}..."`);
+              }
+            }
             console.log(`[JobWorker] Skipping duplicate topic (${Math.round(similarityCheck.highestSimilarity * 100)}% similar): "${rawTitle?.slice(0, 50)}..."`);
             duplicatesSkipped++;
             continue;

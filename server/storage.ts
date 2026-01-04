@@ -45,6 +45,7 @@ export interface IStorage {
   createScript(script: InsertScript): Promise<Script>;
   updateScript(id: string, updates: UpdateScript): Promise<Script | undefined>;
   deleteScript(id: string): Promise<boolean>;
+  deleteAllScripts(): Promise<number>;
 
   // Jobs
   getJobs(): Promise<Job[]>;
@@ -383,6 +384,11 @@ export class DatabaseStorage implements IStorage {
   async deleteScript(id: string): Promise<boolean> {
     const result = await db.delete(scripts).where(eq(scripts.id, id));
     return (result.rowCount ?? 0) > 0;
+  }
+
+  async deleteAllScripts(): Promise<number> {
+    const result = await db.delete(scripts);
+    return result.rowCount ?? 0;
   }
 
   private mapScript(row: any): Script {

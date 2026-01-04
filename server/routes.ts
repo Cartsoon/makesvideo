@@ -349,12 +349,16 @@ export async function registerRoutes(
     }
   });
 
-  // Delete all topics
+  // Delete all topics (also deletes related scripts first)
   app.delete("/api/topics", async (req, res) => {
     try {
+      // First delete all scripts that reference topics
+      await storage.deleteAllScripts();
+      // Then delete all topics
       const count = await storage.deleteAllTopics();
       res.json({ deleted: count });
     } catch (error) {
+      console.error("Failed to delete topics:", error);
       res.status(500).json({ error: "Failed to delete topics" });
     }
   });
