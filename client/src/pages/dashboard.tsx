@@ -122,7 +122,9 @@ export default function Dashboard() {
   const recentTopics = newTopics
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 6);
-  const recentScripts = scripts?.slice(0, 4) || [];
+  const recentScripts = scripts
+    ?.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 4) || [];
 
   // Track newly added topics for animation
   useEffect(() => {
