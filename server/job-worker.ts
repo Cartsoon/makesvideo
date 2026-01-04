@@ -128,8 +128,30 @@ async function processJob(job: Job): Promise<void> {
 }
 
 // Simple RSS parser - extracts items from RSS/Atom XML
-function parseRSSItems(xml: string): Array<{ title: string; link: string; description: string }> {
-  const items: Array<{ title: string; link: string; description: string }> = [];
+function parseRSSItems(xml: string): Array<{ title: string; link: string; description: string; imageUrl?: string }> {
+  const items: Array<{ title: string; link: string; description: string; imageUrl?: string }> = [];
+  
+  // Helper to extract image URL from content
+  function extractImageUrl(content: string): string | undefined {
+    // Try enclosure (RSS 2.0 standard for media)
+    const enclosureMatch = content.match(/<enclosure[^>]+url=["']([^"']+)["'][^>]*type=["']image[^"']*["']/i) ||
+                           content.match(/<enclosure[^>]+type=["']image[^"']*["'][^>]*url=["']([^"']+)["']/i);
+    if (enclosureMatch) return enclosureMatch[1];
+    
+    // Try media:content
+    const mediaContentMatch = content.match(/<media:content[^>]+url=["']([^"']+)["']/i);
+    if (mediaContentMatch) return mediaContentMatch[1];
+    
+    // Try media:thumbnail
+    const mediaThumbnailMatch = content.match(/<media:thumbnail[^>]+url=["']([^"']+)["']/i);
+    if (mediaThumbnailMatch) return mediaThumbnailMatch[1];
+    
+    // Try image tag in description/content
+    const imgMatch = content.match(/<img[^>]+src=["']([^"']+)["']/i);
+    if (imgMatch) return imgMatch[1];
+    
+    return undefined;
+  }
   
   // Try RSS 2.0 format first
   const rssItemRegex = /<item[^>]*>([\s\S]*?)<\/item>/gi;
@@ -145,9 +167,10 @@ function parseRSSItems(xml: string): Array<{ title: string; link: string; descri
     const title = titleMatch ? titleMatch[1].trim().replace(/<!\[CDATA\[|\]\]>/g, '').trim() : '';
     const link = linkMatch ? linkMatch[1].trim().replace(/<!\[CDATA\[|\]\]>/g, '').trim() : '';
     const description = descMatch ? descMatch[1].trim().replace(/<!\[CDATA\[|\]\]>/g, '').replace(/<[^>]+>/g, '').trim() : '';
+    const imageUrl = extractImageUrl(itemContent);
     
     if (title) {
-      items.push({ title, link, description });
+      items.push({ title, link, description, imageUrl });
     }
   }
   
@@ -165,9 +188,10 @@ function parseRSSItems(xml: string): Array<{ title: string; link: string; descri
       const title = titleMatch ? titleMatch[1].trim().replace(/<!\[CDATA\[|\]\]>/g, '').trim() : '';
       const link = linkMatch ? linkMatch[1].trim() : '';
       const description = (summaryMatch ? summaryMatch[1] : contentMatch ? contentMatch[1] : '').trim().replace(/<!\[CDATA\[|\]\]>/g, '').replace(/<[^>]+>/g, '').trim();
+      const imageUrl = extractImageUrl(entryContent);
       
       if (title) {
-        items.push({ title, link, description });
+        items.push({ title, link, description, imageUrl });
       }
     }
   }
@@ -301,6 +325,7 @@ async function processFetchTopics(job: Job): Promise<void> {
             title: rawTitle,
             rawText: rawDescription || null,
             url: item.link || null,
+            imageUrl: item.imageUrl || null,
             tags,
             score: Math.floor(Math.random() * 30) + 70,
             language: language,

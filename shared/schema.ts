@@ -62,6 +62,7 @@ export const topics = pgTable("topics", {
   translatedTitle: text("translated_title"),
   translatedTitleEn: text("translated_title_en"),
   url: text("url"),
+  imageUrl: text("image_url"),
   rawText: text("raw_text"),
   fullContent: text("full_content"),
   insights: jsonb("insights"),
