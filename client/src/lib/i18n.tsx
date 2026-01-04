@@ -272,6 +272,8 @@ const translations: Record<Language, Record<string, string>> = {
     "common.english": "English",
     "common.open": "Open",
     "common.generate": "Generate",
+    "common.showMore": "Show more",
+    "common.showLess": "Show less",
     
     // Style presets
     "style.cinematic": "Cinematic",
@@ -733,6 +735,8 @@ const translations: Record<Language, Record<string, string>> = {
     "common.english": "English",
     "common.open": "Открыть",
     "common.generate": "Сгенерировать",
+    "common.showMore": "Показать полностью",
+    "common.showLess": "Свернуть",
     
     // Style presets
     "style.cinematic": "Кинематографичный",

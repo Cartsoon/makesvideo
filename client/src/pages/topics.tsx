@@ -25,7 +25,9 @@ import {
   X, 
   ExternalLink,
   Loader2,
-  ArrowUpDown
+  ArrowUpDown,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import type { Topic, TopicStatus, Job } from "@shared/schema";
 
@@ -36,6 +38,19 @@ export default function Topics() {
   const [statusFilter, setStatusFilter] = useState<TopicStatus | "all">("all");
   const [sortBy, setSortBy] = useState<"score" | "date">("score");
   const [processedJobIds, setProcessedJobIds] = useState<Set<string>>(new Set());
+  const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set());
+
+  const toggleExpand = (topicId: string) => {
+    setExpandedTopics(prev => {
+      const next = new Set(prev);
+      if (next.has(topicId)) {
+        next.delete(topicId);
+      } else {
+        next.add(topicId);
+      }
+      return next;
+    });
+  };
 
   const { data: topics, isLoading } = useQuery<Topic[]>({
     queryKey: ["/api/topics"],
@@ -221,11 +236,39 @@ export default function Topics() {
                           ))}
                         </div>
                       )}
-                      {(topic.insights?.summary || topic.rawText || topic.fullContent) && (
-                        <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-2 mt-1">
-                          {topic.insights?.summary || (topic.rawText || topic.fullContent || "").slice(0, 300)}
-                        </p>
-                      )}
+                      {(topic.insights?.summary || topic.rawText || topic.fullContent) && (() => {
+                        const fullText = topic.insights?.summary || topic.rawText || topic.fullContent || "";
+                        const isExpanded = expandedTopics.has(topic.id);
+                        const isLong = fullText.length > 150;
+                        
+                        return (
+                          <div className="mt-1">
+                            <p className={`text-[10px] sm:text-xs text-muted-foreground ${isExpanded ? "" : "line-clamp-2"}`}>
+                              {isExpanded ? fullText : fullText.slice(0, 150)}
+                              {!isExpanded && isLong && "..."}
+                            </p>
+                            {isLong && (
+                              <button
+                                onClick={() => toggleExpand(topic.id)}
+                                className="text-[10px] sm:text-xs text-muted-foreground hover:text-foreground flex items-center gap-0.5 mt-0.5"
+                                data-testid={`button-expand-${topic.id}`}
+                              >
+                                {isExpanded ? (
+                                  <>
+                                    <ChevronUp className="h-3 w-3" />
+                                    <span>{t("common.showLess") || "Свернуть"}</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <ChevronDown className="h-3 w-3" />
+                                    <span>{t("common.showMore") || "Показать полностью"}</span>
+                                  </>
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })()}
                       <div className="flex items-center gap-2 mt-1 text-[10px] sm:text-xs text-muted-foreground">
                         <span className="flex items-center gap-0.5">
                           <Scissors className="h-3 w-3" />
