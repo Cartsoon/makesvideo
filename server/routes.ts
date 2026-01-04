@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { z } from "zod";
 import { storage } from "./storage";
-import { startJobWorker } from "./job-worker";
+import { startJobWorker, startAutoFetch, getIngestionStatus } from "./job-worker";
 import { ensureProviderInitialized } from "./providers";
 import { insertSourceSchema, insertTopicSchema, insertScriptSchema, updateScriptSchema, insertJobSchema } from "@shared/schema";
 import type { StylePreset, Duration, JobKind } from "@shared/schema";
@@ -22,8 +22,9 @@ export async function registerRoutes(
   // Initialize the LLM provider based on saved settings
   await ensureProviderInitialized();
   
-  // Start the job worker
+  // Start the job worker and auto-fetch scheduler
   startJobWorker();
+  startAutoFetch();
   
   // Serve static files from public/files directory
   app.use("/files", express.static(path.join(process.cwd(), "public/files")));
@@ -292,6 +293,15 @@ export async function registerRoutes(
   });
 
   // ============ TOPICS ============
+
+  app.get("/api/topics/ingestion-status", async (req, res) => {
+    try {
+      const status = await getIngestionStatus();
+      res.json(status);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get ingestion status" });
+    }
+  });
 
   app.get("/api/topics", async (req, res) => {
     try {

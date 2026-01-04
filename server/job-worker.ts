@@ -1,6 +1,14 @@
 import { storage } from "./storage";
 import { providers, TopicContext } from "./providers";
 import type { Job, JobKind, Topic, TopicInsights } from "@shared/schema";
+import { checkTopicSimilarity } from "./similarity";
+
+const DAILY_TOPIC_LIMIT = 300;
+const HOURS_PER_DAY = 14;
+const TOPICS_PER_HOUR = Math.ceil(DAILY_TOPIC_LIMIT / HOURS_PER_DAY); // ~21
+const FETCH_INTERVAL_MS = 3 * 60 * 1000; // 3 minutes
+
+let autoFetchInterval: NodeJS.Timeout | null = null;
 
 // Common stop words to filter out when extracting tags
 const STOP_WORDS_RU = new Set(['и', 'в', 'на', 'с', 'по', 'для', 'от', 'из', 'как', 'что', 'это', 'не', 'но', 'к', 'за', 'о', 'об', 'при', 'из-за', 'а', 'или', 'так', 'уже', 'все', 'его', 'её', 'их', 'мы', 'вы', 'они', 'он', 'она', 'оно', 'был', 'была', 'было', 'были', 'быть', 'есть', 'будет', 'того', 'этого', 'которые', 'который', 'которая', 'которое', 'также', 'более', 'самый', 'только', 'можно', 'нужно', 'надо', 'даже', 'ещё', 'когда', 'если', 'чтобы', 'после', 'перед', 'между', 'через', 'под', 'над', 'около', 'против', 'вместо', 'кроме', 'благодаря', 'несмотря', 'года', 'году', 'год', 'лет', 'время', 'день', 'дней', 'час', 'часов', 'минут', 'сегодня', 'вчера', 'завтра', 'теперь', 'потом', 'сначала', 'затем']);
@@ -167,147 +175,216 @@ function parseRSSItems(xml: string): Array<{ title: string; link: string; descri
   return items.slice(0, 10); // Limit to 10 items per source
 }
 
+interface IngestionStats {
+  date: string;
+  hour: number;
+  dailyCount: number;
+  hourlyCount: number;
+  lastFetchAt: number;
+}
+
+async function getIngestionStats(): Promise<IngestionStats> {
+  const now = new Date();
+  const dateStr = now.toISOString().slice(0, 10);
+  const hour = now.getHours();
+  
+  const statsJson = await storage.getSetting("topic_ingestion_stats");
+  if (statsJson) {
+    const stats = JSON.parse(statsJson) as IngestionStats;
+    if (stats.date === dateStr) {
+      if (stats.hour === hour) {
+        return stats;
+      }
+      return { date: dateStr, hour, dailyCount: stats.dailyCount, hourlyCount: 0, lastFetchAt: stats.lastFetchAt };
+    }
+  }
+  return { date: dateStr, hour, dailyCount: 0, hourlyCount: 0, lastFetchAt: 0 };
+}
+
+async function updateIngestionStats(added: number): Promise<void> {
+  const stats = await getIngestionStats();
+  stats.dailyCount += added;
+  stats.hourlyCount += added;
+  stats.lastFetchAt = Date.now();
+  await storage.setSetting("topic_ingestion_stats", JSON.stringify(stats));
+}
+
+async function canFetchMoreTopics(): Promise<{ allowed: boolean; remainingDaily: number; remainingHourly: number }> {
+  const stats = await getIngestionStats();
+  const remainingDaily = DAILY_TOPIC_LIMIT - stats.dailyCount;
+  const remainingHourly = TOPICS_PER_HOUR - stats.hourlyCount;
+  return {
+    allowed: remainingDaily > 0 && remainingHourly > 0,
+    remainingDaily,
+    remainingHourly
+  };
+}
+
 async function processFetchTopics(job: Job): Promise<void> {
   await storage.updateJob(job.id, { progress: 10 });
+  
+  const quota = await canFetchMoreTopics();
+  if (!quota.allowed) {
+    console.log(`[JobWorker] Topic quota exceeded. Daily remaining: ${quota.remainingDaily}, Hourly remaining: ${quota.remainingHourly}`);
+    await storage.updateJob(job.id, { progress: 100 });
+    return;
+  }
+  
+  const maxTopicsThisFetch = Math.min(quota.remainingDaily, quota.remainingHourly, 5);
+  let topicsAdded = 0;
+  let duplicatesSkipped = 0;
   
   const sources = await storage.getSources();
   const enabledSources = sources.filter(s => s.isEnabled);
   
   if (enabledSources.length === 0) {
-    // Create some demo topics if no sources - with bilingual titles
-    const demoTopics = [
-      { 
-        title: "AI is transforming content creation in 2025", 
-        titleRu: "ИИ меняет создание контента в 2025 году",
-        desc: "Artificial intelligence tools are revolutionizing how creators produce videos, from script writing to editing and voice synthesis.",
-        descRu: "Инструменты искусственного интеллекта революционизируют создание видео - от написания сценариев до монтажа и синтеза голоса."
-      },
-      { 
-        title: "The secret to viral short-form videos", 
-        titleRu: "Секрет вирусных коротких видео",
-        desc: "New research reveals the key elements that make short videos go viral on TikTok, YouTube Shorts, and Instagram Reels.",
-        descRu: "Новое исследование раскрывает ключевые элементы вирусных видео на TikTok, YouTube Shorts и Instagram Reels."
-      },
-      { 
-        title: "5 trends shaping social media this year", 
-        titleRu: "5 трендов соцсетей этого года",
-        desc: "From AI-generated content to interactive live streams, these trends are defining the social media landscape in 2025.",
-        descRu: "От контента на ИИ до интерактивных стримов - эти тренды определяют ландшафт соцсетей в 2025."
-      },
-      { 
-        title: "How creators are monetizing their content", 
-        titleRu: "Как авторы монетизируют контент",
-        desc: "Content creators are finding new revenue streams beyond ads, including subscriptions, merchandise, and brand partnerships.",
-        descRu: "Создатели контента находят новые источники дохода: подписки, мерч и партнёрства с брендами."
-      },
-      { 
-        title: "The rise of authentic storytelling online", 
-        titleRu: "Рост популярности честного сторителлинга",
-        desc: "Audiences are gravitating toward genuine, unpolished content over heavily produced videos, changing creator strategies.",
-        descRu: "Аудитория предпочитает честный контент вместо постановочных видео, что меняет стратегии авторов."
-      }
-    ];
+    console.log("[JobWorker] No enabled sources, skipping fetch");
+    await storage.updateJob(job.id, { progress: 100 });
+    return;
+  }
+  
+  let progress = 10;
+  const progressPerSource = 80 / enabledSources.length;
 
-    for (let i = 0; i < demoTopics.length; i++) {
-      const tags = extractTopicTags(demoTopics[i].title, demoTopics[i].desc, "en");
-      await storage.createTopic({
-        sourceId: "demo",
-        title: demoTopics[i].title,
-        translatedTitle: demoTopics[i].titleRu,
-        translatedTitleEn: demoTopics[i].title,
-        rawText: demoTopics[i].desc,
-        insights: { summary: demoTopics[i].descRu },
-        tags,
-        score: Math.floor(Math.random() * 50) + 50,
-        language: "en",
-        status: "new",
-        extractionStatus: "done"
-      });
-      await storage.updateJob(job.id, { progress: 10 + Math.floor((i + 1) / demoTopics.length * 80) });
-    }
-  } else {
-    // Fetch real data from sources
-    let progress = 10;
-    const progressPerSource = 80 / enabledSources.length;
-
-    for (const source of enabledSources) {
-      const config = source.config as { url?: string; language?: string; description?: string };
-      const language = (config.language || (config.description?.toLowerCase().includes('рус') ? 'ru' : 'en')) as "ru" | "en";
-      
-      try {
-        if (source.type === "rss" && config.url) {
-          console.log(`[JobWorker] Fetching RSS from ${config.url}`);
+  for (const source of enabledSources) {
+    if (topicsAdded >= maxTopicsThisFetch) break;
+    
+    const config = source.config as { url?: string; language?: string; description?: string };
+    const language = (config.language || (config.description?.toLowerCase().includes('рус') ? 'ru' : 'en')) as "ru" | "en";
+    
+    try {
+      if (source.type === "rss" && config.url) {
+        console.log(`[JobWorker] Fetching RSS from ${config.url}`);
+        
+        const response = await fetch(config.url, {
+          headers: {
+            'User-Agent': 'IDENGINE-Bot/1.0',
+            'Accept': 'application/rss+xml, application/xml, text/xml, application/atom+xml'
+          }
+        });
+        
+        if (!response.ok) {
+          console.error(`[JobWorker] Failed to fetch RSS from ${config.url}: ${response.status}`);
+          continue;
+        }
+        
+        const xml = await response.text();
+        const items = parseRSSItems(xml);
+        
+        console.log(`[JobWorker] Found ${items.length} items from ${source.name}`);
+        
+        for (const item of items) {
+          if (topicsAdded >= maxTopicsThisFetch) break;
           
-          const response = await fetch(config.url, {
-            headers: {
-              'User-Agent': 'IDENGINE-Bot/1.0',
-              'Accept': 'application/rss+xml, application/xml, text/xml, application/atom+xml'
-            }
-          });
+          const rawTitle = item.title;
+          const rawDescription = item.description.slice(0, 500);
           
-          if (!response.ok) {
-            console.error(`[JobWorker] Failed to fetch RSS from ${config.url}: ${response.status}`);
+          const totalTextLength = (rawTitle?.length || 0) + (rawDescription?.length || 0);
+          if (totalTextLength < 80) {
+            console.log(`[JobWorker] Skipping topic with insufficient content (${totalTextLength} chars): "${rawTitle?.slice(0, 50)}..."`);
             continue;
           }
           
-          const xml = await response.text();
-          const items = parseRSSItems(xml);
-          
-          console.log(`[JobWorker] Found ${items.length} items from ${source.name}`);
-          
-          for (const item of items) {
-            // Use original RSS title and description
-            const rawTitle = item.title;
-            const rawDescription = item.description.slice(0, 500); // Limit description length
-            
-            // Skip topics with insufficient text content (likely photo/video-based)
-            const totalTextLength = (rawTitle?.length || 0) + (rawDescription?.length || 0);
-            if (totalTextLength < 80) {
-              console.log(`[JobWorker] Skipping topic with insufficient content (${totalTextLength} chars): "${rawTitle?.slice(0, 50)}..."`);
-              continue;
-            }
-            
-            const tags = extractTopicTags(rawTitle, rawDescription, language);
-            await storage.createTopic({
-              sourceId: source.id,
-              title: rawTitle,
-              rawText: rawDescription || null,
-              url: item.link || null,
-              tags,
-              score: Math.floor(Math.random() * 30) + 70, // 70-100 score for real content
-              language: language,
-              status: "new",
-              extractionStatus: "pending"
-            });
+          const similarityCheck = await checkTopicSimilarity(rawTitle, rawDescription);
+          if (!similarityCheck.passed) {
+            console.log(`[JobWorker] Skipping duplicate topic (${Math.round(similarityCheck.highestSimilarity * 100)}% similar): "${rawTitle?.slice(0, 50)}..."`);
+            duplicatesSkipped++;
+            continue;
           }
-        } else if (source.type === "manual" || source.type === "url") {
-          // For manual/URL sources, create topic from config description
-          const manualContent = config.description || `Content from ${source.name}`;
-          const tags = extractTopicTags(source.name, manualContent, language);
           
+          const tags = extractTopicTags(rawTitle, rawDescription, language);
           await storage.createTopic({
             sourceId: source.id,
-            title: source.name,
-            rawText: manualContent,
-            url: config.url || null,
+            title: rawTitle,
+            rawText: rawDescription || null,
+            url: item.link || null,
             tags,
             score: Math.floor(Math.random() * 30) + 70,
             language: language,
             status: "new",
             extractionStatus: "pending"
           });
+          topicsAdded++;
         }
-      } catch (error) {
-        console.error(`[JobWorker] Error fetching from ${source.name}:`, error);
-        // Continue with other sources even if one fails
+      } else if (source.type === "manual" || source.type === "url") {
+        const manualContent = config.description || `Content from ${source.name}`;
+        
+        const similarityCheck = await checkTopicSimilarity(source.name, manualContent);
+        if (!similarityCheck.passed) {
+          console.log(`[JobWorker] Skipping duplicate manual topic: "${source.name}"`);
+          duplicatesSkipped++;
+          continue;
+        }
+        
+        const tags = extractTopicTags(source.name, manualContent, language);
+        
+        await storage.createTopic({
+          sourceId: source.id,
+          title: source.name,
+          rawText: manualContent,
+          url: config.url || null,
+          tags,
+          score: Math.floor(Math.random() * 30) + 70,
+          language: language,
+          status: "new",
+          extractionStatus: "pending"
+        });
+        topicsAdded++;
+      }
+    } catch (error) {
+      console.error(`[JobWorker] Error fetching from ${source.name}:`, error);
+    }
+    
+    progress += progressPerSource;
+    await storage.updateJob(job.id, { progress: Math.floor(progress) });
+  }
+  
+  if (topicsAdded > 0) {
+    await updateIngestionStats(topicsAdded);
+  }
+  
+  console.log(`[JobWorker] Fetch complete. Added: ${topicsAdded}, Duplicates skipped: ${duplicatesSkipped}`);
+  await storage.updateJob(job.id, { progress: 100 });
+}
+
+export function startAutoFetch(): void {
+  if (autoFetchInterval) {
+    console.log("[JobWorker] Auto-fetch already running");
+    return;
+  }
+  
+  console.log(`[JobWorker] Starting auto-fetch every ${FETCH_INTERVAL_MS / 1000}s`);
+  
+  autoFetchInterval = setInterval(async () => {
+    try {
+      const quota = await canFetchMoreTopics();
+      if (!quota.allowed) {
+        console.log(`[JobWorker] Auto-fetch skipped - quota exceeded`);
+        return;
       }
       
-      progress += progressPerSource;
-      await storage.updateJob(job.id, { progress: Math.floor(progress) });
+      console.log(`[JobWorker] Auto-fetch triggered. Remaining: daily=${quota.remainingDaily}, hourly=${quota.remainingHourly}`);
+      await storage.createJob("fetch_topics", {});
+    } catch (error) {
+      console.error("[JobWorker] Auto-fetch error:", error);
     }
-  }
+  }, FETCH_INTERVAL_MS);
+}
 
-  await storage.updateJob(job.id, { progress: 100 });
+export function stopAutoFetch(): void {
+  if (autoFetchInterval) {
+    clearInterval(autoFetchInterval);
+    autoFetchInterval = null;
+    console.log("[JobWorker] Auto-fetch stopped");
+  }
+}
+
+export async function getIngestionStatus(): Promise<{ stats: IngestionStats; limits: { daily: number; hourly: number } }> {
+  const stats = await getIngestionStats();
+  return {
+    stats,
+    limits: { daily: DAILY_TOPIC_LIMIT, hourly: TOPICS_PER_HOUR }
+  };
 }
 
 // Extract only voiceover lines (lines starting with — or -)
