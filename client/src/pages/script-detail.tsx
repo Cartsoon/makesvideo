@@ -500,17 +500,19 @@ export default function ScriptDetail() {
         )}
 
         {script.error && (
-          <Card className="border-destructive/50 bg-destructive/5">
-            <CardContent className="py-4">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
-                <div>
-                  <p className="font-medium text-sm text-destructive">Error</p>
-                  <p className="text-sm text-muted-foreground mt-1">{script.error}</p>
-                </div>
+          <div className="relative border border-red-500/40 bg-neutral-900/80">
+            <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-red-500/60" />
+            <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-red-500/60" />
+            <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-red-500/60" />
+            <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-red-500/60" />
+            <div className="p-4 flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-red-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-semibold text-sm text-red-400 uppercase tracking-wide">Error</p>
+                <p className="text-sm text-neutral-300 mt-1">{script.error}</p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
         <div className="relative border border-neutral-700/50 bg-neutral-900/80">
@@ -596,22 +598,28 @@ export default function ScriptDetail() {
         </div>
 
         {(script.seo?.seoTitle || script.seo?.hashtags?.length) && (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">{script.language === "ru" ? "SEO" : "SEO"}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <div className="relative border border-neutral-700/50 bg-neutral-900/80">
+            <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-rose-500/60" />
+            <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-rose-500/60" />
+            <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-amber-500/60" />
+            <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-amber-500/60" />
+            
+            <div className="px-4 py-3 border-b border-neutral-700/50 bg-neutral-800/50">
+              <h3 className="text-sm font-semibold text-white uppercase tracking-wide">SEO</h3>
+            </div>
+            
+            <div className="p-4 space-y-4">
               {script.seo?.seoTitleOptions && script.seo.seoTitleOptions.length > 0 && (
                 <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">{script.language === "ru" ? "Варианты заголовка" : "Title Options"}</Label>
+                  <Label className="text-[10px] uppercase tracking-wide text-neutral-400">{script.language === "ru" ? "Варианты заголовка" : "Title Options"}</Label>
                   <div className="space-y-1">
                     {script.seo.seoTitleOptions.map((title, idx) => (
                       <div 
                         key={idx} 
-                        className={`p-2 rounded-md text-sm cursor-pointer transition-colors ${
+                        className={`p-2 text-sm cursor-pointer transition-colors border ${
                           script.seo?.seoTitle === title 
-                            ? "bg-primary/10 border border-primary/30" 
-                            : "bg-muted/50 hover:bg-muted"
+                            ? "bg-rose-500/10 border-rose-500/30 text-white" 
+                            : "bg-neutral-800/50 border-neutral-700/50 text-neutral-300 hover:bg-neutral-700/50"
                         }`}
                         onClick={() => {
                           if (script.seo) {
@@ -628,8 +636,8 @@ export default function ScriptDetail() {
               )}
               {script.seo?.hashtags && script.seo.hashtags.length > 0 && (
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs text-muted-foreground">{script.language === "ru" ? "Хештеги" : "Hashtags"}</Label>
+                  <div className="flex items-center justify-between gap-2">
+                    <Label className="text-[10px] uppercase tracking-wide text-neutral-400">{script.language === "ru" ? "Хештеги" : "Hashtags"}</Label>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -652,20 +660,25 @@ export default function ScriptDetail() {
                   </div>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
-        <Card>
-          <CardHeader className="pb-3">
+        <div className="relative border border-neutral-700/50 bg-neutral-900/80">
+          <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-rose-500/60" />
+          <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-rose-500/60" />
+          <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-amber-500/60" />
+          <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-amber-500/60" />
+          
+          <div className="px-4 py-3 border-b border-neutral-700/50 bg-neutral-800/50">
             <div className="flex items-center justify-between gap-2">
-              <CardTitle className="text-sm sm:text-base">{t("script.productionPipeline")}</CardTitle>
+              <h3 className="text-sm font-semibold text-white uppercase tracking-wide">{t("script.productionPipeline")}</h3>
               <Button
                 onClick={() => generateMutation.mutate("generate_all")}
                 disabled={generateMutation.isPending || !!activeJob}
                 data-testid="button-generate-all"
                 size="sm"
-                className="text-xs sm:text-sm"
+                className="text-xs sm:text-sm bg-gradient-to-r from-rose-500 to-amber-500 text-white border-0"
               >
                 {generateMutation.isPending ? (
                   <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 animate-spin" />
@@ -676,22 +689,28 @@ export default function ScriptDetail() {
                 <span className="sm:hidden">{t("script.generateAllShort") || "AI"}</span>
               </Button>
             </div>
-            <div className="flex items-center gap-2 mt-2">
-              <Progress value={completionPercent} className="flex-1 h-2" />
-              <span className="text-xs text-muted-foreground">
+            <div className="flex items-center gap-2 mt-3">
+              <div className="flex-1 h-1.5 bg-neutral-800 overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-rose-500 to-amber-500 transition-all duration-500"
+                  style={{ width: `${completionPercent}%` }}
+                />
+              </div>
+              <span className="text-[10px] font-mono text-neutral-400">
                 {completedSteps}/{completionSteps.length}
               </span>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
+          </div>
+          
+          <div className="p-4 space-y-4">
             <div className="space-y-4">
-              <div className="border rounded-lg p-4">
+              <div className="border border-neutral-700/50 bg-neutral-800/30 p-4">
                 <div className="flex items-center justify-between gap-2 mb-3">
                   <div className="flex items-center gap-2">
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${script.hook ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-muted text-muted-foreground"}`}>
+                    <div className={`w-6 h-6 flex items-center justify-center text-xs font-bold ${script.hook ? "bg-emerald-500/20 text-emerald-400" : "bg-neutral-700 text-neutral-400"}`}>
                       {script.hook ? <CheckCircle2 className="h-4 w-4" /> : "1"}
                     </div>
-                    <h3 className="font-medium">{t("script.hook")}</h3>
+                    <h3 className="font-semibold text-white text-sm uppercase tracking-wide">{t("script.hook")}</h3>
                   </div>
                   <Button
                     variant="outline"
@@ -699,6 +718,7 @@ export default function ScriptDetail() {
                     onClick={() => generateMutation.mutate("generate_hook")}
                     disabled={generateMutation.isPending || !!activeJob}
                     data-testid="button-generate-hook"
+                    className="border-neutral-600 bg-neutral-800"
                   >
                     <Wand2 className="h-4 w-4" />
                   </Button>
@@ -708,40 +728,40 @@ export default function ScriptDetail() {
                     <Textarea
                       value={editValue}
                       onChange={(e) => setEditValue(e.target.value)}
-                      className="min-h-[80px]"
+                      className="min-h-[80px] bg-neutral-800 border-neutral-600"
                       data-testid="textarea-hook"
                     />
                     <div className="flex gap-2">
                       <Button size="sm" onClick={() => handleEditSave("hook")} data-testid="button-save-hook">
                         {t("common.save")}
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => setIsEditing(null)}>
+                      <Button size="sm" variant="outline" onClick={() => setIsEditing(null)} className="border-neutral-600">
                         {t("common.cancel")}
                       </Button>
                     </div>
                   </div>
                 ) : (
                   <div
-                    className="p-3 bg-muted/50 rounded-md min-h-[60px] cursor-pointer hover:bg-muted/80 transition-colors"
+                    className="p-3 bg-neutral-800/50 border border-neutral-700/50 min-h-[60px] cursor-pointer hover:bg-neutral-700/50 transition-colors"
                     onClick={() => startEdit("hook", script.hook || "")}
                     data-testid="hook-content"
                   >
                     {script.hook ? (
-                      <p className="text-sm whitespace-pre-wrap">{script.hook}</p>
+                      <p className="text-sm whitespace-pre-wrap text-neutral-200">{script.hook}</p>
                     ) : (
-                      <p className="text-sm text-muted-foreground italic">{t("script.noHook")}</p>
+                      <p className="text-sm text-neutral-500 italic">{t("script.noHook")}</p>
                     )}
                   </div>
                 )}
               </div>
 
-              <div className="border rounded-lg p-4">
+              <div className="border border-neutral-700/50 bg-neutral-800/30 p-4">
                 <div className="flex items-center justify-between gap-2 mb-3">
                   <div className="flex items-center gap-2">
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${script.voiceText ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-muted text-muted-foreground"}`}>
+                    <div className={`w-6 h-6 flex items-center justify-center text-xs font-bold ${script.voiceText ? "bg-emerald-500/20 text-emerald-400" : "bg-neutral-700 text-neutral-400"}`}>
                       {script.voiceText ? <CheckCircle2 className="h-4 w-4" /> : "2"}
                     </div>
-                    <h3 className="font-medium">
+                    <h3 className="font-semibold text-white text-sm uppercase tracking-wide">
                       <span className="hidden sm:inline">{t("script.voiceScript")}</span>
                       <span className="sm:hidden">{t("script.voiceScriptShort")}</span>
                     </h3>
@@ -755,6 +775,7 @@ export default function ScriptDetail() {
                           onClick={handleGenerateTheses}
                           disabled={isGeneratingTheses || generateMutation.isPending || !!activeJob}
                           data-testid="button-generate-theses"
+                          className="border-neutral-600 bg-neutral-800"
                         >
                           {isGeneratingTheses ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -775,6 +796,7 @@ export default function ScriptDetail() {
                       onClick={() => generateMutation.mutate("generate_script")}
                       disabled={generateMutation.isPending || !!activeJob}
                       data-testid="button-generate-script"
+                      className="border-neutral-600 bg-neutral-800"
                     >
                       <Wand2 className="h-4 w-4" />
                     </Button>
@@ -785,14 +807,14 @@ export default function ScriptDetail() {
                     <Textarea
                       value={editValue}
                       onChange={(e) => setEditValue(e.target.value)}
-                      className="min-h-[120px]"
+                      className="min-h-[120px] bg-neutral-800 border-neutral-600"
                       data-testid="textarea-voice"
                     />
                     <div className="flex gap-2">
                       <Button size="sm" onClick={() => handleEditSave("voiceText")} data-testid="button-save-voice">
                         {t("common.save")}
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => setIsEditing(null)}>
+                      <Button size="sm" variant="outline" onClick={() => setIsEditing(null)} className="border-neutral-600">
                         {t("common.cancel")}
                       </Button>
                     </div>
@@ -800,14 +822,14 @@ export default function ScriptDetail() {
                 ) : (
                   <div className="space-y-2">
                     <div
-                      className="p-3 bg-muted/50 rounded-md min-h-[80px] cursor-pointer hover:bg-muted/80 transition-colors"
+                      className="p-3 bg-neutral-800/50 border border-neutral-700/50 min-h-[80px] cursor-pointer hover:bg-neutral-700/50 transition-colors"
                       onClick={() => startEdit("voiceText", script.voiceText || "")}
                       data-testid="voice-content"
                     >
                       {script.voiceText ? (
-                        <p className="text-sm whitespace-pre-wrap">{script.voiceText}</p>
+                        <p className="text-sm whitespace-pre-wrap text-neutral-200">{script.voiceText}</p>
                       ) : (
-                        <p className="text-sm text-muted-foreground italic">{t("script.clickToEdit")}</p>
+                        <p className="text-sm text-neutral-500 italic">{t("script.clickToEdit")}</p>
                       )}
                     </div>
                     {script.voiceText && (
@@ -817,6 +839,7 @@ export default function ScriptDetail() {
                           variant="outline"
                           onClick={() => startEdit("voiceText", script.voiceText || "")}
                           data-testid="button-edit-voice"
+                          className="border-neutral-600"
                         >
                           <Pencil className="h-3 w-3 mr-1" />
                           {t("common.edit")}
@@ -833,13 +856,13 @@ export default function ScriptDetail() {
                 stylePreset={script.voiceStylePreset}
               />
 
-              <div className="border rounded-lg p-4">
+              <div className="border border-neutral-700/50 bg-neutral-800/30 p-4">
                 <div className="flex items-center justify-between gap-2 mb-3">
                   <div className="flex items-center gap-2">
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${script.storyboard?.length ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-muted text-muted-foreground"}`}>
+                    <div className={`w-6 h-6 flex items-center justify-center text-xs font-bold ${script.storyboard?.length ? "bg-emerald-500/20 text-emerald-400" : "bg-neutral-700 text-neutral-400"}`}>
                       {script.storyboard?.length ? <CheckCircle2 className="h-4 w-4" /> : "3"}
                     </div>
-                    <h3 className="font-medium">{t("script.storyboard")}</h3>
+                    <h3 className="font-semibold text-white text-sm uppercase tracking-wide">{t("script.storyboard")}</h3>
                   </div>
                   <div className="flex items-center gap-2">
                     {script.storyboard && script.storyboard.length > 0 && (
@@ -851,6 +874,7 @@ export default function ScriptDetail() {
                               size="sm"
                               onClick={() => downloadSubtitles("srt")}
                               data-testid="button-download-srt"
+                              className="border-neutral-600"
                             >
                               <Download className="h-3 w-3 mr-1" />
                               SRT
@@ -865,6 +889,7 @@ export default function ScriptDetail() {
                               size="sm"
                               onClick={() => downloadSubtitles("vtt")}
                               data-testid="button-download-vtt"
+                              className="border-neutral-600"
                             >
                               <Download className="h-3 w-3 mr-1" />
                               VTT
@@ -879,6 +904,7 @@ export default function ScriptDetail() {
                               size="sm"
                               onClick={() => downloadSubtitles("csv")}
                               data-testid="button-download-csv"
+                              className="border-neutral-600"
                             >
                               <Download className="h-3 w-3 mr-1" />
                               CSV
@@ -893,6 +919,7 @@ export default function ScriptDetail() {
                               size="sm"
                               onClick={() => downloadSubtitles("tsv")}
                               data-testid="button-download-tsv"
+                              className="border-neutral-600"
                             >
                               <Download className="h-3 w-3 mr-1" />
                               TSV
@@ -908,6 +935,7 @@ export default function ScriptDetail() {
                       onClick={() => generateMutation.mutate("generate_storyboard")}
                       disabled={generateMutation.isPending || !!activeJob}
                       data-testid="button-generate-storyboard"
+                      className="border-neutral-600 bg-neutral-800"
                     >
                       <Wand2 className="h-4 w-4" />
                     </Button>
@@ -1206,22 +1234,22 @@ export default function ScriptDetail() {
                     </div>
                   </>
                 ) : (
-                  <div className="p-6 bg-muted/50 rounded-md text-center">
-                    <Film className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                    <p className="text-sm text-muted-foreground">
+                  <div className="p-6 bg-neutral-800/50 border border-neutral-700/50 text-center">
+                    <Film className="h-8 w-8 mx-auto text-neutral-500 mb-2" />
+                    <p className="text-sm text-neutral-400">
                       {t("script.noStoryboard")}
                     </p>
                   </div>
                 )}
               </div>
 
-              <div className="border rounded-lg p-4">
+              <div className="border border-neutral-700/50 bg-neutral-800/30 p-4">
                 <div className="flex items-center justify-between gap-2 mb-3">
                   <div className="flex items-center gap-2">
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${script.music ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-muted text-muted-foreground"}`}>
+                    <div className={`w-6 h-6 flex items-center justify-center text-xs font-bold ${script.music ? "bg-emerald-500/20 text-emerald-400" : "bg-neutral-700 text-neutral-400"}`}>
                       {script.music ? <CheckCircle2 className="h-4 w-4" /> : "4"}
                     </div>
-                    <h3 className="font-medium">{t("script.music")}</h3>
+                    <h3 className="font-semibold text-white text-sm uppercase tracking-wide">{t("script.music")}</h3>
                   </div>
                   <Button
                     variant="outline"
@@ -1229,6 +1257,7 @@ export default function ScriptDetail() {
                     onClick={() => generateMutation.mutate("pick_music")}
                     disabled={generateMutation.isPending || !!activeJob}
                     data-testid="button-generate-music"
+                    className="border-neutral-600 bg-neutral-800"
                   >
                     <Music className="h-4 w-4" />
                   </Button>
@@ -1236,36 +1265,36 @@ export default function ScriptDetail() {
                 {script.music ? (
                   <div className="space-y-4">
                     <div className="grid gap-3 sm:grid-cols-2">
-                      <div className="p-3 bg-muted/50 rounded-md">
-                        <p className="text-xs text-muted-foreground mb-1">Mood</p>
-                        <p className="font-medium">{script.music.mood}</p>
+                      <div className="p-3 bg-neutral-800/50 border border-neutral-700/50">
+                        <p className="text-[10px] uppercase tracking-wide text-neutral-400 mb-1">Mood</p>
+                        <p className="font-medium text-white">{script.music.mood}</p>
                       </div>
-                      <div className="p-3 bg-muted/50 rounded-md">
-                        <p className="text-xs text-muted-foreground mb-1">BPM</p>
-                        <p className="font-medium">{script.music.bpm}</p>
+                      <div className="p-3 bg-neutral-800/50 border border-neutral-700/50">
+                        <p className="text-[10px] uppercase tracking-wide text-neutral-400 mb-1">BPM</p>
+                        <p className="font-medium text-white">{script.music.bpm}</p>
                       </div>
-                      <div className="p-3 bg-muted/50 rounded-md">
-                        <p className="text-xs text-muted-foreground mb-1">Genre</p>
-                        <p className="font-medium">{script.music.genre}</p>
+                      <div className="p-3 bg-neutral-800/50 border border-neutral-700/50">
+                        <p className="text-[10px] uppercase tracking-wide text-neutral-400 mb-1">Genre</p>
+                        <p className="font-medium text-white">{script.music.genre}</p>
                       </div>
-                      <div className="p-3 bg-muted/50 rounded-md">
-                        <p className="text-xs text-muted-foreground mb-1">License</p>
-                        <p className="font-medium text-sm">{script.music.licenseNote}</p>
+                      <div className="p-3 bg-neutral-800/50 border border-neutral-700/50">
+                        <p className="text-[10px] uppercase tracking-wide text-neutral-400 mb-1">License</p>
+                        <p className="font-medium text-sm text-neutral-200">{script.music.licenseNote}</p>
                       </div>
                     </div>
                     {script.music.freeTrackSuggestions && script.music.freeTrackSuggestions.length > 0 && (
-                      <div className="border rounded-lg p-3">
-                        <p className="text-xs text-muted-foreground mb-2 font-medium">Free Track Suggestions</p>
+                      <div className="border border-neutral-700/50 p-3">
+                        <p className="text-[10px] uppercase tracking-wide text-neutral-400 mb-2 font-medium">Free Track Suggestions</p>
                         <div className="space-y-2">
                           {script.music.freeTrackSuggestions.map((track, idx) => (
-                            <div key={idx} className="flex items-center justify-between p-2 bg-muted/30 rounded-md">
+                            <div key={idx} className="flex items-center justify-between p-2 bg-neutral-800/50 border border-neutral-700/50">
                               <div>
-                                <p className="font-medium text-sm">{track.name}</p>
-                                <p className="text-xs text-muted-foreground">{track.artist} - {track.source}</p>
+                                <p className="font-medium text-sm text-white">{track.name}</p>
+                                <p className="text-xs text-neutral-400">{track.artist} - {track.source}</p>
                               </div>
                               {track.url && (
                                 <a href={track.url} target="_blank" rel="noopener noreferrer">
-                                  <Button size="sm" variant="outline" data-testid={`button-music-link-${idx}`}>
+                                  <Button size="sm" variant="outline" data-testid={`button-music-link-${idx}`} className="border-neutral-600">
                                     Open
                                   </Button>
                                 </a>
@@ -1277,31 +1306,35 @@ export default function ScriptDetail() {
                     )}
                   </div>
                 ) : (
-                  <div className="p-6 bg-muted/50 rounded-md text-center">
-                    <Music className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                    <p className="text-sm text-muted-foreground">
+                  <div className="p-6 bg-neutral-800/50 border border-neutral-700/50 text-center">
+                    <Music className="h-8 w-8 mx-auto text-neutral-500 mb-2" />
+                    <p className="text-sm text-neutral-400">
                       No music suggestions yet. Click "Pick Music" to get recommendations.
                     </p>
                   </div>
                 )}
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Export Package</CardTitle>
-            <CardDescription>
-              Download all assets as a ZIP file for video production
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <div className="relative border border-neutral-700/50 bg-neutral-900/80">
+          <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-rose-500/60" />
+          <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-rose-500/60" />
+          <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-amber-500/60" />
+          <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-amber-500/60" />
+          
+          <div className="px-4 py-3 border-b border-neutral-700/50 bg-neutral-800/50">
+            <h3 className="text-sm font-semibold text-white uppercase tracking-wide">Export Package</h3>
+            <p className="text-xs text-neutral-400 mt-1">Download all assets as a ZIP file for video production</p>
+          </div>
+          
+          <div className="p-4">
             <div className="flex flex-col sm:flex-row gap-4">
               <Button
                 onClick={() => exportMutation.mutate()}
                 disabled={exportMutation.isPending || completedSteps === 0}
-                className="flex-1 sm:flex-none"
+                className="flex-1 sm:flex-none bg-gradient-to-r from-rose-500 to-amber-500 text-white border-0"
                 data-testid="button-export"
               >
                 {exportMutation.isPending ? (
@@ -1313,48 +1346,52 @@ export default function ScriptDetail() {
               </Button>
               {script.assets?.exportZip && (
                 <a href={script.assets.exportZip} target="_blank" rel="noopener noreferrer">
-                  <Button variant="outline" data-testid="button-download">
+                  <Button variant="outline" data-testid="button-download" className="border-neutral-600">
                     <Download className="h-4 w-4 mr-2" />
                     Download Last Export
                   </Button>
                 </a>
               )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {scriptJobs.length > 0 && (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Recent Jobs</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {scriptJobs.slice(0, 5).map((job) => (
-                  <div
-                    key={job.id}
-                    className="flex items-center justify-between p-3 bg-muted/50 rounded-md"
-                  >
-                    <div className="flex items-center gap-3">
-                      {job.status === "running" ? (
-                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                      ) : job.status === "done" ? (
-                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                      ) : job.status === "error" ? (
-                        <AlertCircle className="h-4 w-4 text-destructive" />
-                      ) : (
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                      )}
-                      <span className="text-sm font-medium capitalize">
-                        {job.kind.replace(/_/g, " ")}
-                      </span>
-                    </div>
-                    <StatusBadge status={job.status} />
+          <div className="relative border border-neutral-700/50 bg-neutral-900/80">
+            <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-rose-500/60" />
+            <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-rose-500/60" />
+            <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-amber-500/60" />
+            <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-amber-500/60" />
+            
+            <div className="px-4 py-3 border-b border-neutral-700/50 bg-neutral-800/50">
+              <h3 className="text-sm font-semibold text-white uppercase tracking-wide">Recent Jobs</h3>
+            </div>
+            
+            <div className="p-4 space-y-2">
+              {scriptJobs.slice(0, 5).map((job) => (
+                <div
+                  key={job.id}
+                  className="flex items-center justify-between p-3 bg-neutral-800/50 border border-neutral-700/50"
+                >
+                  <div className="flex items-center gap-3">
+                    {job.status === "running" ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-amber-400" />
+                    ) : job.status === "done" ? (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                    ) : job.status === "error" ? (
+                      <AlertCircle className="h-4 w-4 text-red-400" />
+                    ) : (
+                      <Clock className="h-4 w-4 text-neutral-400" />
+                    )}
+                    <span className="text-sm font-medium capitalize text-neutral-200">
+                      {job.kind.replace(/_/g, " ")}
+                    </span>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  <StatusBadge status={job.status} />
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </div>
     </Layout>
