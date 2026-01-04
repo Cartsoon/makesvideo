@@ -197,7 +197,7 @@ export default function Dashboard() {
 
   return (
     <Layout title={t("nav.dashboard")}>
-      <div className="p-3 md:p-4 space-y-3">
+      <div className="p-3 md:p-4 space-y-2">
         <div className="flex flex-col gap-3">
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
             <div className="flex-1">
@@ -210,7 +210,7 @@ export default function Dashboard() {
             </div>
             <Link href="/settings">
               <div
-                className="relative overflow-hidden px-4 py-2.5 sm:px-5 sm:py-3 border border-neutral-600/50 bg-neutral-800/80 text-white font-semibold text-sm uppercase tracking-wide hover-elevate active-elevate-2 flex items-center justify-center gap-2 w-full sm:w-auto flex-shrink-0 cursor-pointer"
+                className="relative overflow-hidden px-3 py-1.5 sm:px-4 sm:py-2 border border-neutral-600/50 bg-neutral-800/80 text-white font-semibold text-sm uppercase tracking-wide hover-elevate active-elevate-2 flex items-center justify-center gap-2 w-full sm:w-auto flex-shrink-0 cursor-pointer"
                 data-testid="button-settings"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-neutral-700/20 via-transparent to-neutral-600/20" />
