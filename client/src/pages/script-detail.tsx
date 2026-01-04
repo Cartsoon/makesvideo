@@ -104,7 +104,7 @@ function TopicDescription({ topic, language }: { topic: Topic; language: string 
       </p>
       
       {isExpanded && (
-        <div className="mt-3 p-2 sm:p-3 -mx-4 sm:mx-0 bg-neutral-800/50 border-y sm:border border-neutral-700/50 text-sm text-neutral-300 leading-relaxed">
+        <div className="mt-3 p-3 -mx-10 sm:mx-0 px-4 sm:px-3 bg-neutral-800/50 border-y sm:border border-neutral-700/50 text-sm text-neutral-300 leading-relaxed">
           <div className="flex flex-wrap items-center gap-2 mb-2">
             {topic.url ? (
               <a 

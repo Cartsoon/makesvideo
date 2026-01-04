@@ -26,7 +26,7 @@ export function ScriptStatusSelector({ status, onChange, disabled }: ScriptStatu
   const { language } = useI18n();
   
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
       {mainStatuses.map((s) => {
         const isActive = status === s;
         const label = statusLabels[s]?.[language] || s;
@@ -38,7 +38,7 @@ export function ScriptStatusSelector({ status, onChange, disabled }: ScriptStatu
             disabled={disabled}
             onClick={() => onChange(s)}
             className={cn(
-              "px-2.5 py-1 text-xs font-medium border transition-all duration-200",
+              "px-1.5 sm:px-2.5 py-0.5 sm:py-1 text-[10px] sm:text-xs font-medium border transition-all duration-200",
               "hover-elevate active-elevate-2",
               isActive 
                 ? activeStyles[s]
