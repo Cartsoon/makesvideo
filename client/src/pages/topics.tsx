@@ -264,7 +264,7 @@ export default function Topics() {
 
           <Select value={sortBy} onValueChange={(v) => setSortBy(v as "score" | "date")}>
             <SelectTrigger 
-              className="w-10 h-9 p-0 shrink-0" 
+              className="w-9 h-9 shrink-0 flex items-center justify-center [&>svg:last-child]:hidden" 
               data-testid="select-sort"
               style={{ borderRadius: '2px' }}
             >
