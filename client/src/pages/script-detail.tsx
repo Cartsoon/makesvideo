@@ -457,8 +457,33 @@ export default function ScriptDetail() {
                               repeating-linear-gradient(90deg, transparent, transparent 20px, rgba(255,255,255,0.1) 20px, rgba(255,255,255,0.1) 21px)`
           }} />
           
+          {/* Diagonal scan lines */}
+          <div className="absolute inset-0 opacity-[0.02]" style={{
+            backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 11px)`
+          }} />
+          
+          {/* Timeline markers - horizontal line */}
+          <div className="absolute bottom-0 left-8 right-8 h-[1px] bg-gradient-to-r from-transparent via-neutral-600/30 to-transparent" />
+          
+          {/* Vertical playhead line */}
+          <div className="absolute top-2 bottom-2 left-[15%] w-[1px] bg-rose-500/10" />
+          <div className="absolute top-0 left-[15%] w-1 h-1 bg-rose-500/20" />
+          
+          {/* Focus brackets - decorative camera markers */}
+          <div className="absolute top-1/2 left-12 -translate-y-1/2 w-4 h-4 border-l border-t border-neutral-600/20" />
+          <div className="absolute top-1/2 right-12 -translate-y-1/2 w-4 h-4 border-r border-b border-neutral-600/20" />
+          
+          {/* Subtle vignette */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/10 pointer-events-none" />
+          
           {/* Gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-r from-rose-500/5 via-transparent to-amber-500/5" />
+          
+          {/* REC indicator */}
+          <div className="absolute top-1 left-8 flex items-center gap-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-rose-500/40 animate-pulse" />
+            <span className="text-[8px] font-mono text-neutral-600 tracking-wider">REC</span>
+          </div>
           
           {/* Corner markers */}
           <div className="absolute top-0 left-6 w-3 h-3 border-t-2 border-l-2 border-rose-500/60" />
