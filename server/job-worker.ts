@@ -68,6 +68,78 @@ function stripHtml(text: string | null | undefined): string {
 }
 
 /**
+ * Fetches article content from URL and extracts clean text
+ * Uses basic HTML parsing to get article body text
+ */
+async function fetchArticleContent(url: string): Promise<string | null> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'ru,en;q=0.9',
+      }
+    });
+    clearTimeout(timeout);
+    
+    if (!response.ok) {
+      console.log(`[ArticleExtract] Failed to fetch ${url}: ${response.status}`);
+      return null;
+    }
+    
+    const html = await response.text();
+    
+    // Remove script, style, nav, header, footer, aside tags completely
+    let cleaned = html
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, '')
+      .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, '')
+      .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '')
+      .replace(/<aside[^>]*>[\s\S]*?<\/aside>/gi, '')
+      .replace(/<noscript[^>]*>[\s\S]*?<\/noscript>/gi, '')
+      .replace(/<!--[\s\S]*?-->/g, '');
+    
+    // Try to find article or main content
+    const articleMatch = cleaned.match(/<article[^>]*>([\s\S]*?)<\/article>/i);
+    const mainMatch = cleaned.match(/<main[^>]*>([\s\S]*?)<\/main>/i);
+    const contentMatch = cleaned.match(/<div[^>]*class="[^"]*(?:content|article|post|entry|text)[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
+    
+    let contentHtml = articleMatch?.[1] || mainMatch?.[1] || contentMatch?.[1] || cleaned;
+    
+    // Extract text from paragraphs
+    const paragraphs: string[] = [];
+    const pMatches = contentHtml.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi);
+    for (const match of pMatches) {
+      const text = stripHtml(match[1]);
+      if (text.length > 50) {
+        paragraphs.push(text);
+      }
+    }
+    
+    // If no paragraphs found, strip all HTML
+    if (paragraphs.length === 0) {
+      const fullText = stripHtml(contentHtml);
+      if (fullText.length > 100) {
+        return fullText.slice(0, 5000);
+      }
+      return null;
+    }
+    
+    const articleText = paragraphs.join('\n\n').slice(0, 5000);
+    console.log(`[ArticleExtract] Extracted ${articleText.length} chars from ${url}`);
+    return articleText;
+  } catch (error) {
+    console.log(`[ArticleExtract] Error fetching ${url}:`, error);
+    return null;
+  }
+}
+
+/**
  * Extracts 2-4 relevant tags from title - proper nouns, names, abbreviations
  * Focus on: full names (multiple words), brands, abbreviations, key terms
  * RULES: No duplicates, no parts of already-added multi-word tags
@@ -524,8 +596,11 @@ async function processFetchTopics(job: Job): Promise<void> {
       continue;
     }
     
-    // Block topics without meaningful description/content (minimum 20 chars)
-    if (descriptionLength < 20) {
+    // Check if we need auto-extraction (weak description but has URL)
+    const needsAutoExtract = descriptionLength < 50 && item.link;
+    
+    // Block topics without description AND without URL (can't extract anything)
+    if (descriptionLength < 20 && !item.link) {
       processedItems++;
       continue;
     }
@@ -544,7 +619,7 @@ async function processFetchTopics(job: Job): Promise<void> {
     }
     
     const tags = extractTopicTags(rawTitle, rawDescription, language);
-    await storage.createTopic({
+    const newTopic = await storage.createTopic({
       sourceId: source.id,
       title: rawTitle,
       rawText: rawDescription || null,
@@ -554,9 +629,21 @@ async function processFetchTopics(job: Job): Promise<void> {
       score: Math.floor(Math.random() * 30) + 70,
       language: language,
       status: "new",
-      extractionStatus: "pending",
+      extractionStatus: needsAutoExtract ? "pending" : "pending",
       publishedAt: item.pubDate || null
     });
+    
+    // Auto-queue content extraction for topics with weak descriptions
+    if (needsAutoExtract && newTopic) {
+      await storage.createJob({
+        kind: "extract_content",
+        status: "queued",
+        payload: { topicId: newTopic.id },
+        progress: 0
+      });
+      console.log(`[JobWorker] Queued auto-extraction for topic: ${rawTitle.slice(0, 50)}...`);
+    }
+    
     topicsAdded++;
     processedItems++;
     
@@ -683,35 +770,71 @@ async function processExtractContent(job: Job, topicId: string): Promise<void> {
   if (!topic) throw new Error("Topic not found");
 
   await storage.updateTopic(topicId, { extractionStatus: "extracting" });
-  await storage.updateJob(job.id, { progress: 20 });
+  await storage.updateJob(job.id, { progress: 10 });
 
   try {
-    // Extract content from URL if available
     let fullContent = topic.rawText || "";
+    let newRawText = topic.rawText;
     
+    // Step 1: Fetch actual article content from URL if available
     if (topic.url) {
-      // In production, this would use a proper article extractor
-      // For now, we simulate content extraction
-      fullContent = `Article about: ${topic.title}. This is extracted content from the source URL. ` +
-        `Key information includes trending data, expert opinions, and relevant statistics. ` +
-        `The topic covers important developments that are shaping current events.`;
+      console.log(`[ExtractContent] Fetching article from: ${topic.url}`);
+      const articleContent = await fetchArticleContent(topic.url);
+      
+      if (articleContent && articleContent.length > 100) {
+        fullContent = articleContent;
+        console.log(`[ExtractContent] Got ${articleContent.length} chars from article`);
+      } else {
+        console.log(`[ExtractContent] No article content, using existing rawText`);
+      }
     }
 
-    await storage.updateJob(job.id, { progress: 50 });
+    await storage.updateJob(job.id, { progress: 40 });
 
-    // Extract insights using the LLM provider
-    const insights = await providers.llm.extractInsights(fullContent, topic.language);
+    // Step 2: Generate AI summary if we have content but weak description
+    const hasWeakDescription = !topic.rawText || topic.rawText.length < 50;
+    if (fullContent.length > 100 && hasWeakDescription) {
+      console.log(`[ExtractContent] Generating AI summary for topic ${topicId}`);
+      try {
+        const summary = await providers.llm.generateSummary(fullContent, topic.language);
+        if (summary && summary.length > 20) {
+          newRawText = summary;
+          console.log(`[ExtractContent] Generated summary: ${summary.length} chars`);
+        }
+      } catch (err) {
+        console.log(`[ExtractContent] AI summary failed, using first sentences`);
+        // Fallback: use first 2-3 sentences from content
+        const sentences = fullContent.split(/[.!?]+/).filter(s => s.trim().length > 30);
+        newRawText = sentences.slice(0, 3).map(s => s.trim()).join('. ').slice(0, 400);
+      }
+    }
 
-    await storage.updateJob(job.id, { progress: 80 });
+    await storage.updateJob(job.id, { progress: 60 });
 
+    // Step 3: Extract insights using LLM
+    let insights = topic.insights;
+    if (fullContent.length > 100) {
+      try {
+        insights = await providers.llm.extractInsights(fullContent, topic.language);
+      } catch (err) {
+        console.log(`[ExtractContent] Insights extraction failed:`, err);
+      }
+    }
+
+    await storage.updateJob(job.id, { progress: 90 });
+
+    // Step 4: Update topic with extracted data
     await storage.updateTopic(topicId, {
-      fullContent,
+      fullContent: fullContent.length > 100 ? fullContent : topic.fullContent,
+      rawText: newRawText || topic.rawText,
       insights,
       extractionStatus: "done",
     });
 
+    console.log(`[ExtractContent] Completed for topic ${topicId}`);
     await storage.updateJob(job.id, { progress: 100 });
   } catch (error) {
+    console.error(`[ExtractContent] Failed for topic ${topicId}:`, error);
     await storage.updateTopic(topicId, { extractionStatus: "failed" });
     throw error;
   }

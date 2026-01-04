@@ -214,6 +214,9 @@ export interface LLMProvider {
   translateTitle(title: string, targetLanguage: Language): Promise<string>;
   extractInsights(content: string, language: Language): Promise<TopicInsights>;
   
+  // Generate concise summary from full article content (2-3 sentences)
+  generateSummary(content: string, language: Language): Promise<string>;
+  
   // Theses generation
   generateThesesFromContent(content: string, language: Language, count?: number): Promise<string[]>;
   generateThesesFromWeb(topic: string, language: Language, count?: number): Promise<string[]>;
@@ -309,6 +312,19 @@ Only JSON, no markdown.`;
       return JSON.parse(cleaned);
     } catch {
       return this.fallback.extractInsights(content, language);
+    }
+  }
+
+  async generateSummary(content: string, language: Language): Promise<string> {
+    const systemPrompt = language === "ru"
+      ? `Напиши краткое описание статьи в 2-3 предложениях. Только суть, без вступлений. Максимум 300 символов.`
+      : `Write a brief summary of the article in 2-3 sentences. Just the essence, no introductions. Maximum 300 characters.`;
+
+    try {
+      const result = await this.callLLM(systemPrompt, content.slice(0, 3000), 200);
+      return result.slice(0, 400);
+    } catch {
+      return this.fallback.generateSummary(content, language);
     }
   }
 
@@ -2871,6 +2887,13 @@ export class FallbackLLMProvider implements LLMProvider {
       viralPotential: viralScore,
       summary,
     };
+  }
+
+  async generateSummary(content: string, language: Language): Promise<string> {
+    // Extract first 2-3 meaningful sentences as summary
+    const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 30);
+    const summary = sentences.slice(0, 3).map(s => s.trim()).join('. ');
+    return summary.slice(0, 400) || (language === "ru" ? "Краткое описание недоступно." : "Summary not available.");
   }
 
   async generateThesesFromContent(content: string, language: Language, count: number = 3): Promise<string[]> {
