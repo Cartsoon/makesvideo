@@ -142,7 +142,10 @@ export default function Topics() {
   });
 
   const filteredTopics = topics
-    ?.filter((topic) => statusFilter === "all" || topic.status === statusFilter)
+    ?.filter((topic) => {
+      if (fadingOutIds.has(topic.id)) return true;
+      return statusFilter === "all" ? topic.status !== "missed" : topic.status === statusFilter;
+    })
     ?.sort((a, b) => {
       if (sortBy === "score") return b.score - a.score;
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
