@@ -41,8 +41,7 @@ import {
   Sparkles,
   Clock,
   TrendingUp,
-  AlertTriangle,
-  Eye
+  AlertTriangle
 } from "lucide-react";
 import type { Topic, TopicStatus, Job } from "@shared/schema";
 import placeholderImage from "@assets/file_0000000078a471f4af18c4a74cc26e4a_1767488305862.png";
@@ -318,15 +317,9 @@ export default function Topics() {
                   
                   <div className="absolute top-2 left-2 right-2 flex items-start justify-between gap-2">
                     <StatusBadge status={topic.status} className="text-[10px]" />
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1 bg-black/60 px-1.5 py-0.5 text-white text-[10px]" style={{ borderRadius: '2px' }}>
-                        <Eye className="h-3 w-3" />
-                        {topic.viewCount || 0}
-                      </div>
-                      <div className="flex items-center gap-1 bg-black/60 px-1.5 py-0.5 text-white text-[10px]" style={{ borderRadius: '2px' }}>
-                        <TrendingUp className="h-3 w-3" />
-                        {topic.score}
-                      </div>
+                    <div className="flex items-center gap-1 bg-black/60 px-1.5 py-0.5 text-white text-[10px]" style={{ borderRadius: '2px' }}>
+                      <TrendingUp className="h-3 w-3" />
+                      {topic.score}
                     </div>
                   </div>
                   

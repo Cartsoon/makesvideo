@@ -215,7 +215,7 @@ export type SourceType = z.infer<typeof SourceType>;
 export const SourceHealthStatus = z.enum(["ok", "warning", "dead", "pending"]);
 export type SourceHealthStatus = z.infer<typeof SourceHealthStatus>;
 
-export const TopicStatus = z.enum(["new", "selected", "ignored"]);
+export const TopicStatus = z.enum(["new", "selected", "ignored", "in_progress", "missed"]);
 export type TopicStatus = z.infer<typeof TopicStatus>;
 
 export const ScriptStatus = z.enum(["draft", "in_progress", "done", "generating", "error"]);
@@ -460,6 +460,7 @@ export interface Topic {
   translatedTitle: string | null;
   translatedTitleEn: string | null;
   url: string | null;
+  imageUrl: string | null;
   rawText: string | null;
   fullContent: string | null;
   insights: TopicInsights | null;
@@ -478,6 +479,7 @@ export const insertTopicSchema = z.object({
   translatedTitle: z.string().nullable().optional(),
   translatedTitleEn: z.string().nullable().optional(),
   url: z.string().nullable().optional(),
+  imageUrl: z.string().nullable().optional(),
   rawText: z.string().nullable().optional(),
   fullContent: z.string().nullable().optional(),
   insights: topicInsightsSchema.nullable().optional(),
@@ -803,6 +805,8 @@ export const topicStatusLabels: Record<TopicStatus, string> = {
   new: "New",
   selected: "Selected",
   ignored: "Ignored",
+  in_progress: "In Progress",
+  missed: "Missed",
 };
 
 
