@@ -71,6 +71,53 @@ import { stylePresetLabels, accentLabels, platformLabels, formatLabels } from "@
 import { Link } from "wouter";
 import { VoiceGenerator } from "@/components/voice-generator";
 import { useI18n } from "@/lib/i18n";
+import { ChevronDown, ChevronUp } from "lucide-react";
+
+function TopicDescription({ topic, language }: { topic: Topic; language: string }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const { t } = useI18n();
+  
+  const fullTitle = language === "en" 
+    ? (topic.translatedTitleEn || topic.generatedTitle || topic.title) 
+    : (topic.translatedTitle || topic.generatedTitle || topic.title);
+  
+  const truncatedTitle = fullTitle.slice(0, 150);
+  const needsTruncation = fullTitle.length > 150;
+  
+  return (
+    <div className="mt-2">
+      <p 
+        className="text-sm text-muted-foreground leading-relaxed"
+        data-testid="text-topic-description"
+      >
+        <span className="text-neutral-500">{t("script.topicLabel")}:</span>{" "}
+        <span className="text-neutral-300">
+          {isExpanded ? fullTitle : truncatedTitle}
+          {!isExpanded && needsTruncation && "..."}
+        </span>
+      </p>
+      {needsTruncation && (
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="flex items-center gap-1 text-xs text-rose-400 hover:text-rose-300 mt-1 transition-colors"
+          data-testid="button-toggle-topic-description"
+        >
+          {isExpanded ? (
+            <>
+              <ChevronUp className="h-3 w-3" />
+              {t("common.showLess")}
+            </>
+          ) : (
+            <>
+              <ChevronDown className="h-3 w-3" />
+              {t("common.showMore")}
+            </>
+          )}
+        </button>
+      )}
+    </div>
+  );
+}
 
 export default function ScriptDetail() {
   const { id } = useParams<{ id: string }>();
@@ -425,42 +472,39 @@ export default function ScriptDetail() {
                     </Button>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2 group">
-                    <h1 
-                      className="text-base sm:text-xl font-bold truncate cursor-pointer" 
-                      data-testid="text-script-title" 
-                      title={script.displayName || script.hook || topic?.title || t("scripts.untitled")}
-                      onClick={startEditTitle}
-                    >
-                      {(script.displayName || script.hook || topic?.title || t("scripts.untitled")).slice(0, 50)}
-                      {(script.displayName || script.hook || topic?.title || "").length > 50 ? "..." : ""}
-                    </h1>
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
-                      className="h-7 w-7 opacity-50 group-hover:opacity-100 transition-opacity"
-                      onClick={startEditTitle}
-                      data-testid="button-edit-title"
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                )}
-                
-                {!isEditingTitle && (
-                  <div className="mt-2">
-                    <ScriptStatusSelector 
-                      status={script.status} 
-                      onChange={(newStatus) => updateMutation.mutate({ status: newStatus })}
-                      disabled={updateMutation.isPending}
-                    />
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-2 group min-w-0 flex-1">
+                      <h1 
+                        className="text-base sm:text-xl font-bold truncate cursor-pointer" 
+                        data-testid="text-script-title" 
+                        title={script.displayName || script.hook || topic?.title || t("scripts.untitled")}
+                        onClick={startEditTitle}
+                      >
+                        {(script.displayName || script.hook || topic?.title || t("scripts.untitled")).slice(0, 50)}
+                        {(script.displayName || script.hook || topic?.title || "").length > 50 ? "..." : ""}
+                      </h1>
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        className="h-7 w-7 opacity-50 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                        onClick={startEditTitle}
+                        data-testid="button-edit-title"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                    <div className="flex-shrink-0">
+                      <ScriptStatusSelector 
+                        status={script.status} 
+                        onChange={(newStatus) => updateMutation.mutate({ status: newStatus })}
+                        disabled={updateMutation.isPending}
+                      />
+                    </div>
                   </div>
                 )}
                 
                 {topic && !isEditingTitle && (
-                  <p className="text-xs text-muted-foreground truncate mt-1" title={language === "en" ? (topic.translatedTitleEn || topic.generatedTitle || topic.title) : (topic.translatedTitle || topic.generatedTitle || topic.title)}>
-                    {t("script.topicLabel")}: {(language === "en" ? (topic.translatedTitleEn || topic.generatedTitle || topic.title) : (topic.translatedTitle || topic.generatedTitle || topic.title)).slice(0, 50)}...
-                  </p>
+                  <TopicDescription topic={topic} language={language} />
                 )}
               </div>
             </div>
