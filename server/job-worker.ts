@@ -72,7 +72,7 @@ function extractTopicTags(title: string, content: string | null, language: strin
     return true;
   };
   
-  // 1. Extract full names (2-3 consecutive capitalized words): "Сказки Нового Года", "Том Хендерсон"
+  // 1. Extract full names (2-4 consecutive capitalized words): "Сказки Нового Года", "Том Хендерсон"
   // Prioritize longer matches first
   const fullNameRegex = /([A-ZА-ЯЁ][a-zа-яё]+(?:\s+[A-ZА-ЯЁ][a-zа-яё]+){1,3})/g;
   const fullNames = title.match(fullNameRegex) || [];
@@ -84,6 +84,17 @@ function extractTopicTags(title: string, content: string | null, language: strin
     const nonExcludedWords = words.filter(w => !excludedWords.has(w.toLowerCase()));
     if (nonExcludedWords.length >= 2) {
       addTag(name, true);
+    }
+  }
+  
+  // 1b. Extract "Capitalized + lowercase" phrases: "Запись стрима", "Опрос читателей"
+  const mixedCaseRegex = /([A-ZА-ЯЁ][a-zа-яё]+\s+[a-zа-яё]{4,})/g;
+  const mixedPhrases = title.match(mixedCaseRegex) || [];
+  for (const phrase of mixedPhrases) {
+    const words = phrase.split(/\s+/);
+    // Only add if first word is meaningful and not excluded
+    if (!excludedWords.has(words[0].toLowerCase()) && !excludedWords.has(words[1].toLowerCase())) {
+      addTag(phrase, true);
     }
   }
   
