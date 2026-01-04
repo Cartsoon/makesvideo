@@ -362,7 +362,11 @@ export default function Topics() {
                     <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
-                        {new Date(topic.createdAt).toLocaleDateString()}
+                        {new Date(topic.createdAt).toLocaleDateString(language === "ru" ? "ru-RU" : "en-US", { day: "numeric", month: "short" })}
+                        {" "}
+                        <span className="text-muted-foreground/70">
+                          {new Date(topic.createdAt).toLocaleTimeString(language === "ru" ? "ru-RU" : "en-US", { hour: "2-digit", minute: "2-digit" })}
+                        </span>
                       </span>
                       {topic.url && (
                         <a
