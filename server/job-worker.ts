@@ -516,8 +516,16 @@ async function processFetchTopics(job: Job): Promise<void> {
     
     const titleLength = (rawTitle || '').trim().length;
     const titleWordCount = (rawTitle || '').split(/\s+/).filter(w => w.length > 1).length;
+    const descriptionLength = (rawDescription || '').trim().length;
     
+    // Block topics with short/missing titles
     if (titleLength < 30 && titleWordCount < 4) {
+      processedItems++;
+      continue;
+    }
+    
+    // Block topics without meaningful description/content (minimum 20 chars)
+    if (descriptionLength < 20) {
       processedItems++;
       continue;
     }
