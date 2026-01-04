@@ -613,17 +613,43 @@ export default function ScriptDetail() {
           </div>
         )}
 
-        <div className="relative border border-neutral-700/50 bg-neutral-900/80">
+        <div className="relative overflow-hidden border border-neutral-700/50 bg-neutral-900/80">
+          {/* Slider track decorations - left side */}
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-rose-500/20 via-amber-500/20 to-rose-500/20" />
+          
+          {/* Control knob pattern background */}
+          <div className="absolute inset-0 opacity-[0.015]" style={{
+            backgroundImage: `radial-gradient(circle at 25% 25%, rgba(255,255,255,0.15) 1px, transparent 1px),
+                              radial-gradient(circle at 75% 75%, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+            backgroundSize: '20px 20px'
+          }} />
+          
+          {/* Horizontal parameter lines */}
+          <div className="absolute top-[30%] left-4 right-4 h-[1px] bg-gradient-to-r from-neutral-700/20 via-neutral-600/10 to-neutral-700/20" />
+          <div className="absolute top-[70%] left-4 right-4 h-[1px] bg-gradient-to-r from-neutral-700/20 via-neutral-600/10 to-neutral-700/20" />
+          
+          {/* Corner markers */}
           <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-rose-500/60" />
           <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-rose-500/60" />
           <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-amber-500/60" />
           <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-amber-500/60" />
           
-          <div className="px-4 py-3 border-b border-neutral-700/50 bg-neutral-800/50">
-            <h3 className="text-sm font-semibold text-white uppercase tracking-wide">{t("script.settings")}</h3>
+          {/* Settings icon decoration */}
+          <div className="absolute top-2 right-3 opacity-10">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-neutral-400">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
           </div>
           
-          <div className="p-4">
+          <div className="relative px-4 py-3 border-b border-neutral-700/50 bg-neutral-800/50">
+            <div className="flex items-center gap-2">
+              <div className="w-1 h-3 bg-gradient-to-b from-rose-500/60 to-amber-500/60" />
+              <h3 className="text-sm font-semibold text-white uppercase tracking-wide">{t("script.settings")}</h3>
+            </div>
+          </div>
+          
+          <div className="relative p-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="space-y-2">
                 <Label className="text-[10px] uppercase tracking-wide text-neutral-400">{t("script.format")}</Label>
