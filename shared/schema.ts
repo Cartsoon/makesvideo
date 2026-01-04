@@ -70,6 +70,7 @@ export const topics = pgTable("topics", {
   extractionStatus: varchar("extraction_status", { length: 20 }).default("pending").notNull(),
   language: varchar("language", { length: 10 }).default("ru").notNull(),
   score: integer("score").default(0).notNull(),
+  viewCount: integer("view_count").default(0).notNull(),
   status: varchar("status", { length: 20 }).default("new").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

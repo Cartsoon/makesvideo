@@ -41,7 +41,8 @@ import {
   Sparkles,
   Clock,
   TrendingUp,
-  AlertTriangle
+  AlertTriangle,
+  Eye
 } from "lucide-react";
 import type { Topic, TopicStatus, Job } from "@shared/schema";
 
@@ -66,7 +67,6 @@ export default function Topics() {
   const [statusFilter, setStatusFilter] = useState<TopicStatus | "all">("all");
   const [sortBy, setSortBy] = useState<"score" | "date">("score");
   const [processedJobIds, setProcessedJobIds] = useState<Set<string>>(new Set());
-  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
   const { data: topics, isLoading } = useQuery<Topic[]>({
     queryKey: ["/api/topics"],
@@ -162,14 +162,7 @@ export default function Topics() {
   };
 
   const getTopicImage = (topic: Topic): string => {
-    if (topic.imageUrl && !imageErrors.has(topic.id)) {
-      return topic.imageUrl;
-    }
     return getPlaceholderImage(topic.id);
-  };
-
-  const handleImageError = (topicId: string) => {
-    setImageErrors(prev => new Set(prev).add(topicId));
   };
 
   const getDisplayTitle = (topic: Topic): string => {
@@ -319,16 +312,21 @@ export default function Topics() {
                     src={getTopicImage(topic)}
                     alt=""
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    onError={() => handleImageError(topic.id)}
                     loading="lazy"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                   
                   <div className="absolute top-2 left-2 right-2 flex items-start justify-between gap-2">
                     <StatusBadge status={topic.status} className="text-[10px]" />
-                    <div className="flex items-center gap-1 bg-black/60 px-1.5 py-0.5 text-white text-[10px]" style={{ borderRadius: '2px' }}>
-                      <TrendingUp className="h-3 w-3" />
-                      {topic.score}
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 bg-black/60 px-1.5 py-0.5 text-white text-[10px]" style={{ borderRadius: '2px' }}>
+                        <Eye className="h-3 w-3" />
+                        {topic.viewCount || 0}
+                      </div>
+                      <div className="flex items-center gap-1 bg-black/60 px-1.5 py-0.5 text-white text-[10px]" style={{ borderRadius: '2px' }}>
+                        <TrendingUp className="h-3 w-3" />
+                        {topic.score}
+                      </div>
                     </div>
                   </div>
                   
