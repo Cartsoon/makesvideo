@@ -196,26 +196,40 @@ function parseRSSItems(xml: string): Array<{ title: string; link: string; descri
     // Try enclosure with image type (any order of attributes)
     const enclosureMatch = content.match(/<enclosure[^>]+url=["']([^"']+)["'][^>]*(?:type=["']image|\.(?:jpg|jpeg|png|gif|webp))/i) ||
                            content.match(/<enclosure[^>]+type=["']image[^"']*["'][^>]*url=["']([^"']+)["']/i);
-    if (enclosureMatch) return enclosureMatch[1];
+    if (enclosureMatch) return decodeHtmlEntities(enclosureMatch[1]);
     
     // Try enclosure without type (just url ending with image extension)
     const enclosureUrlMatch = content.match(/<enclosure[^>]+url=["']([^"']+\.(?:jpg|jpeg|png|gif|webp)[^"']*)["']/i);
-    if (enclosureUrlMatch) return enclosureUrlMatch[1];
+    if (enclosureUrlMatch) return decodeHtmlEntities(enclosureUrlMatch[1]);
+    
+    // Try enclosure with any url (many RSS feeds use enclosure for images)
+    const enclosureAnyMatch = content.match(/<enclosure[^>]+url=["']([^"']+)["']/i);
+    if (enclosureAnyMatch && !enclosureAnyMatch[1].includes('audio') && !enclosureAnyMatch[1].includes('video')) {
+      return decodeHtmlEntities(enclosureAnyMatch[1]);
+    }
     
     // Try media:content with medium="image" or url with image extension
     const mediaContentMatch = content.match(/<media:content[^>]+url=["']([^"']+)["'][^>]*medium=["']image["']/i) ||
                               content.match(/<media:content[^>]+medium=["']image["'][^>]*url=["']([^"']+)["']/i) ||
                               content.match(/<media:content[^>]+url=["']([^"']+\.(?:jpg|jpeg|png|gif|webp)[^"']*)["']/i) ||
                               content.match(/<media:content[^>]+url=["']([^"']+)["']/i);
-    if (mediaContentMatch) return mediaContentMatch[1];
+    if (mediaContentMatch) return decodeHtmlEntities(mediaContentMatch[1]);
     
     // Try media:thumbnail
     const mediaThumbnailMatch = content.match(/<media:thumbnail[^>]+url=["']([^"']+)["']/i);
-    if (mediaThumbnailMatch) return mediaThumbnailMatch[1];
+    if (mediaThumbnailMatch) return decodeHtmlEntities(mediaThumbnailMatch[1]);
     
     // Try image element inside media group
     const mediaGroupImageMatch = content.match(/<media:group[^>]*>[\s\S]*?<media:thumbnail[^>]+url=["']([^"']+)["']/i);
-    if (mediaGroupImageMatch) return mediaGroupImageMatch[1];
+    if (mediaGroupImageMatch) return decodeHtmlEntities(mediaGroupImageMatch[1]);
+    
+    // Try Yandex turbo:content image
+    const turboMatch = content.match(/<turbo:content[^>]*>[\s\S]*?<img[^>]+src=["']([^"']+)["']/i);
+    if (turboMatch) return decodeHtmlEntities(turboMatch[1]);
+    
+    // Try content:encoded with image
+    const contentEncodedMatch = content.match(/<content:encoded[^>]*>[\s\S]*?<img[^>]+src=["']([^"']+)["']/i);
+    if (contentEncodedMatch && !contentEncodedMatch[1].includes('data:')) return decodeHtmlEntities(contentEncodedMatch[1]);
     
     // Try image tag in description/content (filter out tracking pixels and small icons)
     const imgMatches = content.matchAll(/<img[^>]+src=["']([^"']+)["'][^>]*>/gi);
@@ -228,14 +242,14 @@ function parseRSSItems(xml: string): Array<{ title: string; link: string; descri
       }
       // Prefer images with common extensions
       if (src.match(/\.(jpg|jpeg|png|gif|webp)/i)) {
-        return src;
+        return decodeHtmlEntities(src);
       }
     }
     
     // Fallback: try any img src
     const imgMatch = content.match(/<img[^>]+src=["']([^"']+)["']/i);
     if (imgMatch && !imgMatch[1].includes('data:') && imgMatch[1].length < 500) {
-      return imgMatch[1];
+      return decodeHtmlEntities(imgMatch[1]);
     }
     
     return undefined;

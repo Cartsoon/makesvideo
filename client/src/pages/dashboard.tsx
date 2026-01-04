@@ -495,13 +495,9 @@ export default function Dashboard() {
                               ? (topic.translatedTitleEn || topic.generatedTitle || topic.title)
                               : (topic.translatedTitle || topic.generatedTitle || topic.title)}
                           </p>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <div className="flex items-center gap-0.5 text-rose-400 text-[9px] font-bold">
-                              <TrendingUp className="h-2.5 w-2.5" />
-                              {topic.score}
-                            </div>
-                            <StatusBadge status={topic.status} className="text-[9px]" />
-                          </div>
+                          <p className="text-[10px] text-neutral-400 truncate mt-0.5 leading-tight">
+                            {topic.insights?.summary || topic.rawText || ""}
+                          </p>
                         </div>
                         
                         <ChevronRight className="h-3 w-3 text-neutral-500 group-hover:text-rose-400 flex-shrink-0" />
