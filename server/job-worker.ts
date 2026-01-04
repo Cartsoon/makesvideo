@@ -41,6 +41,33 @@ const EXCLUDED_WORDS_EN = new Set([
 ]);
 
 /**
+ * Strips ALL HTML tags, URLs, and special markup from text
+ * Used to clean titles and descriptions from RSS feeds
+ */
+function stripHtml(text: string | null | undefined): string {
+  if (!text) return '';
+  
+  return text
+    // Remove all HTML tags (including self-closing like <img />, <br/>, etc.)
+    .replace(/<[^>]*>/gi, '')
+    // Remove URLs (http, https, www)
+    .replace(/https?:\/\/[^\s]+/gi, '')
+    .replace(/www\.[^\s]+/gi, '')
+    // Decode common HTML entities
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&#(\d+);/gi, (_, num) => String.fromCharCode(parseInt(num, 10)))
+    .replace(/&[a-z]+;/gi, '') // Remove any remaining HTML entities
+    // Clean up whitespace
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
  * Extracts 2-4 relevant tags from title - proper nouns, names, abbreviations
  * Focus on: full names (multiple words), brands, abbreviations, key terms
  * RULES: No duplicates, no parts of already-added multi-word tags
@@ -483,8 +510,9 @@ async function processFetchTopics(job: Job): Promise<void> {
   for (const { item, source, language } of allItems) {
     if (topicsAdded >= maxTopicsThisFetch) break;
     
-    const rawTitle = item.title;
-    const rawDescription = item.description.slice(0, 500);
+    // Strip ALL HTML tags and URLs from title and description
+    const rawTitle = stripHtml(item.title);
+    const rawDescription = stripHtml(item.description).slice(0, 500);
     
     const titleLength = (rawTitle || '').trim().length;
     const titleWordCount = (rawTitle || '').split(/\s+/).filter(w => w.length > 1).length;
