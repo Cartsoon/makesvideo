@@ -468,7 +468,7 @@ export default function Dashboard() {
                   {recentTopics.map((topic) => {
                     const isNewlyAdded = newlyAddedIds.has(topic.id);
                     return (
-                    <Link key={topic.id} href="/topics">
+                    <Link key={topic.id} href={`/topics?highlight=${topic.id}`}>
                       <div
                         className={`group flex items-center gap-2 p-1.5 bg-neutral-800/50 border border-rose-500/20 hover-elevate cursor-pointer transition-all duration-300 ${
                           isNewlyAdded ? "ring-1 ring-rose-400/50 bg-rose-900/20" : ""

@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -52,11 +52,14 @@ export default function Topics() {
   const { toast } = useToast();
   const { t, language } = useI18n();
   const [, navigate] = useLocation();
+  const searchString = useSearch();
   const [statusFilter, setStatusFilter] = useState<TopicStatus | "all">("all");
   const [sortBy, setSortBy] = useState<"score" | "date">("score");
   const [processedJobIds, setProcessedJobIds] = useState<Set<string>>(new Set());
   const [expandedTopicId, setExpandedTopicId] = useState<string | null>(null);
   const [fadingOutIds, setFadingOutIds] = useState<Set<string>>(new Set());
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const highlightRef = useRef<HTMLDivElement>(null);
 
   const { data: topics, isLoading } = useQuery<Topic[]>({
     queryKey: ["/api/topics"],
@@ -81,6 +84,31 @@ export default function Topics() {
       });
     }
   }, [jobs, processedJobIds]);
+
+  // Handle highlight parameter from dashboard - scroll to topic and highlight it
+  useEffect(() => {
+    const params = new URLSearchParams(searchString);
+    const highlightId = params.get("highlight");
+    
+    if (highlightId && topics && topics.length > 0) {
+      setHighlightedId(highlightId);
+      
+      // Wait for DOM to render, then scroll
+      setTimeout(() => {
+        const element = document.querySelector(`[data-topic-id="${highlightId}"]`);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 100);
+      
+      // Remove highlight after animation (2.5s)
+      setTimeout(() => {
+        setHighlightedId(null);
+        // Clean URL without highlight parameter
+        window.history.replaceState({}, "", "/topics");
+      }, 2500);
+    }
+  }, [searchString, topics]);
 
   const fetchMutation = useMutation({
     mutationFn: () => apiRequest("POST", "/api/jobs", { kind: "fetch_topics", payload: {} }),
@@ -319,9 +347,14 @@ export default function Topics() {
             {filteredTopics.map((topic) => (
               <div
                 key={topic.id}
+                data-topic-id={topic.id}
                 data-testid={`topic-card-${topic.id}`}
-                className={`group bg-card border border-border overflow-hidden hover-elevate transition-all duration-300 ${
+                className={`group bg-card border overflow-hidden hover-elevate transition-all duration-300 ${
                   fadingOutIds.has(topic.id) ? 'opacity-0 scale-95 -translate-y-2' : 'opacity-100 scale-100'
+                } ${
+                  highlightedId === topic.id 
+                    ? 'ring-2 ring-amber-400 border-amber-400 animate-pulse shadow-lg shadow-amber-400/30' 
+                    : 'border-border'
                 }`}
                 style={{ borderRadius: '2px' }}
               >
