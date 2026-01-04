@@ -118,11 +118,22 @@ export default function Dashboard() {
     fetchTopicsMutation.mutate();
   };
 
-  // Filter only "new" status topics (excluding system topics) and take top 6
-  const newTopics = topics?.filter(t => t.status === "new" && !t.title?.startsWith("__")) || [];
-  const recentTopics = newTopics
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  // Filter topics same as Topics page: exclude system, missed, in_progress
+  // Sort by publishedAt (or createdAt as fallback), newest first - same as Topics page
+  const filteredTopics = topics?.filter(t => 
+    !t.title?.startsWith("__") && 
+    t.status !== "missed" && 
+    t.status !== "in_progress"
+  ) || [];
+  const recentTopics = filteredTopics
+    .sort((a, b) => {
+      const dateA = new Date(a.publishedAt || a.createdAt).getTime();
+      const dateB = new Date(b.publishedAt || b.createdAt).getTime();
+      return dateB - dateA;
+    })
     .slice(0, 6);
+  // For animation tracking, use the filtered list
+  const newTopics = filteredTopics;
   const recentScripts = scripts
     ?.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 4) || [];
@@ -153,7 +164,7 @@ export default function Dashboard() {
   }, [topicIdsString]);
 
   const stats = {
-    totalTopics: topics?.filter(t => !t.title?.startsWith("__")).length || 0,
+    totalTopics: filteredTopics.length,
     totalScripts: scripts?.length || 0,
     readyScripts: scripts?.filter(s => s.status === "done").length || 0,
   };
