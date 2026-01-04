@@ -48,8 +48,12 @@ function stripHtml(text: string | null | undefined): string {
   if (!text) return '';
   
   return text
+    // Add space before block-level tags to prevent text merging
+    .replace(/<\/(div|p|li|h[1-6]|article|section|blockquote|td|th|tr)>/gi, ' ')
+    // Replace <br> with space
+    .replace(/<br\s*\/?>/gi, ' ')
     // Remove all HTML tags (including self-closing like <img />, <br/>, etc.)
-    .replace(/<[^>]*>/gi, '')
+    .replace(/<[^>]*>/gi, ' ')
     // Remove URLs (http, https, www)
     .replace(/https?:\/\/[^\s]+/gi, '')
     .replace(/www\.[^\s]+/gi, '')
