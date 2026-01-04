@@ -335,17 +335,17 @@ async function processFetchTopics(job: Job): Promise<void> {
           const rawTitle = item.title;
           const rawDescription = item.description.slice(0, 500);
           
-          // Quality check: need enough content for video script generation
-          // Minimum: 250 characters OR 40 words across title + description
-          const combinedText = `${rawTitle || ''} ${rawDescription || ''}`.trim();
-          const charCount = combinedText.length;
-          const wordCount = combinedText.split(/\s+/).filter(w => w.length > 1).length;
+          // Quality check: need basic content for video script generation
+          // Very light filtering - only skip extremely short headlines
+          // Minimum: 30 characters OR at least 4 words in title alone
+          const titleLength = (rawTitle || '').trim().length;
+          const titleWordCount = (rawTitle || '').split(/\s+/).filter(w => w.length > 1).length;
           
-          const MIN_CHARS = 250;
-          const MIN_WORDS = 40;
+          const MIN_TITLE_CHARS = 30;
+          const MIN_TITLE_WORDS = 4;
           
-          if (charCount < MIN_CHARS && wordCount < MIN_WORDS) {
-            console.log(`[JobWorker] Skipping low-quality topic (${charCount} chars, ${wordCount} words): "${rawTitle?.slice(0, 50)}..."`);
+          if (titleLength < MIN_TITLE_CHARS && titleWordCount < MIN_TITLE_WORDS) {
+            console.log(`[JobWorker] Skipping too-short topic (${titleLength} chars, ${titleWordCount} words): "${rawTitle?.slice(0, 50)}..."`);
             continue;
           }
           
