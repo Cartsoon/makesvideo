@@ -558,7 +558,7 @@ export default function ScriptDetail() {
                 ) : (
                   <div className="flex items-center gap-2 group flex-1 min-w-0">
                     <h1 
-                      className="text-lg sm:text-xl font-bold cursor-pointer break-words" 
+                      className="text-base sm:text-xl font-bold cursor-pointer truncate" 
                       data-testid="text-script-title" 
                       title={script.displayName || script.hook || topic?.title || t("scripts.untitled")}
                       onClick={startEditTitle}
