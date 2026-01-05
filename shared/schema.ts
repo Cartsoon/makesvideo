@@ -922,12 +922,16 @@ export type InsertAssistantChat = z.infer<typeof insertAssistantChatSchema>;
 export const assistantNotes = pgTable("assistant_notes", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id", { length: 36 }).references(() => users.id).notNull(),
-  content: text("content").notNull(),
+  title: varchar("title", { length: 255 }).notNull().default("Общие заметки"),
+  content: text("content").notNull().default(""),
+  isActive: boolean("is_active").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const insertAssistantNoteSchema = createInsertSchema(assistantNotes).omit({
   id: true,
+  createdAt: true,
   updatedAt: true,
 });
 
