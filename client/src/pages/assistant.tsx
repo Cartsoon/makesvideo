@@ -1304,7 +1304,7 @@ export default function AssistantPage() {
             </div>
           )}
 
-          <ScrollArea className="flex-1 relative" ref={scrollAreaRef}>
+          <ScrollArea className="flex-1 relative bg-card/40" ref={scrollAreaRef}>
             {/* Timeline grid background */}
             <div className="absolute inset-0 pointer-events-none opacity-[0.03]" style={{
               backgroundImage: `
