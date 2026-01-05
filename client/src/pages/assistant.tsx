@@ -263,6 +263,21 @@ export default function AssistantPage() {
     },
   });
 
+  // Add message content to notes
+  const addToNotes = useCallback((content: string) => {
+    const separator = notes.length > 0 ? "\n\n---\n\n" : "";
+    const timestamp = format(new Date(), "dd.MM.yyyy HH:mm", { locale: language === "ru" ? ru : enUS });
+    const newNote = `${separator}[${timestamp}]\n${content}`;
+    const updatedNotes = notes + newNote;
+    setNotes(updatedNotes);
+    setNotesSaved(false);
+    saveNotesMutation.mutate(updatedNotes);
+    toast({
+      title: language === "ru" ? "Добавлено в заметки" : "Added to notes",
+      description: language === "ru" ? "Ответ сохранён" : "Response saved",
+    });
+  }, [notes, language, saveNotesMutation, toast]);
+
   const feedbackReasonLabels: Record<FeedbackReason, { ru: string; en: string }> = {
     too_generic: { ru: "Слишком общий", en: "Too generic" },
     wrong_style: { ru: "Не по стилю", en: "Wrong style" },
@@ -962,6 +977,14 @@ export default function AssistantPage() {
                                 >
                                   <ThumbsDown className="h-2.5 w-2.5" />
                                 </button>
+                                <button 
+                                  onClick={() => addToNotes(msg.content)}
+                                  className="h-4 w-4 flex items-center justify-center rounded text-muted-foreground/50 hover:text-amber-500 transition-colors"
+                                  data-testid={`button-add-to-notes-${msg.id}`}
+                                  title={language === "ru" ? "Добавить в заметки" : "Add to notes"}
+                                >
+                                  <StickyNote className="h-2.5 w-2.5" />
+                                </button>
                               </>
                             )}
                           </div>
@@ -1344,6 +1367,14 @@ export default function AssistantPage() {
                                     data-testid={`button-feedback-down-desktop-${msg.id}`}
                                   >
                                     <ThumbsDown className="h-3 w-3" />
+                                  </button>
+                                  <button 
+                                    onClick={() => addToNotes(msg.content)}
+                                    className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground/40 hover:text-amber-500 transition-colors"
+                                    data-testid={`button-add-to-notes-desktop-${msg.id}`}
+                                    title={language === "ru" ? "Добавить в заметки" : "Add to notes"}
+                                  >
+                                    <StickyNote className="h-3 w-3" />
                                   </button>
                                 </>
                               )}
