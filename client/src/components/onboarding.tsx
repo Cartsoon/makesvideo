@@ -81,8 +81,8 @@ const pages = [
   },
   {
     icon: Lock,
-    title: "Введите пароль для доступа",
-    description: "Для начала работы с приложением введите пароль доступа.",
+    title: "Войдите в аккаунт",
+    description: "Для начала работы с приложением введите логин и пароль.",
     gradient: "from-amber-500/20 via-transparent to-orange-500/20",
     accentColor: "text-amber-400",
     glowColor: "shadow-amber-500/30",
@@ -98,6 +98,7 @@ export function Onboarding({ onComplete, requireAuth = true }: OnboardingProps) 
   const [skipIntro, setSkipIntro] = useState(() => {
     return localStorage.getItem(SKIP_INTRO_KEY) === "true";
   });
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(false);
@@ -126,7 +127,7 @@ export function Onboarding({ onComplete, requireAuth = true }: OnboardingProps) 
   };
 
   const handleLogin = async () => {
-    if (!password.trim()) {
+    if (!username.trim() || !password.trim()) {
       setError(true);
       setIsShaking(true);
       setTimeout(() => setIsShaking(false), 500);
@@ -137,7 +138,7 @@ export function Onboarding({ onComplete, requireAuth = true }: OnboardingProps) 
     setError(false);
     
     try {
-      const response = await apiRequest("POST", "/api/auth/login", { password });
+      const response = await apiRequest("POST", "/api/auth/login", { username, password });
       const data = await response.json();
       sessionStorage.setItem("idengine-auth", "true");
       localStorage.setItem(STORAGE_KEY, "true");
@@ -236,7 +237,32 @@ export function Onboarding({ onComplete, requireAuth = true }: OnboardingProps) 
                 </p>
 
                 {isAuthPage && (
-                  <div className="w-full max-w-xs space-y-4">
+                  <div className="w-full max-w-xs space-y-3">
+                    {/* Username input */}
+                    <div className="relative group">
+                      <div className="relative flex items-center bg-black/80 border border-white/20">
+                        <div className="flex items-center justify-center w-10 h-10 border-r border-white/10">
+                          <span className="text-amber-400 text-xs font-mono">ID</span>
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="Логин"
+                          value={username}
+                          onChange={(e) => {
+                            setUsername(e.target.value);
+                            setError(false);
+                          }}
+                          onKeyDown={handleKeyDown}
+                          className={`flex-1 h-10 px-3 bg-transparent text-white placeholder:text-white/40 text-sm focus:outline-none ${
+                            error ? 'text-red-400' : ''
+                          }`}
+                          data-testid="input-username"
+                          autoComplete="username"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Password input */}
                     <div className="relative group">
                       <div className="absolute -inset-0.5 bg-gradient-to-r from-rose-500/50 via-amber-500/50 to-rose-500/50 opacity-50 group-hover:opacity-75 transition-opacity animate-pulse" />
                       
@@ -252,14 +278,14 @@ export function Onboarding({ onComplete, requireAuth = true }: OnboardingProps) 
                         
                         <input
                           type={showPassword ? "text" : "password"}
-                          placeholder="_ _ _ _ _ _ _ _"
+                          placeholder="Пароль"
                           value={password}
                           onChange={(e) => {
                             setPassword(e.target.value);
                             setError(false);
                           }}
                           onKeyDown={handleKeyDown}
-                          className={`flex-1 h-10 px-3 bg-transparent text-white placeholder:text-white/30 font-mono tracking-widest text-sm focus:outline-none ${
+                          className={`flex-1 h-10 px-3 bg-transparent text-white placeholder:text-white/40 text-sm focus:outline-none ${
                             error ? 'text-red-400' : ''
                           }`}
                           data-testid="input-password"
@@ -288,7 +314,7 @@ export function Onboarding({ onComplete, requireAuth = true }: OnboardingProps) 
                     {error && (
                       <div className="flex items-center gap-2 text-red-400 text-sm">
                         <div className="w-1 h-1 bg-red-400 animate-pulse" />
-                        <span className="font-mono">ERROR: Неверный пароль</span>
+                        <span className="font-mono">ERROR: Неверный логин или пароль</span>
                       </div>
                     )}
                   </div>
