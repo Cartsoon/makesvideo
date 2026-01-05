@@ -2,6 +2,7 @@ import { storage } from "./storage";
 import { providers, TopicContext } from "./providers";
 import type { Job, JobKind, Topic, TopicInsights } from "@shared/schema";
 import { checkTopicSimilarity } from "./similarity";
+import { logError, logWarn, logInfo } from "./error-logger";
 
 const DAILY_TOPIC_LIMIT = 300;
 const TOPICS_PER_HOUR = 35;
@@ -661,7 +662,7 @@ async function processFetchTopics(job: Job): Promise<void> {
       console.log(`[JobWorker] Fetched ${items.length} items from ${source.name}`);
       return { source, items, language };
     } catch (error) {
-      console.error(`[JobWorker] Error fetching ${source.name}:`, error);
+      logError("JobWorker", `Error fetching ${source.name}`, error);
       return null;
     }
   });

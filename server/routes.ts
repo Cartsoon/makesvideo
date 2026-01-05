@@ -14,17 +14,22 @@ import { aiRouter } from "./routes/ai";
 import { kbRouter } from "./routes/kb";
 import { registerKbAdminRoutes } from "./routes/kb-admin";
 import { ragRetrieve, formatRagContext, checkRequiresArticle, getArticleContext } from "./ai/rag";
+import { getLogs, getLogsFormatted, getRecentLogsFormatted, clearLogs, getLogStats, logError, logInfo } from "./error-logger";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  logInfo("System", "IDENGINE server starting...");
+  
   // Initialize the LLM provider based on saved settings
   await ensureProviderInitialized();
   
   // Start the job worker and auto-fetch scheduler
   startJobWorker();
   startAutoFetch();
+  
+  logInfo("System", "Server initialized successfully");
   
   // Serve static files from public/files directory
   app.use("/files", express.static(path.join(process.cwd(), "public/files")));
@@ -2363,6 +2368,39 @@ Distribute time evenly: scenes 3-7 seconds each. Only JSON array.`;
     } catch (error) {
       console.error("Failed to save feedback:", error);
       res.status(500).json({ error: "Failed to save feedback" });
+    }
+  });
+
+  // ============ ERROR LOGS ============
+  
+  app.get("/api/logs", async (req, res) => {
+    try {
+      const logs = getLogs();
+      const stats = getLogStats();
+      const formatted = getLogsFormatted();
+      res.json({ logs, stats, formatted });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch logs" });
+    }
+  });
+  
+  app.get("/api/logs/recent", async (req, res) => {
+    try {
+      const count = parseInt(req.query.count as string) || 150;
+      const formatted = getRecentLogsFormatted(count);
+      res.json({ formatted, count });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch recent logs" });
+    }
+  });
+  
+  app.delete("/api/logs", async (req, res) => {
+    try {
+      clearLogs();
+      logInfo("System", "Logs cleared by user");
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to clear logs" });
     }
   });
 

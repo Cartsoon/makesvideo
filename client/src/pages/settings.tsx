@@ -37,8 +37,13 @@ import {
   Sliders,
   Cpu,
   GraduationCap,
-  Play
+  Play,
+  Terminal,
+  Copy,
+  Trash2,
+  AlertCircle
 } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTipsVisibility } from "@/components/tips-bar";
 import { useAdminAccess } from "@/lib/admin-access";
 import type { Setting, Duration, StylePreset } from "@shared/schema";
@@ -662,6 +667,9 @@ export default function Settings() {
             </div>
           </div>
 
+          {/* Error Console Section - Full Width */}
+          <ErrorConsole language={language} />
+
           {/* Mobile Save Button */}
           <div className="lg:hidden pt-4">
             <Button
@@ -681,5 +689,194 @@ export default function Settings() {
         </div>
       </div>
     </Layout>
+  );
+}
+
+interface LogData {
+  logs: Array<{
+    timestamp: string;
+    level: "error" | "warn" | "info";
+    source: string;
+    message: string;
+    details?: string;
+  }>;
+  stats: {
+    total: number;
+    errors: number;
+    warnings: number;
+    info: number;
+  };
+  formatted: string;
+}
+
+function ErrorConsole({ language }: { language: string }) {
+  const { toast } = useToast();
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  const { data: logData, refetch, isLoading } = useQuery<LogData>({
+    queryKey: ["/api/logs"],
+    refetchInterval: isExpanded ? 5000 : false,
+  });
+
+  const clearMutation = useMutation({
+    mutationFn: () => apiRequest("DELETE", "/api/logs"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/logs"] });
+      toast({
+        title: language === "ru" ? "Логи очищены" : "Logs cleared",
+      });
+    },
+  });
+
+  const handleCopy = async () => {
+    try {
+      const response = await fetch("/api/logs/recent?count=150");
+      const data = await response.json();
+      await navigator.clipboard.writeText(data.formatted || "");
+      toast({
+        title: language === "ru" ? "Скопировано" : "Copied",
+        description: language === "ru" 
+          ? `Последние ${data.count} строк скопированы` 
+          : `Last ${data.count} lines copied`,
+      });
+    } catch (error) {
+      toast({
+        title: language === "ru" ? "Ошибка копирования" : "Copy failed",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const stats = logData?.stats || { total: 0, errors: 0, warnings: 0, info: 0 };
+
+  return (
+    <section className="mt-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-md bg-gradient-to-br from-red-500/20 to-orange-500/10 border border-red-500/20">
+            <Terminal className="h-5 w-5 text-red-500" />
+          </div>
+          <div>
+            <h2 className="text-base font-semibold tracking-tight">
+              {language === "ru" ? "Консоль ошибок" : "Error Console"}
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              {language === "ru" ? "Системные логи и ошибки" : "System logs and errors"}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {stats.errors > 0 && (
+            <Badge variant="destructive" className="text-xs">
+              <AlertCircle className="h-3 w-3 mr-1" />
+              {stats.errors}
+            </Badge>
+          )}
+          {stats.warnings > 0 && (
+            <Badge variant="secondary" className="text-xs bg-amber-500/20 text-amber-600 dark:text-amber-400">
+              {stats.warnings}
+            </Badge>
+          )}
+          <Badge variant="outline" className="text-xs">
+            {stats.total} {language === "ru" ? "записей" : "entries"}
+          </Badge>
+        </div>
+      </div>
+      
+      <SettingsCard className="p-0">
+        <div className="p-3 border-b flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="gap-1"
+              data-testid="button-toggle-console"
+            >
+              {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              {isExpanded 
+                ? (language === "ru" ? "Свернуть" : "Collapse") 
+                : (language === "ru" ? "Развернуть" : "Expand")}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => refetch()}
+              disabled={isLoading}
+              data-testid="button-refresh-logs"
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+            </Button>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCopy}
+              className="gap-1"
+              data-testid="button-copy-logs"
+            >
+              <Copy className="h-4 w-4" />
+              {language === "ru" ? "Копировать 150" : "Copy 150"}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => clearMutation.mutate()}
+              disabled={clearMutation.isPending || stats.total === 0}
+              className="gap-1 text-muted-foreground"
+              data-testid="button-clear-logs"
+            >
+              <Trash2 className="h-4 w-4" />
+              {language === "ru" ? "Очистить" : "Clear"}
+            </Button>
+          </div>
+        </div>
+        
+        {isExpanded && (
+          <ScrollArea className="h-[300px]">
+            <div className="p-3 font-mono text-xs space-y-1">
+              {logData?.logs && logData.logs.length > 0 ? (
+                logData.logs.slice(-300).map((log, i) => (
+                  <div 
+                    key={i} 
+                    className={`py-1 px-2 rounded ${
+                      log.level === "error" 
+                        ? "bg-red-500/10 text-red-600 dark:text-red-400" 
+                        : log.level === "warn" 
+                          ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                          : "text-muted-foreground"
+                    }`}
+                  >
+                    <span className="text-muted-foreground opacity-60">
+                      [{log.timestamp.replace("T", " ").slice(11, 19)}]
+                    </span>
+                    {" "}
+                    <span className="font-medium">[{log.source}]</span>
+                    {" "}
+                    <span>{log.message}</span>
+                    {log.details && (
+                      <pre className="mt-1 text-[10px] opacity-70 whitespace-pre-wrap">{log.details}</pre>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="text-center text-muted-foreground py-8">
+                  {language === "ru" ? "Нет записей" : "No entries"}
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        )}
+        
+        {!isExpanded && stats.total > 0 && (
+          <div className="p-3 text-xs text-muted-foreground text-center">
+            {language === "ru" 
+              ? `${stats.total} записей • ${stats.errors} ошибок • ${stats.warnings} предупреждений` 
+              : `${stats.total} entries • ${stats.errors} errors • ${stats.warnings} warnings`}
+          </div>
+        )}
+      </SettingsCard>
+    </section>
   );
 }
