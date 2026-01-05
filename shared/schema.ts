@@ -15,6 +15,7 @@ export const settings = pgTable("settings", {
 export const users = pgTable("users", {
   id: varchar("id", { length: 36 }).primaryKey(),
   personalNumber: serial("personal_number"),
+  username: varchar("username", { length: 100 }).notNull().unique(),
   passwordHash: varchar("password_hash", { length: 255 }).notNull(),
   nickname: varchar("nickname", { length: 100 }),
   avatarId: integer("avatar_id").default(0).notNull(),
@@ -853,6 +854,7 @@ export const jobKindLabels: Record<JobKind, string> = {
 export interface User {
   id: string;
   personalNumber: number;
+  username: string;
   passwordHash: string;
   nickname: string | null;
   avatarId: number;
@@ -863,6 +865,7 @@ export interface User {
 }
 
 export const insertUserSchema = z.object({
+  username: z.string().min(3).max(100),
   passwordHash: z.string(),
   nickname: z.string().nullable().optional(),
   language: Language.default("ru"),

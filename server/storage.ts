@@ -1,8 +1,9 @@
 import { randomUUID } from "crypto";
 import { eq, desc, and, lt, sql, isNull, isNotNull } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 import { db } from "./db";
 import {
-  settings, users, sessions, authPasswords, sources, topics, scripts, jobs,
+  settings, users, sessions, sources, topics, scripts, jobs,
   trendSignals, trendTopics, formStates, assistantChats, assistantNotes, assistantFeedback
 } from "@shared/schema";
 import type {
@@ -14,7 +15,7 @@ import type {
   TrendSignal, InsertTrendSignal,
   TrendTopic, InsertTrendTopic,
   TopicStatus, ScriptStatus, JobStatus,
-  User, InsertUser, UpdateUser, Session, AuthPassword,
+  User, InsertUser, UpdateUser, Session,
   FormState, InsertFormState, AssistantChat, AssistantNote, AssistantFeedback
 } from "@shared/schema";
 
@@ -75,20 +76,18 @@ export interface IStorage {
 
   // Users
   getUser(id: string): Promise<User | undefined>;
-  getUserByPassword(password: string): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: UpdateUser): Promise<User | undefined>;
   resetUserSettings(id: string): Promise<User | undefined>;
+  validateUserCredentials(username: string, password: string): Promise<User | undefined>;
+  initializeDefaultUser(): Promise<void>;
   
   // Sessions
   getSession(id: string): Promise<Session | undefined>;
   createSession(userId: string): Promise<Session>;
   deleteSession(id: string): Promise<boolean>;
   cleanExpiredSessions(): Promise<void>;
-
-  // Auth passwords (valid passwords that can create/link accounts)
-  getAuthPasswords(): Promise<AuthPassword[]>;
-  validatePassword(password: string): Promise<boolean>;
   
   // Form state
   getFormState(pageName: string, userId?: string): Promise<FormState | undefined>;
@@ -641,19 +640,19 @@ export class DatabaseStorage implements IStorage {
     return row ? this.mapUser(row) : undefined;
   }
 
-  async getUserByPassword(password: string): Promise<User | undefined> {
-    const [authPwd] = await db.select().from(authPasswords).where(eq(authPasswords.password, password));
-    if (!authPwd || !authPwd.userId) return undefined;
-    return this.getUser(authPwd.userId);
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [row] = await db.select().from(users).where(eq(users.username, username));
+    return row ? this.mapUser(row) : undefined;
   }
 
   async createUser(user: InsertUser): Promise<User> {
     const id = randomUUID();
-    const subscriptionExpires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    const subscriptionExpires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 1 year
     const randomAvatarId = Math.floor(Math.random() * 6) + 1;
     
     const [row] = await db.insert(users).values({
       id,
+      username: user.username,
       passwordHash: user.passwordHash,
       nickname: user.nickname ?? null,
       avatarId: randomAvatarId,
@@ -662,12 +661,34 @@ export class DatabaseStorage implements IStorage {
       subscriptionExpiresAt: subscriptionExpires,
     }).returning();
     
-    // Link password to user
-    await db.update(authPasswords)
-      .set({ userId: id })
-      .where(eq(authPasswords.password, user.passwordHash));
-    
     return this.mapUser(row);
+  }
+
+  async validateUserCredentials(username: string, password: string): Promise<User | undefined> {
+    const user = await this.getUserByUsername(username);
+    if (!user) return undefined;
+    
+    const isValid = await bcrypt.compare(password, user.passwordHash);
+    return isValid ? user : undefined;
+  }
+
+  async initializeDefaultUser(): Promise<void> {
+    // Check if default user exists
+    const existingUser = await this.getUserByUsername("Cartsoon");
+    if (existingUser) return;
+    
+    // Hash password with bcrypt (10 rounds)
+    const passwordHash = await bcrypt.hash("Holzid56", 10);
+    
+    await this.createUser({
+      username: "Cartsoon",
+      passwordHash,
+      nickname: "Cartsoon",
+      language: "ru",
+      theme: "dark",
+    });
+    
+    console.log("[Auth] Default user Cartsoon created");
   }
 
   async updateUser(id: string, updates: UpdateUser): Promise<User | undefined> {
@@ -692,6 +713,7 @@ export class DatabaseStorage implements IStorage {
     return {
       id: row.id,
       personalNumber: row.personalNumber,
+      username: row.username,
       passwordHash: row.passwordHash,
       nickname: row.nickname,
       avatarId: row.avatarId,
@@ -746,18 +768,6 @@ export class DatabaseStorage implements IStorage {
       expiresAt: row.expiresAt.toISOString(),
       createdAt: row.createdAt.toISOString(),
     };
-  }
-
-  // ============ AUTH PASSWORDS ============
-
-  async getAuthPasswords(): Promise<AuthPassword[]> {
-    const rows = await db.select().from(authPasswords);
-    return rows.map(row => ({ password: row.password, userId: row.userId }));
-  }
-
-  async validatePassword(password: string): Promise<boolean> {
-    const [row] = await db.select().from(authPasswords).where(eq(authPasswords.password, password));
-    return !!row;
   }
 
   // ============ FORM STATE ============
