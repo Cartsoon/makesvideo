@@ -719,6 +719,20 @@ async function processFetchTopics(job: Job): Promise<void> {
       continue;
     }
     
+    // URL-based deduplication - check if topic with same URL already exists
+    if (item.link) {
+      const existingByUrl = await storage.getTopicByUrl(item.link);
+      if (existingByUrl) {
+        // Update image if existing topic doesn't have one
+        if (item.imageUrl && !existingByUrl.imageUrl) {
+          await storage.updateTopic(existingByUrl.id, { imageUrl: item.imageUrl });
+        }
+        duplicatesSkipped++;
+        processedItems++;
+        continue;
+      }
+    }
+    
     const similarityCheck = await checkTopicSimilarity(rawTitle, rawDescription);
     if (!similarityCheck.passed) {
       if (item.imageUrl && similarityCheck.similarTopicId) {

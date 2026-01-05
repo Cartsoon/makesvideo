@@ -33,6 +33,7 @@ export interface IStorage {
   // Topics
   getTopics(): Promise<Topic[]>;
   getTopic(id: string): Promise<Topic | undefined>;
+  getTopicByUrl(url: string): Promise<Topic | undefined>;
   createTopic(topic: InsertTopic): Promise<Topic>;
   updateTopic(id: string, updates: Partial<InsertTopic>): Promise<Topic | undefined>;
   deleteTopic(id: string): Promise<boolean>;
@@ -237,6 +238,11 @@ export class DatabaseStorage implements IStorage {
 
   async getTopic(id: string): Promise<Topic | undefined> {
     const [row] = await db.select().from(topics).where(eq(topics.id, id));
+    return row ? this.mapTopic(row) : undefined;
+  }
+
+  async getTopicByUrl(url: string): Promise<Topic | undefined> {
+    const [row] = await db.select().from(topics).where(eq(topics.url, url));
     return row ? this.mapTopic(row) : undefined;
   }
 
