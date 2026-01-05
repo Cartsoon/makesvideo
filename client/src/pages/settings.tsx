@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Layout } from "@/components/layout";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
@@ -28,15 +27,18 @@ import {
   BookOpen,
   Sparkles,
   Key,
-  AlertTriangle,
   ExternalLink,
   CheckCircle2,
-  XCircle,
   RefreshCw,
   Server,
   Cloud,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Film,
+  Sliders,
+  Cpu,
+  GraduationCap,
+  Play
 } from "lucide-react";
 import { useTipsVisibility } from "@/components/tips-bar";
 import { useAdminAccess } from "@/lib/admin-access";
@@ -77,32 +79,58 @@ const defaultSettings: SettingsData = {
 
 const providerDescriptions: Record<ApiProviderType, { name: { ru: string; en: string }; desc: { ru: string; en: string }; icon: typeof Server }> = {
   default: {
-    name: { ru: "IDENGINE Базовый API", en: "IDENGINE Base API" },
-    desc: { ru: "Стандартный провайдер. Ключ настраивается через OPENAI_API_KEY.", en: "Default provider. Key configured via OPENAI_API_KEY." },
+    name: { ru: "IDENGINE API", en: "IDENGINE API" },
+    desc: { ru: "Основной провайдер генерации", en: "Primary generation provider" },
     icon: Server
   },
   free: {
-    name: { ru: "Бесплатный API", en: "Free API" },
-    desc: { ru: "OpenRouter Free, Together.ai, Groq. Ключ через FREE_API_KEY.", en: "OpenRouter Free, Together.ai, Groq. Key via FREE_API_KEY." },
+    name: { ru: "Free API", en: "Free API" },
+    desc: { ru: "OpenRouter, Together.ai, Groq", en: "OpenRouter, Together.ai, Groq" },
     icon: Sparkles
   },
   replit: {
     name: { ru: "Replit AI", en: "Replit AI" },
-    desc: { ru: "Встроенный Replit AI. Автоматическая настройка.", en: "Built-in Replit AI. Automatic setup." },
+    desc: { ru: "Встроенная интеграция", en: "Built-in integration" },
     icon: Cloud
   },
   custom: {
-    name: { ru: "Свой API", en: "Custom API" },
-    desc: { ru: "OpenAI-совместимый API. Ключ через CUSTOM_OPENAI_API_KEY.", en: "OpenAI-compatible API. Key via CUSTOM_OPENAI_API_KEY." },
+    name: { ru: "Custom API", en: "Custom API" },
+    desc: { ru: "OpenAI-совместимый endpoint", en: "OpenAI-compatible endpoint" },
     icon: Key
   }
 };
 
 const freeApiLinks = [
-  { name: "OpenRouter", url: "https://openrouter.ai/", note: { ru: "Есть бесплатные модели", en: "Has free models" } },
-  { name: "Together.ai", url: "https://together.ai/", note: { ru: "Free tier включен", en: "Free tier included" } },
-  { name: "Groq", url: "https://groq.com/", note: { ru: "Бесплатный API", en: "Free API" } },
+  { name: "OpenRouter", url: "https://openrouter.ai/", note: { ru: "Бесплатные модели", en: "Free models" } },
+  { name: "Together.ai", url: "https://together.ai/", note: { ru: "Free tier", en: "Free tier" } },
+  { name: "Groq", url: "https://groq.com/", note: { ru: "Быстрый API", en: "Fast API" } },
 ];
+
+function SectionHeader({ icon: Icon, title, subtitle }: { icon: typeof Film; title: string; subtitle?: string }) {
+  return (
+    <div className="flex items-center gap-3 mb-4">
+      <div className="p-2 rounded-md bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20">
+        <Icon className="h-5 w-5 text-primary" />
+      </div>
+      <div>
+        <h2 className="text-base font-semibold tracking-tight">{title}</h2>
+        {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+      </div>
+    </div>
+  );
+}
+
+function SettingsCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`relative bg-card border rounded-md overflow-hidden ${className}`}>
+      <div className="absolute top-0 left-0 w-3 h-3 border-l-2 border-t-2 border-primary/40" />
+      <div className="absolute top-0 right-0 w-3 h-3 border-r-2 border-t-2 border-primary/40" />
+      <div className="absolute bottom-0 left-0 w-3 h-3 border-l-2 border-b-2 border-primary/40" />
+      <div className="absolute bottom-0 right-0 w-3 h-3 border-r-2 border-b-2 border-primary/40" />
+      <div className="p-4">{children}</div>
+    </div>
+  );
+}
 
 export default function Settings() {
   const { toast } = useToast();
@@ -112,7 +140,6 @@ export default function Settings() {
   const [isVerifying, setIsVerifying] = useState(false);
   const { isHidden: tipsHidden, isDisabled: tipsDisabled, showTips, setTipsDisabled } = useTipsVisibility();
   
-  // Expandable provider state
   const [expandedProvider, setExpandedProvider] = useState<ApiProviderType | null>(null);
   const [freeApiKey, setFreeApiKey] = useState("");
   const [freeBaseUrl, setFreeBaseUrl] = useState("https://openrouter.ai/api/v1");
@@ -124,7 +151,7 @@ export default function Settings() {
     localStorage.removeItem("idengine-onboarding-complete");
     toast({ 
       title: language === "ru" ? "Онбординг сброшен" : "Onboarding reset", 
-      description: language === "ru" ? "Обновите страницу, чтобы увидеть онбординг снова." : "Refresh the page to see onboarding again."
+      description: language === "ru" ? "Обновите страницу" : "Refresh the page"
     });
   };
 
@@ -133,7 +160,7 @@ export default function Settings() {
     toast({ 
       title: enabled 
         ? (language === "ru" ? "Подсказки включены" : "Tips enabled")
-        : (language === "ru" ? "Подсказки отключены" : "Tips disabled"),
+        : (language === "ru" ? "Подсказки выключены" : "Tips disabled"),
     });
   };
 
@@ -175,16 +202,15 @@ export default function Settings() {
       queryClient.invalidateQueries({ queryKey: ["/api/ai/status"] });
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
       toast({ 
-        title: language === "ru" ? "Провайдер переключен" : "Provider switched",
-        description: language === "ru" 
-          ? `Активный провайдер: ${providerDescriptions[providerType]?.name.ru}`
-          : `Active provider: ${providerDescriptions[providerType]?.name.en}`
+        title: language === "ru" ? "Провайдер активирован" : "Provider activated",
+        description: providerDescriptions[providerType]?.name[language === "ru" ? "ru" : "en"],
+        duration: 3000
       });
     },
     onError: (error: any) => {
       toast({ 
         title: t("common.error"), 
-        description: error.message || (language === "ru" ? "Не удалось переключить провайдер" : "Failed to switch provider"),
+        description: error.message,
         variant: "destructive" 
       });
     },
@@ -203,13 +229,12 @@ export default function Settings() {
       if (result.success) {
         toast({ 
           title: language === "ru" ? "API подключен" : "API connected",
-          description: language === "ru" 
-            ? `Модель: ${result.model}, время отклика: ${result.responseTime}ms`
-            : `Model: ${result.model}, response time: ${result.responseTime}ms`
+          description: `${result.model} — ${result.responseTime}ms`,
+          duration: 5000
         });
       } else {
         toast({ 
-          title: language === "ru" ? "Ошибка подключения" : "Connection error",
+          title: language === "ru" ? "Ошибка" : "Error",
           description: result.error,
           variant: "destructive"
         });
@@ -252,9 +277,7 @@ export default function Settings() {
       if (result.success) {
         toast({ 
           title: language === "ru" ? "API подключен" : "API connected",
-          description: language === "ru" 
-            ? `Модель: ${result.model}, время отклика: ${result.responseTime}ms`
-            : `Model: ${result.model}, response time: ${result.responseTime}ms`,
+          description: `${result.model} — ${result.responseTime}ms`,
           duration: 5000
         });
         setExpandedProvider(null);
@@ -281,8 +304,8 @@ export default function Settings() {
   if (isLoading) {
     return (
       <Layout title={t("nav.settings")}>
-        <div className="p-4 md:p-6 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <div className="h-full flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       </Layout>
     );
@@ -292,454 +315,370 @@ export default function Settings() {
 
   return (
     <Layout title={t("nav.settings")}>
-      <div className="p-4 md:p-6 space-y-6 max-w-2xl">
-        <div>
-          <h1 className="text-lg sm:text-2xl font-bold" data-testid="text-page-title">{t("settings.title")}</h1>
-          <p className="text-muted-foreground text-sm">
-            {t("settings.subtitle")}
-          </p>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Zap className="h-4 w-4" />
-              {language === "ru" ? "AI Провайдер" : "AI Provider"}
-            </CardTitle>
-            <CardDescription>
-              {language === "ru" 
-                ? "Выберите источник AI для генерации контента"
-                : "Choose AI source for content generation"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {aiStatus?.verified && activeProvider?.available ? (
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-200">
-                <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
-                <div className="flex-1 text-sm">
-                  <span className="font-medium">
-                    {language === "ru" ? aiStatus.providerName : aiStatus.providerNameEn}
-                  </span>
-                  {aiStatus.lastVerified && (
-                    <span className="text-emerald-600 dark:text-emerald-400 ml-2 text-xs">
-                      {language === "ru" ? "Проверен" : "Verified"}: {new Date(aiStatus.lastVerified).toLocaleDateString()}
-                    </span>
-                  )}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleVerifyApi}
-                  disabled={isVerifying}
-                  data-testid="button-verify-api"
-                >
-                  {isVerifying ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-4 w-4" />
-                  )}
-                </Button>
+      <div className="h-full overflow-auto">
+        <div className="p-4 md:p-6 lg:p-8 space-y-8 max-w-6xl mx-auto">
+          
+          {/* Page Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-md bg-gradient-to-br from-primary to-primary/60 text-primary-foreground">
+                <SettingsIcon className="h-6 w-6" />
               </div>
-            ) : activeProvider?.available ? (
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200">
-                <AlertTriangle className="h-5 w-5 flex-shrink-0" />
-                <div className="flex-1 text-sm">
-                  <span className="font-medium">
-                    {language === "ru" ? "Требуется проверка" : "Verification required"}
-                  </span>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleVerifyApi}
-                  disabled={isVerifying}
-                  data-testid="button-verify-api"
-                >
-                  {isVerifying ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <Check className="h-4 w-4 mr-2" />
-                  )}
-                  {language === "ru" ? "Проверить" : "Verify"}
-                </Button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200">
-                <XCircle className="h-5 w-5 flex-shrink-0" />
-                <div className="flex-1 text-sm">
-                  <span className="font-medium">
-                    {language === "ru" ? "API не настроен" : "API not configured"}
-                  </span>
-                  <p className="text-xs mt-0.5 text-red-600 dark:text-red-400">
-                    {activeProvider?.reason || (language === "ru" ? "Добавьте ключ в Secrets" : "Add key in Secrets")}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              {/* IDENGINE Base API - default */}
-              {(() => {
-                const type: ApiProviderType = "default";
-                const provider = aiStatus?.providers?.find(p => p.type === type);
-                const isActive = aiStatus?.providerType === type;
-                const desc = providerDescriptions[type];
-                const IconComponent = desc.icon;
-                
-                return (
-                  <div
-                    className={`border rounded-lg transition-colors ${
-                      isActive ? "border-primary bg-primary/5" : provider?.available ? "hover-elevate" : "opacity-60"
-                    }`}
-                    data-testid={`provider-option-${type}`}
-                  >
-                    <div 
-                      className="flex items-start gap-3 p-3 cursor-pointer"
-                      onClick={() => {
-                        if (provider?.available && !isActive && !switchProviderMutation.isPending) {
-                          switchProviderMutation.mutate(type);
-                        }
-                      }}
-                    >
-                      <IconComponent className={`h-5 w-5 mt-0.5 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`font-medium text-sm ${isActive ? "text-primary" : ""}`}>
-                            {language === "ru" ? desc.name.ru : desc.name.en}
-                          </span>
-                          {isActive && <Badge variant="default" className="text-[10px] px-1.5 py-0">{language === "ru" ? "АКТИВЕН" : "ACTIVE"}</Badge>}
-                          {!provider?.available && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{language === "ru" ? "НЕ НАСТРОЕН" : "NOT SET"}</Badge>}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">{language === "ru" ? desc.desc.ru : desc.desc.en}</p>
-                      </div>
-                      {isActive && provider?.available && <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />}
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* Free API - expandable */}
-              {(() => {
-                const type: ApiProviderType = "free";
-                const provider = aiStatus?.providers?.find(p => p.type === type);
-                const isActive = aiStatus?.providerType === type;
-                const desc = providerDescriptions[type];
-                const IconComponent = desc.icon;
-                const isExpanded = expandedProvider === type;
-                
-                return (
-                  <div className={`border rounded-lg transition-colors ${isActive ? "border-primary bg-primary/5" : ""}`} data-testid={`provider-option-${type}`}>
-                    <div 
-                      className="flex items-start gap-3 p-3 cursor-pointer"
-                      onClick={() => {
-                        if (provider?.available && !isActive && !switchProviderMutation.isPending) {
-                          switchProviderMutation.mutate(type);
-                        } else if (!provider?.available) {
-                          setExpandedProvider(isExpanded ? null : type);
-                        }
-                      }}
-                    >
-                      <IconComponent className={`h-5 w-5 mt-0.5 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`font-medium text-sm ${isActive ? "text-primary" : ""}`}>{language === "ru" ? desc.name.ru : desc.name.en}</span>
-                          {isActive && <Badge variant="default" className="text-[10px] px-1.5 py-0">{language === "ru" ? "АКТИВЕН" : "ACTIVE"}</Badge>}
-                          {!provider?.available && <Badge variant="outline" className="text-[10px] px-1.5 py-0">{language === "ru" ? "НАСТРОИТЬ" : "CONFIGURE"}</Badge>}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">{language === "ru" ? desc.desc.ru : desc.desc.en}</p>
-                      </div>
-                      {isActive && provider?.available && <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />}
-                      {!provider?.available && (isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />)}
-                    </div>
-                    
-                    {isExpanded && (
-                      <div className="px-3 pb-3 space-y-3 border-t pt-3">
-                        <div className="p-2 bg-muted/50 rounded text-xs space-y-1">
-                          <p className="font-medium">{language === "ru" ? "Где получить бесплатный ключ:" : "Where to get a free key:"}</p>
-                          {freeApiLinks.map((link) => (
-                            <a key={link.name} href={link.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-primary hover:underline">
-                              <ExternalLink className="h-3 w-3" />
-                              <span>{link.name}</span>
-                              <span className="text-muted-foreground">— {language === "ru" ? link.note.ru : link.note.en}</span>
-                            </a>
-                          ))}
-                        </div>
-                        <div className="space-y-2">
-                          <div>
-                            <Label className="text-xs">API Key</Label>
-                            <Input 
-                              type="password" 
-                              placeholder="sk-..." 
-                              value={freeApiKey} 
-                              onChange={(e) => setFreeApiKey(e.target.value)}
-                              data-testid="input-free-api-key"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-xs">Base URL ({language === "ru" ? "необязательно" : "optional"})</Label>
-                            <Input 
-                              type="text" 
-                              placeholder="https://openrouter.ai/api/v1" 
-                              value={freeBaseUrl} 
-                              onChange={(e) => setFreeBaseUrl(e.target.value)}
-                              data-testid="input-free-base-url"
-                            />
-                          </div>
-                          <Button 
-                            className="w-full" 
-                            disabled={!freeApiKey.trim() || isSavingCredentials}
-                            onClick={() => handleSaveCredentials("free", freeApiKey, freeBaseUrl)}
-                            data-testid="button-save-free-api"
-                          >
-                            {isSavingCredentials ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
-                            {language === "ru" ? "Проверить и активировать" : "Test and Activate"}
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-
-              {/* Replit AI - direct activate */}
-              {(() => {
-                const type: ApiProviderType = "replit";
-                const provider = aiStatus?.providers?.find(p => p.type === type);
-                const isActive = aiStatus?.providerType === type;
-                const desc = providerDescriptions[type];
-                const IconComponent = desc.icon;
-                
-                return (
-                  <div className={`border rounded-lg transition-colors ${isActive ? "border-primary bg-primary/5" : provider?.available ? "hover-elevate" : "opacity-60"}`} data-testid={`provider-option-${type}`}>
-                    <div 
-                      className="flex items-start gap-3 p-3 cursor-pointer"
-                      onClick={() => {
-                        if (provider?.available && !isActive && !switchProviderMutation.isPending) {
-                          switchProviderMutation.mutate(type);
-                        } else if (!provider?.available) {
-                          toast({ 
-                            title: language === "ru" ? "Replit AI недоступен" : "Replit AI unavailable",
-                            description: language === "ru" 
-                              ? "Replit AI интеграция не настроена в этом проекте" 
-                              : "Replit AI integration is not configured for this project",
-                            variant: "destructive"
-                          });
-                        }
-                      }}
-                    >
-                      <IconComponent className={`h-5 w-5 mt-0.5 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`font-medium text-sm ${isActive ? "text-primary" : ""}`}>{language === "ru" ? desc.name.ru : desc.name.en}</span>
-                          {isActive && <Badge variant="default" className="text-[10px] px-1.5 py-0">{language === "ru" ? "АКТИВЕН" : "ACTIVE"}</Badge>}
-                          {!provider?.available && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{language === "ru" ? "НЕДОСТУПЕН" : "UNAVAILABLE"}</Badge>}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">{language === "ru" ? desc.desc.ru : desc.desc.en}</p>
-                      </div>
-                      {isActive && provider?.available && <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />}
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* Custom API - expandable */}
-              {(() => {
-                const type: ApiProviderType = "custom";
-                const provider = aiStatus?.providers?.find(p => p.type === type);
-                const isActive = aiStatus?.providerType === type;
-                const desc = providerDescriptions[type];
-                const IconComponent = desc.icon;
-                const isExpanded = expandedProvider === type;
-                
-                return (
-                  <div className={`border rounded-lg transition-colors ${isActive ? "border-primary bg-primary/5" : ""}`} data-testid={`provider-option-${type}`}>
-                    <div 
-                      className="flex items-start gap-3 p-3 cursor-pointer"
-                      onClick={() => {
-                        if (provider?.available && !isActive && !switchProviderMutation.isPending) {
-                          switchProviderMutation.mutate(type);
-                        } else if (!provider?.available) {
-                          setExpandedProvider(isExpanded ? null : type);
-                        }
-                      }}
-                    >
-                      <IconComponent className={`h-5 w-5 mt-0.5 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`font-medium text-sm ${isActive ? "text-primary" : ""}`}>{language === "ru" ? desc.name.ru : desc.name.en}</span>
-                          {isActive && <Badge variant="default" className="text-[10px] px-1.5 py-0">{language === "ru" ? "АКТИВЕН" : "ACTIVE"}</Badge>}
-                          {!provider?.available && <Badge variant="outline" className="text-[10px] px-1.5 py-0">{language === "ru" ? "НАСТРОИТЬ" : "CONFIGURE"}</Badge>}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">{language === "ru" ? desc.desc.ru : desc.desc.en}</p>
-                      </div>
-                      {isActive && provider?.available && <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />}
-                      {!provider?.available && (isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />)}
-                    </div>
-                    
-                    {isExpanded && (
-                      <div className="px-3 pb-3 space-y-3 border-t pt-3">
-                        <div className="space-y-2">
-                          <div>
-                            <Label className="text-xs">API Key</Label>
-                            <Input 
-                              type="password" 
-                              placeholder="sk-..." 
-                              value={customApiKey} 
-                              onChange={(e) => setCustomApiKey(e.target.value)}
-                              data-testid="input-custom-api-key"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-xs">Base URL ({language === "ru" ? "по умолчанию OpenAI" : "default OpenAI"})</Label>
-                            <Input 
-                              type="text" 
-                              placeholder="https://api.openai.com/v1" 
-                              value={customBaseUrl} 
-                              onChange={(e) => setCustomBaseUrl(e.target.value)}
-                              data-testid="input-custom-base-url"
-                            />
-                          </div>
-                          <Button 
-                            className="w-full" 
-                            disabled={!customApiKey.trim() || isSavingCredentials}
-                            onClick={() => handleSaveCredentials("custom", customApiKey, customBaseUrl)}
-                            data-testid="button-save-custom-api"
-                          >
-                            {isSavingCredentials ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
-                            {language === "ru" ? "Проверить и активировать" : "Test and Activate"}
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
-
-            <div className="flex items-center justify-between p-3 border rounded-lg">
-              <div className="space-y-0.5">
-                <Label className="font-medium">{t("settings.fallbackMode")}</Label>
-                <p className="text-xs text-muted-foreground">
-                  {t("settings.fallbackModeDesc")}
-                </p>
-              </div>
-              <Switch
-                checked={settings.fallbackMode}
-                onCheckedChange={(checked) => setSettings({ ...settings, fallbackMode: checked })}
-                data-testid="switch-fallback"
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <SettingsIcon className="h-4 w-4" />
-              {t("settings.defaults")}
-            </CardTitle>
-            <CardDescription>
-              {t("settings.defaultsDesc")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>{t("settings.defaultDuration")}</Label>
-                <Select
-                  value={settings.defaultDuration}
-                  onValueChange={(v) => setSettings({ ...settings, defaultDuration: v as Duration })}
-                >
-                  <SelectTrigger data-testid="select-default-duration">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="30">30 {t("script.seconds")}</SelectItem>
-                    <SelectItem value="45">45 {t("script.seconds")}</SelectItem>
-                    <SelectItem value="60">60 {t("script.seconds")}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>{t("settings.defaultStyle")}</Label>
-                <Select
-                  value={settings.defaultStylePreset}
-                  onValueChange={(v) => setSettings({ ...settings, defaultStylePreset: v as StylePreset })}
-                >
-                  <SelectTrigger data-testid="select-default-style">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(stylePresetLabels).map(([value, label]) => (
-                      <SelectItem key={value} value={value}>{t(`style.${value}`) || label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold tracking-tight" data-testid="text-page-title">
+                  {t("settings.title")}
+                </h1>
+                <p className="text-sm text-muted-foreground">{t("settings.subtitle")}</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <BookOpen className="h-4 w-4" />
-              {language === "ru" ? "Обучение и подсказки" : "Learning & Tips"}
-            </CardTitle>
-            <CardDescription>
-              {language === "ru" 
-                ? "Управление обучающими материалами и подсказками"
-                : "Manage learning materials and tips"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-3 bg-muted/50 border rounded-lg">
-              <div className="flex items-center gap-3">
-                <Lightbulb className="h-4 w-4 text-amber-500" />
-                <div>
-                  <p className="text-sm font-medium">
-                    {language === "ru" ? "Показывать подсказки" : "Show tips"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {language === "ru" 
-                      ? "Полезные советы по работе с приложением"
-                      : "Helpful tips for using the application"}
-                  </p>
-                </div>
-              </div>
-              <Switch
-                checked={!tipsDisabled}
-                onCheckedChange={handleToggleTips}
-                data-testid="switch-tips-enabled"
-              />
-            </div>
-            
             <Button
-              variant="outline"
-              onClick={handleShowOnboarding}
-              className="w-full sm:w-auto"
-              data-testid="button-show-onboarding"
+              onClick={handleSave}
+              disabled={saveMutation.isPending}
+              className="gap-2"
+              data-testid="button-save-settings"
             >
-              <BookOpen className="h-4 w-4 mr-2" />
-              {language === "ru" ? "Показать онбординг" : "Show onboarding"}
+              {saveMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              {t("settings.save")}
             </Button>
-          </CardContent>
-        </Card>
+          </div>
 
-        <div className="flex justify-end">
-          <Button
-            onClick={handleSave}
-            disabled={saveMutation.isPending}
-            data-testid="button-save-settings"
-          >
-            {saveMutation.isPending ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4 mr-2" />
-            )}
-            {t("settings.save")}
-          </Button>
+          {/* Main Grid Layout */}
+          <div className="grid lg:grid-cols-2 gap-6">
+            
+            {/* LEFT COLUMN */}
+            <div className="space-y-6">
+              
+              {/* AI Provider Section */}
+              <section>
+                <SectionHeader 
+                  icon={Cpu} 
+                  title={language === "ru" ? "AI Провайдер" : "AI Provider"}
+                  subtitle={language === "ru" ? "Источник генерации контента" : "Content generation source"}
+                />
+                
+                <SettingsCard>
+                  {/* Status Banner */}
+                  {aiStatus?.verified && activeProvider?.available ? (
+                    <div className="flex items-center gap-3 p-3 mb-4 rounded-md bg-emerald-500/10 border border-emerald-500/20">
+                      <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400 truncate">
+                          {language === "ru" ? aiStatus.providerName : aiStatus.providerNameEn}
+                        </p>
+                        <p className="text-xs text-emerald-600/70 dark:text-emerald-400/70">
+                          {language === "ru" ? "Подключен" : "Connected"} 
+                          {aiStatus.model && ` — ${aiStatus.model}`}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleVerifyApi}
+                        disabled={isVerifying}
+                        className="flex-shrink-0"
+                        data-testid="button-verify-api"
+                      >
+                        {isVerifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3 p-3 mb-4 rounded-md bg-amber-500/10 border border-amber-500/20">
+                      <Zap className="h-5 w-5 text-amber-500 flex-shrink-0" />
+                      <p className="text-sm text-amber-700 dark:text-amber-400">
+                        {language === "ru" ? "Выберите провайдер для генерации" : "Select a provider for generation"}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Provider List */}
+                  <div className="space-y-2">
+                    {(["default", "replit", "free", "custom"] as ApiProviderType[]).map((type) => {
+                      const provider = aiStatus?.providers?.find(p => p.type === type);
+                      const isActive = aiStatus?.providerType === type;
+                      const desc = providerDescriptions[type];
+                      const IconComponent = desc.icon;
+                      const isExpanded = expandedProvider === type;
+                      const needsConfig = !provider?.available && (type === "free" || type === "custom");
+                      
+                      return (
+                        <div
+                          key={type}
+                          className={`rounded-md border transition-all ${
+                            isActive 
+                              ? "border-primary bg-primary/5 ring-1 ring-primary/20" 
+                              : provider?.available 
+                                ? "hover-elevate cursor-pointer" 
+                                : needsConfig 
+                                  ? "cursor-pointer" 
+                                  : "opacity-50"
+                          }`}
+                          data-testid={`provider-option-${type}`}
+                        >
+                          <div 
+                            className="flex items-center gap-3 p-3"
+                            onClick={() => {
+                              if (switchProviderMutation.isPending) return;
+                              if (provider?.available && !isActive) {
+                                switchProviderMutation.mutate(type);
+                              } else if (needsConfig) {
+                                setExpandedProvider(isExpanded ? null : type);
+                              }
+                            }}
+                          >
+                            <div className={`p-1.5 rounded ${isActive ? "bg-primary/20" : "bg-muted"}`}>
+                              <IconComponent className={`h-4 w-4 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className={`text-sm font-medium ${isActive ? "text-primary" : ""}`}>
+                                  {language === "ru" ? desc.name.ru : desc.name.en}
+                                </span>
+                                {isActive && (
+                                  <Badge variant="default" className="text-[10px] h-4 px-1.5">
+                                    {language === "ru" ? "АКТИВЕН" : "ACTIVE"}
+                                  </Badge>
+                                )}
+                                {!provider?.available && !needsConfig && (
+                                  <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
+                                    {language === "ru" ? "НЕДОСТУПЕН" : "UNAVAILABLE"}
+                                  </Badge>
+                                )}
+                                {needsConfig && (
+                                  <Badge variant="outline" className="text-[10px] h-4 px-1.5">
+                                    {language === "ru" ? "НАСТРОИТЬ" : "CONFIGURE"}
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {language === "ru" ? desc.desc.ru : desc.desc.en}
+                              </p>
+                            </div>
+                            {isActive && provider?.available && (
+                              <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                            )}
+                            {needsConfig && (
+                              isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                            )}
+                            {switchProviderMutation.isPending && switchProviderMutation.variables === type && (
+                              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                            )}
+                          </div>
+                          
+                          {/* Expanded Config for Free API */}
+                          {type === "free" && isExpanded && (
+                            <div className="px-3 pb-3 space-y-3 border-t pt-3 bg-muted/30">
+                              <div className="flex flex-wrap gap-2">
+                                {freeApiLinks.map((link) => (
+                                  <a 
+                                    key={link.name} 
+                                    href={link.url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded bg-background border hover-elevate"
+                                  >
+                                    <ExternalLink className="h-3 w-3" />
+                                    <span>{link.name}</span>
+                                  </a>
+                                ))}
+                              </div>
+                              <div className="space-y-2">
+                                <Input 
+                                  type="password" 
+                                  placeholder="API Key (sk-...)" 
+                                  value={freeApiKey} 
+                                  onChange={(e) => setFreeApiKey(e.target.value)}
+                                  className="h-9 text-sm"
+                                  data-testid="input-free-api-key"
+                                />
+                                <Input 
+                                  type="text" 
+                                  placeholder="Base URL (optional)" 
+                                  value={freeBaseUrl} 
+                                  onChange={(e) => setFreeBaseUrl(e.target.value)}
+                                  className="h-9 text-sm"
+                                  data-testid="input-free-base-url"
+                                />
+                                <Button 
+                                  className="w-full h-9 gap-2" 
+                                  disabled={!freeApiKey.trim() || isSavingCredentials}
+                                  onClick={() => handleSaveCredentials("free", freeApiKey, freeBaseUrl)}
+                                  data-testid="button-save-free-api"
+                                >
+                                  {isSavingCredentials ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                                  {language === "ru" ? "Подключить" : "Connect"}
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Expanded Config for Custom API */}
+                          {type === "custom" && isExpanded && (
+                            <div className="px-3 pb-3 space-y-3 border-t pt-3 bg-muted/30">
+                              <div className="space-y-2">
+                                <Input 
+                                  type="password" 
+                                  placeholder="API Key (sk-...)" 
+                                  value={customApiKey} 
+                                  onChange={(e) => setCustomApiKey(e.target.value)}
+                                  className="h-9 text-sm"
+                                  data-testid="input-custom-api-key"
+                                />
+                                <Input 
+                                  type="text" 
+                                  placeholder="Base URL (https://api.openai.com/v1)" 
+                                  value={customBaseUrl} 
+                                  onChange={(e) => setCustomBaseUrl(e.target.value)}
+                                  className="h-9 text-sm"
+                                  data-testid="input-custom-base-url"
+                                />
+                                <Button 
+                                  className="w-full h-9 gap-2" 
+                                  disabled={!customApiKey.trim() || isSavingCredentials}
+                                  onClick={() => handleSaveCredentials("custom", customApiKey, customBaseUrl)}
+                                  data-testid="button-save-custom-api"
+                                >
+                                  {isSavingCredentials ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                                  {language === "ru" ? "Подключить" : "Connect"}
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Fallback Mode */}
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                    <div>
+                      <p className="text-sm font-medium">{t("settings.fallbackMode")}</p>
+                      <p className="text-xs text-muted-foreground">{t("settings.fallbackModeDesc")}</p>
+                    </div>
+                    <Switch
+                      checked={settings.fallbackMode}
+                      onCheckedChange={(checked) => setSettings({ ...settings, fallbackMode: checked })}
+                      data-testid="switch-fallback"
+                    />
+                  </div>
+                </SettingsCard>
+              </section>
+            </div>
+
+            {/* RIGHT COLUMN */}
+            <div className="space-y-6">
+              
+              {/* Default Settings Section */}
+              <section>
+                <SectionHeader 
+                  icon={Sliders} 
+                  title={t("settings.defaults")}
+                  subtitle={t("settings.defaultsDesc")}
+                />
+                
+                <SettingsCard>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">{t("settings.defaultDuration")}</Label>
+                      <Select
+                        value={settings.defaultDuration}
+                        onValueChange={(v) => setSettings({ ...settings, defaultDuration: v as Duration })}
+                      >
+                        <SelectTrigger className="h-10" data-testid="select-default-duration">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="30">30 {t("script.seconds")}</SelectItem>
+                          <SelectItem value="45">45 {t("script.seconds")}</SelectItem>
+                          <SelectItem value="60">60 {t("script.seconds")}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">{t("settings.defaultStyle")}</Label>
+                      <Select
+                        value={settings.defaultStylePreset}
+                        onValueChange={(v) => setSettings({ ...settings, defaultStylePreset: v as StylePreset })}
+                      >
+                        <SelectTrigger className="h-10" data-testid="select-default-style">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(stylePresetLabels).map(([value, label]) => (
+                            <SelectItem key={value} value={value}>{t(`style.${value}`) || label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </SettingsCard>
+              </section>
+
+              {/* Learning & Tips Section */}
+              <section>
+                <SectionHeader 
+                  icon={GraduationCap} 
+                  title={language === "ru" ? "Обучение" : "Learning"}
+                  subtitle={language === "ru" ? "Подсказки и туториалы" : "Tips & tutorials"}
+                />
+                
+                <SettingsCard>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-1.5 rounded bg-amber-500/10">
+                        <Lightbulb className="h-4 w-4 text-amber-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">
+                          {language === "ru" ? "Подсказки" : "Tips"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {language === "ru" ? "Советы по работе" : "Usage hints"}
+                        </p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={!tipsDisabled}
+                      onCheckedChange={handleToggleTips}
+                      data-testid="switch-tips-enabled"
+                    />
+                  </div>
+                  
+                  <Button
+                    variant="outline"
+                    onClick={handleShowOnboarding}
+                    className="w-full gap-2"
+                    data-testid="button-show-onboarding"
+                  >
+                    <BookOpen className="h-4 w-4" />
+                    {language === "ru" ? "Показать онбординг" : "Show onboarding"}
+                  </Button>
+                </SettingsCard>
+              </section>
+
+            </div>
+          </div>
+
+          {/* Mobile Save Button */}
+          <div className="lg:hidden pt-4">
+            <Button
+              onClick={handleSave}
+              disabled={saveMutation.isPending}
+              className="w-full gap-2"
+              data-testid="button-save-settings-mobile"
+            >
+              {saveMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              {t("settings.save")}
+            </Button>
+          </div>
         </div>
       </div>
     </Layout>
