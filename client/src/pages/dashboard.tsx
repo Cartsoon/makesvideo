@@ -575,12 +575,11 @@ export default function Dashboard() {
                 <div className="space-y-1.5">
                   {recentTopics.map((topic, index) => {
                     const isNewlyAdded = newlyAddedIds.has(topic.id);
-                    // Responsive visibility to prevent scrollbar: 4 base, +1 per breakpoint
+                    // Responsive visibility to prevent scrollbar: 5 base on mobile, +1 per breakpoint
                     let visibilityClass = "";
-                    if (index === 4) visibilityClass = "hidden md:block"; // 5th item: md+
-                    else if (index === 5) visibilityClass = "hidden lg:block"; // 6th item: lg+
-                    else if (index === 6) visibilityClass = "hidden xl:block"; // 7th item: xl+
-                    else if (index === 7) visibilityClass = "hidden 2xl:block"; // 8th item: 2xl+
+                    if (index === 5) visibilityClass = "hidden md:block"; // 6th item: md+
+                    else if (index === 6) visibilityClass = "hidden lg:block"; // 7th item: lg+
+                    else if (index === 7) visibilityClass = "hidden xl:block"; // 8th item: xl+
                     return (
                     <Link key={topic.id} href={`/topics?highlight=${topic.id}`} className={visibilityClass}>
                       <div
