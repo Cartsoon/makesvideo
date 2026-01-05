@@ -3019,10 +3019,9 @@ export class FallbackMusicProvider implements MusicProvider {
   }
 }
 
-// Unified provider factory - uses OPENAI_API_KEY
+// Unified provider factory - uses API provider config from settings
 export async function createLLMProvider(): Promise<LLMProvider> {
   try {
-    // Check settings first
     const settings = await storage.getSettings();
     const settingsMap = new Map(settings.map(s => [s.key, s.value]));
     const fallbackMode = settingsMap.get("fallbackMode") === "true";
@@ -3032,13 +3031,23 @@ export async function createLLMProvider(): Promise<LLMProvider> {
       return new FallbackLLMProvider();
     }
     
-    // Check if OPENAI_API_KEY is available
-    if (process.env.OPENAI_API_KEY) {
-      console.log("[Providers] Using OPENAI_API_KEY");
+    const { getApiProviderConfig, getAvailableProviders, resetCustomApiCache } = await import("./ai/provider");
+    resetCustomApiCache();
+    const config = await getApiProviderConfig(storage);
+    const availableProviders = getAvailableProviders();
+    const activeProvider = availableProviders.find(p => p.type === config.type);
+    
+    if (activeProvider?.available) {
+      console.log(`[Providers] Using ${config.type} API provider`);
       return new UnifiedLLMProvider();
     }
     
-    console.log("[Providers] No OPENAI_API_KEY configured, using fallback template provider");
+    if (process.env.OPENAI_API_KEY || process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
+      console.log("[Providers] Fallback to available API key");
+      return new UnifiedLLMProvider();
+    }
+    
+    console.log("[Providers] No API configured, using fallback template provider");
     return new FallbackLLMProvider();
   } catch (error) {
     console.error("[Providers] Error creating LLM provider:", error);

@@ -26,40 +26,86 @@ import {
   BookOpen,
   Sparkles,
   Key,
-  AlertTriangle
+  AlertTriangle,
+  ExternalLink,
+  CheckCircle2,
+  XCircle,
+  RefreshCw,
+  Server,
+  Cloud
 } from "lucide-react";
 import { useTipsVisibility } from "@/components/tips-bar";
 import { useAdminAccess } from "@/lib/admin-access";
 import type { Setting, Duration, StylePreset } from "@shared/schema";
 import { stylePresetLabels } from "@shared/schema";
 
+type ApiProviderType = "default" | "free" | "replit" | "custom";
+
+interface ProviderInfo {
+  type: ApiProviderType;
+  available: boolean;
+  reason?: string;
+}
+
 interface AIStatus {
   available: boolean;
-  provider: string;
+  providerType: ApiProviderType;
+  providerName: string;
+  providerNameEn: string;
+  verified: boolean;
+  lastVerified?: string;
   fallbackMode: boolean;
   model: string;
-  customApiAvailable?: boolean;
+  providers: ProviderInfo[];
 }
 
 interface SettingsData {
   defaultDuration: Duration;
   defaultStylePreset: StylePreset;
   fallbackMode: boolean;
-  useCustomApi: boolean;
 }
 
 const defaultSettings: SettingsData = {
   defaultDuration: "30",
   defaultStylePreset: "cinematic",
   fallbackMode: false,
-  useCustomApi: false,
 };
+
+const providerDescriptions: Record<ApiProviderType, { ru: string; en: string; icon: typeof Server }> = {
+  default: {
+    ru: "NeuroAPI.host — стандартный провайдер. Ключ настраивается через OPENAI_API_KEY.",
+    en: "NeuroAPI.host — default provider. Key configured via OPENAI_API_KEY.",
+    icon: Server
+  },
+  free: {
+    ru: "Бесплатные API: OpenRouter Free, Together.ai Free. Ключ через FREE_API_KEY.",
+    en: "Free APIs: OpenRouter Free, Together.ai Free. Key via FREE_API_KEY.",
+    icon: Sparkles
+  },
+  replit: {
+    ru: "Встроенный Replit AI. Автоматическая настройка, без ключей.",
+    en: "Built-in Replit AI. Automatic setup, no keys required.",
+    icon: Cloud
+  },
+  custom: {
+    ru: "Свой OpenAI-совместимый API. Ключ через CUSTOM_OPENAI_API_KEY.",
+    en: "Your own OpenAI-compatible API. Key via CUSTOM_OPENAI_API_KEY.",
+    icon: Key
+  }
+};
+
+const freeApiLinks = [
+  { name: "OpenRouter", url: "https://openrouter.ai/", note: { ru: "Есть бесплатные модели", en: "Has free models" } },
+  { name: "Together.ai", url: "https://together.ai/", note: { ru: "Free tier включен", en: "Free tier included" } },
+  { name: "Groq", url: "https://groq.com/", note: { ru: "Бесплатный API", en: "Free API" } },
+];
 
 export default function Settings() {
   const { toast } = useToast();
   const { t, language } = useI18n();
   const { isUnlocked } = useAdminAccess();
   const [settings, setSettings] = useState<SettingsData>(defaultSettings);
+  const [isVerifying, setIsVerifying] = useState(false);
   const { isHidden: tipsHidden, isDisabled: tipsDisabled, showTips, setTipsDisabled } = useTipsVisibility();
 
   const handleShowOnboarding = () => {
@@ -70,35 +116,20 @@ export default function Settings() {
     });
   };
 
-  const handleShowTips = () => {
-    showTips();
-    toast({ 
-      title: language === "ru" ? "Подсказки включены" : "Tips enabled",
-      description: language === "ru" ? "Подсказки теперь будут отображаться." : "Tips will now be displayed."
-    });
-    window.location.reload();
-  };
-
   const handleToggleTips = (enabled: boolean) => {
     setTipsDisabled(!enabled);
-    if (enabled) {
-      toast({ 
-        title: language === "ru" ? "Подсказки включены" : "Tips enabled",
-        description: language === "ru" ? "Подсказки теперь будут отображаться." : "Tips will now be displayed."
-      });
-    } else {
-      toast({ 
-        title: language === "ru" ? "Подсказки отключены" : "Tips disabled",
-        description: language === "ru" ? "Подсказки больше не будут появляться." : "Tips will no longer appear."
-      });
-    }
+    toast({ 
+      title: enabled 
+        ? (language === "ru" ? "Подсказки включены" : "Tips enabled")
+        : (language === "ru" ? "Подсказки отключены" : "Tips disabled"),
+    });
   };
 
   const { data: savedSettings, isLoading } = useQuery<Setting[]>({
     queryKey: ["/api/settings"],
   });
 
-  const { data: aiStatus } = useQuery<AIStatus>({
+  const { data: aiStatus, refetch: refetchAiStatus } = useQuery<AIStatus>({
     queryKey: ["/api/ai/status"],
   });
 
@@ -109,7 +140,6 @@ export default function Settings() {
         defaultDuration: (settingsMap.get("defaultDuration") as Duration) || "30",
         defaultStylePreset: (settingsMap.get("defaultStylePreset") as StylePreset) || "cinematic",
         fallbackMode: settingsMap.get("fallbackMode") === "true",
-        useCustomApi: settingsMap.get("useCustomApi") === "true",
       });
     }
   }, [savedSettings]);
@@ -126,6 +156,65 @@ export default function Settings() {
     },
   });
 
+  const switchProviderMutation = useMutation({
+    mutationFn: (providerType: ApiProviderType) => 
+      apiRequest("POST", "/api/ai/provider", { providerType }),
+    onSuccess: (_, providerType) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/ai/status"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      toast({ 
+        title: language === "ru" ? "Провайдер переключен" : "Provider switched",
+        description: language === "ru" 
+          ? `Активный провайдер: ${providerDescriptions[providerType]?.ru.split("—")[0].trim()}`
+          : `Active provider: ${providerDescriptions[providerType]?.en.split("—")[0].trim()}`
+      });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: t("common.error"), 
+        description: error.message || (language === "ru" ? "Не удалось переключить провайдер" : "Failed to switch provider"),
+        variant: "destructive" 
+      });
+    },
+  });
+
+  const handleVerifyApi = async () => {
+    if (!aiStatus?.providerType) return;
+    
+    setIsVerifying(true);
+    try {
+      const response = await apiRequest("POST", "/api/ai/verify", { 
+        providerType: aiStatus.providerType 
+      });
+      const result = await response.json();
+      
+      if (result.success) {
+        toast({ 
+          title: language === "ru" ? "API подключен" : "API connected",
+          description: language === "ru" 
+            ? `Модель: ${result.model}, время отклика: ${result.responseTime}ms`
+            : `Model: ${result.model}, response time: ${result.responseTime}ms`
+        });
+      } else {
+        toast({ 
+          title: language === "ru" ? "Ошибка подключения" : "Connection error",
+          description: result.error,
+          variant: "destructive"
+        });
+      }
+      
+      refetchAiStatus();
+    } catch (error: any) {
+      toast({ 
+        title: t("common.error"), 
+        description: error.message,
+        variant: "destructive" 
+      });
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
   const handleSave = () => {
     saveMutation.mutate(settings);
   };
@@ -139,6 +228,8 @@ export default function Settings() {
       </Layout>
     );
   }
+
+  const activeProvider = aiStatus?.providers?.find(p => p.type === aiStatus.providerType);
 
   return (
     <Layout title={t("nav.settings")}>
@@ -154,50 +245,179 @@ export default function Settings() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Zap className="h-4 w-4" />
-              {language === "ru" ? "AI Генерация" : "AI Generation"}
+              {language === "ru" ? "AI Провайдер" : "AI Provider"}
             </CardTitle>
             <CardDescription>
               {language === "ru" 
-                ? "Статус подключения AI для генерации контента"
-                : "AI connection status for content generation"}
+                ? "Выберите источник AI для генерации контента"
+                : "Choose AI source for content generation"}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {aiStatus?.available ? (
-              <div className="flex items-start gap-3 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-200">
-                <Check className="h-5 w-5 flex-shrink-0 mt-0.5" />
-                <div className="text-sm">
-                  <p className="font-medium">
-                    {language === "ru" ? "AI подключен через Replit" : "AI connected via Replit"}
-                  </p>
-                  <p className="mt-1 text-emerald-700 dark:text-emerald-300">
-                    {language === "ru" 
-                      ? "Используется единый AI провайдер для всех функций: ассистент EDITO, генерация скриптов, хуков и раскадровок."
-                      : "Using unified AI provider for all features: EDITO assistant, script, hook and storyboard generation."}
-                  </p>
+            {aiStatus?.verified && activeProvider?.available ? (
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-200">
+                <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
+                <div className="flex-1 text-sm">
+                  <span className="font-medium">
+                    {language === "ru" ? aiStatus.providerName : aiStatus.providerNameEn}
+                  </span>
+                  {aiStatus.lastVerified && (
+                    <span className="text-emerald-600 dark:text-emerald-400 ml-2 text-xs">
+                      {language === "ru" ? "Проверен" : "Verified"}: {new Date(aiStatus.lastVerified).toLocaleDateString()}
+                    </span>
+                  )}
                 </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleVerifyApi}
+                  disabled={isVerifying}
+                  data-testid="button-verify-api"
+                >
+                  {isVerifying ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            ) : activeProvider?.available ? (
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200">
+                <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+                <div className="flex-1 text-sm">
+                  <span className="font-medium">
+                    {language === "ru" ? "Требуется проверка" : "Verification required"}
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleVerifyApi}
+                  disabled={isVerifying}
+                  data-testid="button-verify-api"
+                >
+                  {isVerifying ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Check className="h-4 w-4 mr-2" />
+                  )}
+                  {language === "ru" ? "Проверить" : "Verify"}
+                </Button>
               </div>
             ) : (
-              <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200">
-                <Sparkles className="h-5 w-5 flex-shrink-0 mt-0.5" />
-                <div className="text-sm">
-                  <p className="font-medium">
-                    {language === "ru" ? "AI недоступен" : "AI unavailable"}
-                  </p>
-                  <p className="mt-1 text-amber-700 dark:text-amber-300">
-                    {language === "ru" 
-                      ? aiStatus?.fallbackMode 
-                        ? "Включен режим шаблонов. Генерация использует заготовленные шаблоны вместо AI."
-                        : "AI провайдер не настроен. Генерация будет использовать шаблоны."
-                      : aiStatus?.fallbackMode
-                        ? "Template mode enabled. Generation uses predefined templates instead of AI."
-                        : "AI provider not configured. Generation will use templates."}
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200">
+                <XCircle className="h-5 w-5 flex-shrink-0" />
+                <div className="flex-1 text-sm">
+                  <span className="font-medium">
+                    {language === "ru" ? "API не настроен" : "API not configured"}
+                  </span>
+                  <p className="text-xs mt-0.5 text-red-600 dark:text-red-400">
+                    {activeProvider?.reason || (language === "ru" ? "Добавьте ключ в Secrets" : "Add key in Secrets")}
                   </p>
                 </div>
               </div>
             )}
 
-            <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="space-y-2">
+              {(["default", "free", "replit", "custom"] as ApiProviderType[]).map((type) => {
+                const provider = aiStatus?.providers?.find(p => p.type === type);
+                const isActive = aiStatus?.providerType === type;
+                const desc = providerDescriptions[type];
+                const IconComponent = desc.icon;
+                
+                return (
+                  <div
+                    key={type}
+                    className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+                      isActive 
+                        ? "border-primary bg-primary/5" 
+                        : provider?.available 
+                          ? "hover-elevate" 
+                          : "opacity-50 cursor-not-allowed"
+                    }`}
+                    onClick={() => {
+                      if (switchProviderMutation.isPending) return;
+                      
+                      if (!provider?.available) {
+                        toast({ 
+                          title: language === "ru" ? "Провайдер недоступен" : "Provider unavailable",
+                          description: provider?.reason || (language === "ru" 
+                            ? "Настройте ключ API в Secrets" 
+                            : "Configure API key in Secrets"),
+                          variant: "destructive"
+                        });
+                        return;
+                      }
+                      
+                      if (!isActive) {
+                        switchProviderMutation.mutate(type);
+                      }
+                    }}
+                    data-testid={`provider-option-${type}`}
+                  >
+                    <div className={`mt-0.5 ${isActive ? "text-primary" : "text-muted-foreground"}`}>
+                      <IconComponent className="h-5 w-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`font-medium text-sm ${isActive ? "text-primary" : ""}`}>
+                          {type === "default" && "NeuroAPI"}
+                          {type === "free" && (language === "ru" ? "Бесплатный API" : "Free API")}
+                          {type === "replit" && "Replit AI"}
+                          {type === "custom" && (language === "ru" ? "Свой API" : "Custom API")}
+                        </span>
+                        {isActive && (
+                          <Badge variant="default" className="text-[10px] px-1.5 py-0">
+                            {language === "ru" ? "АКТИВЕН" : "ACTIVE"}
+                          </Badge>
+                        )}
+                        {!provider?.available && (
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                            {language === "ru" ? "НЕ НАСТРОЕН" : "NOT SET"}
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {language === "ru" ? desc.ru : desc.en}
+                      </p>
+                    </div>
+                    {isActive && provider?.available && (
+                      <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                    )}
+                    {switchProviderMutation.isPending && switchProviderMutation.variables === type && (
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {aiStatus?.providerType === "free" && (
+              <div className="p-3 border rounded-lg bg-muted/30">
+                <p className="text-xs font-medium mb-2">
+                  {language === "ru" ? "Где взять бесплатный ключ:" : "Where to get a free key:"}
+                </p>
+                <div className="space-y-1">
+                  {freeApiLinks.map((link) => (
+                    <a
+                      key={link.name}
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-xs text-primary hover:underline"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      <span>{link.name}</span>
+                      <span className="text-muted-foreground">
+                        — {language === "ru" ? link.note.ru : link.note.en}
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between p-3 border rounded-lg">
               <div className="space-y-0.5">
                 <Label className="font-medium">{t("settings.fallbackMode")}</Label>
                 <p className="text-xs text-muted-foreground">
@@ -210,92 +430,8 @@ export default function Settings() {
                 data-testid="switch-fallback"
               />
             </div>
-
-            {settings.fallbackMode && (
-              <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200">
-                <Sparkles className="h-5 w-5 flex-shrink-0 mt-0.5" />
-                <div className="text-sm">
-                  <p className="font-medium">{t("settings.fallbackWarningTitle")}</p>
-                  <p className="mt-1 text-amber-700 dark:text-amber-300">
-                    {t("settings.fallbackWarningDesc")}
-                  </p>
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
-
-        {isUnlocked && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Key className="h-4 w-4" />
-                {language === "ru" ? "Свой API ключ" : "Custom API Key"}
-              </CardTitle>
-              <CardDescription>
-                {language === "ru" 
-                  ? "Использовать собственный OpenAI API ключ вместо встроенного"
-                  : "Use your own OpenAI API key instead of built-in"}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="space-y-0.5">
-                  <Label className="font-medium">
-                    {language === "ru" ? "Использовать свой ключ" : "Use custom key"}
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    {language === "ru" 
-                      ? "Переключиться на собственный OpenAI API"
-                      : "Switch to your own OpenAI API"}
-                  </p>
-                </div>
-                <Switch
-                  checked={settings.useCustomApi}
-                  onCheckedChange={(checked) => setSettings({ ...settings, useCustomApi: checked })}
-                  data-testid="switch-custom-api"
-                />
-              </div>
-
-              {settings.useCustomApi && (
-                <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200">
-                  <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm space-y-2">
-                    <p className="font-medium">
-                      {language === "ru" ? "Требуется секрет CUSTOM_OPENAI_API_KEY" : "CUSTOM_OPENAI_API_KEY secret required"}
-                    </p>
-                    <p className="text-amber-700 dark:text-amber-300">
-                      {language === "ru" 
-                        ? "Добавьте секрет CUSTOM_OPENAI_API_KEY во вкладке Secrets в Replit. После сохранения настроек все AI функции будут использовать ваш ключ."
-                        : "Add CUSTOM_OPENAI_API_KEY secret in the Secrets tab in Replit. After saving, all AI features will use your key."}
-                    </p>
-                    <p className="text-xs text-amber-600 dark:text-amber-400">
-                      {language === "ru" 
-                        ? "Ваш ключ должен иметь доступ к GPT-4 и text-embedding-3-large"
-                        : "Your key should have access to GPT-4 and text-embedding-3-large"}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {!settings.useCustomApi && (
-                <div className="flex items-start gap-3 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-200">
-                  <Check className="h-5 w-5 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm">
-                    <p className="font-medium">
-                      {language === "ru" ? "Используется встроенный AI" : "Using built-in AI"}
-                    </p>
-                    <p className="mt-1 text-emerald-700 dark:text-emerald-300">
-                      {language === "ru" 
-                        ? "Все AI функции работают через Replit AI Integrations"
-                        : "All AI features work via Replit AI Integrations"}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
 
         <Card>
           <CardHeader>
@@ -359,7 +495,7 @@ export default function Settings() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-3 bg-muted/50 border">
+            <div className="flex items-center justify-between p-3 bg-muted/50 border rounded-lg">
               <div className="flex items-center gap-3">
                 <Lightbulb className="h-4 w-4 text-amber-500" />
                 <div>
@@ -380,29 +516,15 @@ export default function Settings() {
               />
             </div>
             
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button
-                variant="outline"
-                onClick={handleShowOnboarding}
-                className="flex-1"
-                data-testid="button-show-onboarding"
-              >
-                <BookOpen className="h-4 w-4 mr-2" />
-                {language === "ru" ? "Показать онбординг" : "Show onboarding"}
-              </Button>
-              
-              {tipsHidden && !tipsDisabled && (
-                <Button
-                  variant="outline"
-                  onClick={handleShowTips}
-                  className="flex-1"
-                  data-testid="button-show-tips"
-                >
-                  <Lightbulb className="h-4 w-4 mr-2" />
-                  {language === "ru" ? "Показать подсказки" : "Show tips"}
-                </Button>
-              )}
-            </div>
+            <Button
+              variant="outline"
+              onClick={handleShowOnboarding}
+              className="w-full sm:w-auto"
+              data-testid="button-show-onboarding"
+            >
+              <BookOpen className="h-4 w-4 mr-2" />
+              {language === "ru" ? "Показать онбординг" : "Show onboarding"}
+            </Button>
           </CardContent>
         </Card>
 
