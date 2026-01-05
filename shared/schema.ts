@@ -56,6 +56,7 @@ export const sources = pgTable("sources", {
 // Topics table
 export const topics = pgTable("topics", {
   id: varchar("id", { length: 36 }).primaryKey(),
+  seq: serial("seq"),
   sourceId: varchar("source_id", { length: 36 }).references(() => sources.id).notNull(),
   title: text("title").notNull(),
   generatedTitle: text("generated_title"),

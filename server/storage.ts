@@ -232,7 +232,7 @@ export class DatabaseStorage implements IStorage {
   // ============ TOPICS ============
 
   async getTopics(): Promise<Topic[]> {
-    const rows = await db.select().from(topics).orderBy(desc(topics.createdAt));
+    const rows = await db.select().from(topics).orderBy(desc(topics.seq));
     return rows.map(this.mapTopic);
   }
 
