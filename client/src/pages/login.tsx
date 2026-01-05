@@ -32,6 +32,7 @@ interface LoginPageProps {
 }
 
 export default function LoginPage({ onLogin }: LoginPageProps) {
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(false);
@@ -44,7 +45,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     setError(false);
     
     try {
-      const response = await apiRequest("POST", "/api/auth/login", { password });
+      const response = await apiRequest("POST", "/api/auth/login", { username, password });
       const data = await response.json();
       sessionStorage.setItem("idengine-auth", "true");
       onLogin(data.user);
@@ -89,15 +90,30 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               Добро пожаловать на Фабрику видеороликов!
             </h1>
             <p className="text-muted-foreground text-sm md:text-base">
-              Для доступа к панели управления вам необходимо ввести пароль:
+              Для доступа введите логин и пароль:
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Input
+                type="text"
+                placeholder="Логин"
+                value={username}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  setError(false);
+                }}
+                className={error ? 'border-destructive focus-visible:ring-destructive' : ''}
+                data-testid="input-username"
+                autoComplete="username"
+              />
+            </div>
+            
             <div className="relative">
               <Input
                 type={showPassword ? "text" : "password"}
-                placeholder="Введите пароль"
+                placeholder="Пароль"
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);
@@ -125,14 +141,14 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
             
             {error && (
               <p className="text-destructive text-sm text-center" data-testid="text-error">
-                Неверный пароль. Попробуйте ещё раз.
+                Неверный логин или пароль. Попробуйте ещё раз.
               </p>
             )}
 
             <Button 
               type="submit" 
               className="w-full"
-              disabled={isLoading}
+              disabled={isLoading || !username || !password}
               data-testid="button-login"
             >
               {isLoading ? (

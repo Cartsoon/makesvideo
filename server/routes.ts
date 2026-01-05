@@ -25,6 +25,9 @@ export async function registerRoutes(
   // Initialize the LLM provider based on saved settings
   await ensureProviderInitialized();
   
+  // Initialize default user (Cartsoon)
+  await storage.initializeDefaultUser();
+  
   // Start the job worker and auto-fetch scheduler
   startJobWorker();
   startAutoFetch();
@@ -1656,32 +1659,23 @@ Distribute time evenly: scenes 3-7 seconds each. Only JSON array.`;
 
   // ============ AUTH ============
 
-  // Login with password
+  // Login with username + password
   app.post("/api/auth/login", async (req, res) => {
     try {
-      const { password } = req.body;
+      const { username, password } = req.body;
+      
+      if (!username || typeof username !== "string") {
+        return res.status(400).json({ error: "Username is required" });
+      }
       
       if (!password || typeof password !== "string") {
         return res.status(400).json({ error: "Password is required" });
       }
       
-      // Check if password is valid
-      const isValid = await storage.validatePassword(password);
-      if (!isValid) {
-        return res.status(401).json({ error: "Invalid password" });
-      }
-      
-      // Check if user already exists for this password
-      let user = await storage.getUserByPassword(password);
-      
+      // Validate credentials with bcrypt
+      const user = await storage.validateUserCredentials(username, password);
       if (!user) {
-        // Create new user account
-        user = await storage.createUser({
-          passwordHash: password, // Using password as identifier (simple system)
-          nickname: null,
-          language: "ru",
-          theme: "dark",
-        });
+        return res.status(401).json({ error: "Invalid username or password" });
       }
       
       // Create session
