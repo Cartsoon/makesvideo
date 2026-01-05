@@ -117,8 +117,9 @@ export default function AssistantPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [activeNoteContent, setActiveNoteContent] = useState("");
   const [notesSaved, setNotesSaved] = useState(true);
-  const [showCreateNoteDialog, setShowCreateNoteDialog] = useState(false);
+  const [isCreatingNote, setIsCreatingNote] = useState(false);
   const [newNoteTitle, setNewNoteTitle] = useState("");
+  const [showNotesList, setShowNotesList] = useState(true);
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(() => {
     const saved = localStorage.getItem("assistant-sound-enabled");
@@ -207,9 +208,10 @@ export default function AssistantPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/assistant/notes"] });
       queryClient.invalidateQueries({ queryKey: ["/api/assistant/notes/active"] });
-      setShowCreateNoteDialog(false);
+      setIsCreatingNote(false);
       setNewNoteTitle("");
       setActiveNoteContent("");
+      setShowNotesList(false);
     },
   });
   
@@ -219,6 +221,7 @@ export default function AssistantPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/assistant/notes"] });
       queryClient.invalidateQueries({ queryKey: ["/api/assistant/notes/active"] });
       setActiveNoteContent("");
+      setShowNotesList(false);
     },
   });
   
@@ -924,57 +927,6 @@ export default function AssistantPage() {
           </AlertDialogContent>
         </AlertDialog>
 
-        {/* Create Note Dialog */}
-        <Dialog open={showCreateNoteDialog} onOpenChange={setShowCreateNoteDialog}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>
-                {language === "ru" ? "Новая заметка" : "New note"}
-              </DialogTitle>
-              <DialogDescription>
-                {language === "ru" 
-                  ? "Введите название для новой заметки"
-                  : "Enter a title for the new note"
-                }
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex flex-col gap-4 py-4">
-              <Input
-                value={newNoteTitle}
-                onChange={(e) => setNewNoteTitle(e.target.value)}
-                placeholder={language === "ru" ? "Название заметки..." : "Note title..."}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && newNoteTitle.trim()) {
-                    createNoteMutation.mutate(newNoteTitle.trim());
-                  }
-                }}
-                data-testid="input-new-note-title"
-              />
-              <div className="flex justify-end gap-2">
-                <Button 
-                  variant="outline" 
-                  onClick={() => { setShowCreateNoteDialog(false); setNewNoteTitle(""); }}
-                  data-testid="button-cancel-create-note"
-                >
-                  {language === "ru" ? "Отмена" : "Cancel"}
-                </Button>
-                <Button 
-                  onClick={() => createNoteMutation.mutate(newNoteTitle.trim())}
-                  disabled={!newNoteTitle.trim() || createNoteMutation.isPending}
-                  className="bg-amber-500 hover:bg-amber-600"
-                  data-testid="button-confirm-create-note"
-                >
-                  {createNoteMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    language === "ru" ? "Создать" : "Create"
-                  )}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
         {/* Timeline Track Ruler */}
         <div className="flex items-center h-5 px-3 bg-muted/30 border-b border-border/30 flex-shrink-0">
           <div className="flex-1 flex items-center gap-3">
@@ -1575,103 +1527,196 @@ export default function AssistantPage() {
         <div className="flex flex-col w-80 gap-4 h-full">
           <Card className="flex flex-col flex-1 min-h-0 overflow-hidden">
             <div className="flex items-center gap-2 px-3 py-2 border-b bg-gradient-to-r from-amber-500/10 to-orange-500/10">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 gap-1 px-2 flex-1 justify-start" data-testid="button-notes-selector">
-                    <StickyNote className="h-4 w-4 text-amber-500 flex-shrink-0" />
-                    <span className="truncate text-sm font-medium">
-                      {activeNote?.title || (language === "ru" ? "Выберите заметку" : "Select note")}
-                    </span>
-                    <ChevronDown className="h-3 w-3 ml-auto flex-shrink-0 text-muted-foreground" />
+              {isCreatingNote ? (
+                <div className="flex items-center gap-2 flex-1">
+                  <Input
+                    value={newNoteTitle}
+                    onChange={(e) => setNewNoteTitle(e.target.value)}
+                    placeholder={language === "ru" ? "Название..." : "Title..."}
+                    className="h-8 text-sm flex-1"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && newNoteTitle.trim()) {
+                        createNoteMutation.mutate(newNoteTitle.trim());
+                      } else if (e.key === "Escape") {
+                        setIsCreatingNote(false);
+                        setNewNoteTitle("");
+                      }
+                    }}
+                    data-testid="input-new-note-title"
+                  />
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8"
+                    onClick={() => {
+                      if (newNoteTitle.trim()) {
+                        createNoteMutation.mutate(newNoteTitle.trim());
+                      }
+                    }}
+                    disabled={!newNoteTitle.trim() || createNoteMutation.isPending}
+                    data-testid="button-confirm-create-note"
+                  >
+                    {createNoteMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Check className="h-4 w-4 text-green-500" />
+                    )}
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-64">
-                  <DropdownMenuItem 
-                    onClick={() => setShowCreateNoteDialog(true)}
-                    className="gap-2 text-amber-600"
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8"
+                    onClick={() => { setIsCreatingNote(false); setNewNoteTitle(""); }}
+                    data-testid="button-cancel-create-note"
+                  >
+                    <X className="h-4 w-4 text-muted-foreground" />
+                  </Button>
+                </div>
+              ) : showNotesList ? (
+                <div className="flex items-center gap-2 flex-1">
+                  <StickyNote className="h-4 w-4 text-amber-500 flex-shrink-0" />
+                  <span className="text-sm font-medium flex-1">
+                    {language === "ru" ? "Заметки" : "Notes"}
+                  </span>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8"
+                    onClick={() => setIsCreatingNote(true)}
                     data-testid="button-create-new-note"
                   >
-                    <Plus className="h-4 w-4" />
-                    {language === "ru" ? "Создать новую заметку" : "Create new note"}
-                  </DropdownMenuItem>
-                  {allNotes.length > 0 && <DropdownMenuSeparator />}
-                  {allNotes.map((note) => (
-                    <DropdownMenuItem
-                      key={note.id}
-                      onClick={() => activateNoteMutation.mutate(note.id)}
-                      className={`gap-2 ${note.isActive ? "bg-amber-500/10" : ""}`}
-                      data-testid={`button-select-note-${note.id}`}
-                    >
-                      <StickyNote className={`h-4 w-4 ${note.isActive ? "text-amber-500" : "text-muted-foreground"}`} />
-                      <span className="flex-1 truncate">{note.title}</span>
-                      {note.isActive && <Check className="h-4 w-4 text-amber-500" />}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-              
-              <div className="flex items-center gap-0.5">
-                <span className="text-[9px] text-muted-foreground flex items-center gap-1">
-                  {notesSaved ? <Save className="h-2.5 w-2.5 text-green-500" /> : <Loader2 className="h-2.5 w-2.5 animate-spin" />}
-                </span>
-                
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      className="h-7 w-7"
-                      disabled={activeNoteContent.length === 0 || !activeNote}
-                      data-testid="button-clear-notes"
-                    >
-                      <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>
-                        {language === "ru" ? "Очистить содержимое?" : "Clear content?"}
-                      </AlertDialogTitle>
-                      <AlertDialogDescription>
-                        {language === "ru" 
-                          ? "Содержимое этой заметки будет удалено."
-                          : "The content of this note will be deleted."
-                        }
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel data-testid="button-cancel-clear-notes">
-                        {language === "ru" ? "Отмена" : "Cancel"}
-                      </AlertDialogCancel>
-                      <AlertDialogAction 
-                        onClick={() => handleNotesChange("")}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        data-testid="button-confirm-clear-notes"
+                    <Plus className="h-4 w-4 text-amber-500" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 flex-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setShowNotesList(true)}
+                    data-testid="button-back-to-notes-list"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <StickyNote className="h-4 w-4 text-amber-500 flex-shrink-0" />
+                  <span className="truncate text-sm font-medium flex-1">
+                    {activeNote?.title || (language === "ru" ? "Заметка" : "Note")}
+                  </span>
+                  <span className="text-[9px] text-muted-foreground flex items-center">
+                    {notesSaved ? <Save className="h-2.5 w-2.5 text-green-500" /> : <Loader2 className="h-2.5 w-2.5 animate-spin" />}
+                  </span>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        className="h-7 w-7"
+                        disabled={activeNoteContent.length === 0}
+                        data-testid="button-clear-notes"
                       >
-                        {language === "ru" ? "Очистить" : "Clear"}
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
+                        <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          {language === "ru" ? "Очистить содержимое?" : "Clear content?"}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          {language === "ru" 
+                            ? "Содержимое этой заметки будет удалено."
+                            : "The content of this note will be deleted."
+                          }
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel data-testid="button-cancel-clear-notes">
+                          {language === "ru" ? "Отмена" : "Cancel"}
+                        </AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={() => handleNotesChange("")}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          data-testid="button-confirm-clear-notes"
+                        >
+                          {language === "ru" ? "Очистить" : "Clear"}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              )}
             </div>
             
             <div className="flex-1 min-h-0 overflow-hidden">
-              <Textarea
-                value={activeNoteContent}
-                onChange={(e) => handleNotesChange(e.target.value)}
-                placeholder={activeNote 
-                  ? (language === "ru" 
+              {showNotesList && !isCreatingNote ? (
+                <ScrollArea className="h-full">
+                  <div className="p-2 space-y-1">
+                    {allNotes.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-8 text-center">
+                        <StickyNote className="h-10 w-10 text-amber-500/30 mb-3" />
+                        <p className="text-sm text-muted-foreground mb-2">
+                          {language === "ru" ? "Нет заметок" : "No notes yet"}
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setIsCreatingNote(true)}
+                          className="gap-2"
+                          data-testid="button-create-first-note"
+                        >
+                          <Plus className="h-4 w-4" />
+                          {language === "ru" ? "Создать первую" : "Create first"}
+                        </Button>
+                      </div>
+                    ) : (
+                      allNotes.map((note) => (
+                        <div
+                          key={note.id}
+                          onClick={() => activateNoteMutation.mutate(note.id)}
+                          className={`flex items-center gap-3 p-3 rounded-md cursor-pointer hover-elevate transition-colors ${
+                            note.isActive ? "bg-amber-500/10 border border-amber-500/30" : "bg-muted/30"
+                          }`}
+                          data-testid={`button-select-note-${note.id}`}
+                        >
+                          <StickyNote className={`h-5 w-5 flex-shrink-0 ${note.isActive ? "text-amber-500" : "text-muted-foreground"}`} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{note.title}</p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {note.content ? note.content.substring(0, 50) + (note.content.length > 50 ? "..." : "") : (language === "ru" ? "Пусто" : "Empty")}
+                            </p>
+                          </div>
+                          {note.isActive && <Check className="h-4 w-4 text-amber-500 flex-shrink-0" />}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 opacity-50 hover:opacity-100"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteNoteMutation.mutate(note.id);
+                            }}
+                            data-testid={`button-delete-note-${note.id}`}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </ScrollArea>
+              ) : (
+                <Textarea
+                  value={activeNoteContent}
+                  onChange={(e) => handleNotesChange(e.target.value)}
+                  placeholder={language === "ru" 
                     ? "Записывайте важные идеи, ссылки, советы из чата..."
-                    : "Write down important ideas, links, tips from the chat...")
-                  : (language === "ru" 
-                    ? "Создайте заметку, чтобы начать..."
-                    : "Create a note to get started...")
-                }
-                disabled={!activeNote}
-                className="h-full w-full resize-none border-0 rounded-none bg-card focus-visible:ring-0 text-sm p-3 overflow-y-auto notes-scrollbar notebook-lined"
-                data-testid="input-notes"
-              />
+                    : "Write down important ideas, links, tips from the chat..."
+                  }
+                  className="h-full w-full resize-none border-0 rounded-none bg-card focus-visible:ring-0 text-sm p-3 overflow-y-auto notes-scrollbar notebook-lined"
+                  data-testid="input-notes"
+                />
+              )}
             </div>
             
             <div className="px-4 py-2 border-t bg-muted/30">
