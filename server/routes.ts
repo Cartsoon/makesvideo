@@ -10,11 +10,16 @@ import { EdgeTTS, listVoices } from "edge-tts-universal";
 import OpenAI from "openai";
 import express from "express";
 import path from "path";
+import sharp from "sharp";
 import { aiRouter } from "./routes/ai";
 import { kbRouter } from "./routes/kb";
 import { registerKbAdminRoutes } from "./routes/kb-admin";
 import { ragRetrieve, formatRagContext, checkRequiresArticle, getArticleContext } from "./ai/rag";
 import { getLogs, getLogsFormatted, getRecentLogsFormatted, clearLogs, getLogStats, logError, logInfo } from "./error-logger";
+
+const imageCache = new Map<string, { data: Buffer; contentType: string; timestamp: number }>();
+const IMAGE_CACHE_TTL = 1000 * 60 * 60; // 1 hour
+const MAX_CACHE_SIZE = 100;
 
 export async function registerRoutes(
   httpServer: Server,
@@ -37,6 +42,117 @@ export async function registerRoutes(
   // Serve static files from public/files directory
   app.use("/files", express.static(path.join(process.cwd(), "public/files")));
   
+  // ============ IMAGE PROXY WITH OPTIMIZATION ============
+  app.get("/api/image-proxy", async (req, res) => {
+    try {
+      const url = req.query.url as string;
+      const width = parseInt(req.query.w as string) || 400;
+      const quality = parseInt(req.query.q as string) || 75;
+      
+      if (!url) {
+        return res.status(400).json({ error: "URL parameter required" });
+      }
+
+      // Validate URL
+      let parsedUrl: URL;
+      try {
+        parsedUrl = new URL(url);
+        if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+          return res.status(400).json({ error: "Invalid URL protocol" });
+        }
+      } catch {
+        return res.status(400).json({ error: "Invalid URL" });
+      }
+
+      // Create cache key
+      const cacheKey = `${url}_${width}_${quality}`;
+      
+      // Check cache
+      const cached = imageCache.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < IMAGE_CACHE_TTL) {
+        res.set("Content-Type", cached.contentType);
+        res.set("Cache-Control", "public, max-age=3600");
+        res.set("X-Cache", "HIT");
+        return res.send(cached.data);
+      }
+
+      // Fetch the original image
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      
+      const response = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; IDEngine/1.0)",
+          "Accept": "image/*",
+        },
+      });
+      clearTimeout(timeout);
+
+      if (!response.ok) {
+        return res.status(response.status).json({ error: "Failed to fetch image" });
+      }
+
+      const contentType = response.headers.get("content-type") || "image/jpeg";
+      
+      // Check if it's actually an image
+      if (!contentType.startsWith("image/")) {
+        return res.status(400).json({ error: "URL does not point to an image" });
+      }
+
+      const buffer = Buffer.from(await response.arrayBuffer());
+      
+      // Process with sharp - resize and convert to WebP for better compression
+      let processed: Buffer;
+      let outputType = "image/webp";
+      
+      try {
+        processed = await sharp(buffer)
+          .resize(width, null, { 
+            withoutEnlargement: true,
+            fit: "inside"
+          })
+          .webp({ quality })
+          .toBuffer();
+      } catch (sharpError) {
+        // If sharp fails, try to serve original with just resize
+        try {
+          processed = await sharp(buffer)
+            .resize(width, null, { withoutEnlargement: true, fit: "inside" })
+            .jpeg({ quality })
+            .toBuffer();
+          outputType = "image/jpeg";
+        } catch {
+          // Last resort - serve original
+          processed = buffer;
+          outputType = contentType;
+        }
+      }
+
+      // Cache the result (with size limit)
+      if (imageCache.size >= MAX_CACHE_SIZE) {
+        const oldestKey = imageCache.keys().next().value;
+        if (oldestKey) imageCache.delete(oldestKey);
+      }
+      imageCache.set(cacheKey, {
+        data: processed,
+        contentType: outputType,
+        timestamp: Date.now(),
+      });
+
+      res.set("Content-Type", outputType);
+      res.set("Cache-Control", "public, max-age=3600");
+      res.set("X-Cache", "MISS");
+      res.send(processed);
+    } catch (error: any) {
+      if (error.name === "AbortError") {
+        return res.status(504).json({ error: "Image fetch timeout" });
+      }
+      logError("ImageProxy", error.message || "Unknown error");
+      res.status(500).json({ error: "Failed to process image" });
+    }
+  });
+
   // ============ RAG AI & KB ROUTES ============
   app.use("/api/ai", aiRouter);
   app.use("/api/kb", kbRouter);

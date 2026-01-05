@@ -52,9 +52,9 @@ export default function Dashboard() {
     }
   };
 
-  const getTopicImage = (topic: Topic): string => {
+  const getTopicImage = (topic: Topic, width: number = 400): string => {
     if (topic.imageUrl && !imageErrors.has(topic.id)) {
-      return topic.imageUrl;
+      return `/api/image-proxy?url=${encodeURIComponent(topic.imageUrl)}&w=${width}&q=75`;
     }
     return placeholderImage;
   };
