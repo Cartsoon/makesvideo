@@ -3034,7 +3034,7 @@ export async function createLLMProvider(): Promise<LLMProvider> {
     const { getApiProviderConfig, getAvailableProviders, resetCustomApiCache } = await import("./ai/provider");
     resetCustomApiCache();
     const config = await getApiProviderConfig(storage);
-    const availableProviders = getAvailableProviders();
+    const availableProviders = await getAvailableProviders(storage);
     const activeProvider = availableProviders.find(p => p.type === config.type);
     
     if (activeProvider?.available) {
