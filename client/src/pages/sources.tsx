@@ -266,9 +266,6 @@ export default function Sources() {
                 {t("sources.title")}
               </h1>
             </div>
-            <p className="text-neutral-500 text-[10px] sm:text-xs leading-relaxed tracking-wide font-light uppercase mt-1 ml-3">
-              {t("sources.subtitle")}
-            </p>
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
             {sources && sources.length > 0 && (
