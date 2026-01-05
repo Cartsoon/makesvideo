@@ -1140,8 +1140,8 @@ export default function AssistantPage() {
       </div>
 
       {/* DESKTOP LAYOUT */}
-      <div className="hidden lg:flex items-center gap-4 h-[calc(100vh-3.5rem)] mx-6 py-4 overflow-hidden">
-        <div className="flex flex-col flex-1 bg-background rounded-md border overflow-hidden max-h-[calc(100vh-5rem)]">
+      <div className="hidden lg:flex items-stretch gap-4 h-[calc(100vh-3.5rem)] mx-6 py-4 overflow-hidden">
+        <div className="flex flex-col flex-1 bg-background rounded-md border overflow-hidden h-full">
           <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border/50 flex-shrink-0">
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1.5">
