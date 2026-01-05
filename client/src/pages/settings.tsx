@@ -349,9 +349,17 @@ export default function Settings() {
                         return;
                       }
                       
-                      if (!isActive) {
-                        switchProviderMutation.mutate(type);
+                      if (isActive) {
+                        toast({ 
+                          title: language === "ru" ? "Провайдер активен" : "Provider active",
+                          description: language === "ru" 
+                            ? "Этот провайдер уже выбран" 
+                            : "This provider is already selected"
+                        });
+                        return;
                       }
+                      
+                      switchProviderMutation.mutate(type);
                     }}
                     data-testid={`provider-option-${type}`}
                   >
