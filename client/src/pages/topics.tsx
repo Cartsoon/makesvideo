@@ -170,25 +170,33 @@ export default function Topics() {
     },
   });
 
-  const filteredTopics = topics
-    ?.filter((topic) => {
-      // Exclude system/synthetic topics
-      if (topic.title === "__text_to_video__" || topic.title?.startsWith("__")) return false;
-      // Keep fading items visible during animation, but exclude if status already changed
-      if (fadingOutIds.has(topic.id) && topic.status !== "missed") return true;
-      // For "all" filter, exclude "missed" and "in_progress" topics
-      if (statusFilter === "all") {
-        return topic.status !== "missed" && topic.status !== "in_progress";
-      }
-      return topic.status === statusFilter;
-    })
-    ?.sort((a, b) => {
-      if (sortBy === "score") return b.score - a.score;
-      // Sort by publishedAt (or createdAt as fallback), newest first
-      const dateA = new Date(a.publishedAt || a.createdAt).getTime();
-      const dateB = new Date(b.publishedAt || b.createdAt).getTime();
-      return dateB - dateA;
-    }) || [];
+  const filteredTopics = (() => {
+    const seenUrls = new Set<string>();
+    return topics
+      ?.filter((topic) => {
+        // Exclude system/synthetic topics
+        if (topic.title === "__text_to_video__" || topic.title?.startsWith("__")) return false;
+        // Deduplicate by URL - keep only the first occurrence (newest due to sort)
+        if (topic.url) {
+          if (seenUrls.has(topic.url)) return false;
+          seenUrls.add(topic.url);
+        }
+        // Keep fading items visible during animation, but exclude if status already changed
+        if (fadingOutIds.has(topic.id) && topic.status !== "missed") return true;
+        // For "all" filter, exclude "missed" and "in_progress" topics
+        if (statusFilter === "all") {
+          return topic.status !== "missed" && topic.status !== "in_progress";
+        }
+        return topic.status === statusFilter;
+      })
+      ?.sort((a, b) => {
+        if (sortBy === "score") return b.score - a.score;
+        // Sort by publishedAt (or createdAt as fallback), newest first
+        const dateA = new Date(a.publishedAt || a.createdAt).getTime();
+        const dateB = new Date(b.publishedAt || b.createdAt).getTime();
+        return dateB - dateA;
+      }) || [];
+  })();
 
   const statusCounts = {
     all: topics?.length || 0,

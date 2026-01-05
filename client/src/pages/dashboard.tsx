@@ -146,18 +146,25 @@ export default function Dashboard() {
 
   // Filter topics same as Topics page: exclude system, missed, in_progress
   // Sort by publishedAt (or createdAt as fallback), newest first - same as Topics page
-  const filteredTopics = topics?.filter(t => 
-    !t.title?.startsWith("__") && 
-    t.status !== "missed" && 
-    t.status !== "in_progress"
-  ) || [];
-  const recentTopics = filteredTopics
-    .sort((a, b) => {
-      const dateA = new Date(a.publishedAt || a.createdAt).getTime();
-      const dateB = new Date(b.publishedAt || b.createdAt).getTime();
-      return dateB - dateA;
-    })
-    .slice(0, 8); // 6 on mobile, 8 on desktop (last 2 hidden on mobile via CSS)
+  // Also deduplicate by URL
+  const filteredTopics = (() => {
+    const seenUrls = new Set<string>();
+    return (topics || [])
+      .filter(t => !t.title?.startsWith("__") && t.status !== "missed" && t.status !== "in_progress")
+      .sort((a, b) => {
+        const dateA = new Date(a.publishedAt || a.createdAt).getTime();
+        const dateB = new Date(b.publishedAt || b.createdAt).getTime();
+        return dateB - dateA;
+      })
+      .filter(t => {
+        if (t.url) {
+          if (seenUrls.has(t.url)) return false;
+          seenUrls.add(t.url);
+        }
+        return true;
+      });
+  })();
+  const recentTopics = filteredTopics.slice(0, 8); // 6 on mobile, 8 on desktop (last 2 hidden on mobile via CSS)
   // For animation tracking, use the filtered list
   const newTopics = filteredTopics;
   const recentScripts = scripts
