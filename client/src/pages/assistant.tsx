@@ -1425,7 +1425,7 @@ export default function AssistantPage() {
           </div>
         </div>
 
-        <div className="flex flex-col w-80 gap-4 max-h-[calc(100vh-5rem)]">
+        <div className="flex flex-col w-80 gap-4 h-full">
           <Card className="flex flex-col flex-1 min-h-0 overflow-hidden">
             <div className="flex items-center gap-3 px-4 py-3 border-b bg-gradient-to-r from-amber-500/10 to-orange-500/10">
               <div className="w-8 h-8 rounded-md bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
