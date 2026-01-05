@@ -15,16 +15,21 @@ export async function checkUseCustomApi(): Promise<boolean> {
   return true; // Always use custom API
 }
 
-export function getProvider(): AIProvider {
+function createOpenAIClient(): OpenAI {
   const apiKey = process.env.OPENAI_API_KEY;
+  const baseURL = process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
   
   if (!apiKey) {
     throw new Error("OPENAI_API_KEY not configured");
   }
   
-  console.log("[AIProvider] Using OPENAI_API_KEY");
+  console.log(`[AIProvider] Using API with base URL: ${baseURL}`);
   
-  const client = new OpenAI({ apiKey });
+  return new OpenAI({ apiKey, baseURL });
+}
+
+export function getProvider(): AIProvider {
+  const client = createOpenAIClient();
 
   return {
     async embed(texts: string[]) {
@@ -51,12 +56,5 @@ export async function getProviderWithSettings(): Promise<AIProvider> {
 }
 
 export async function getOpenAIClientWithSettings(): Promise<OpenAI> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  
-  if (!apiKey) {
-    throw new Error("OPENAI_API_KEY not configured");
-  }
-  
-  console.log("[AIProvider] Using OPENAI_API_KEY");
-  return new OpenAI({ apiKey });
+  return createOpenAIClient();
 }
