@@ -71,25 +71,25 @@ const defaultSettings: SettingsData = {
   fallbackMode: false,
 };
 
-const providerDescriptions: Record<ApiProviderType, { ru: string; en: string; icon: typeof Server }> = {
+const providerDescriptions: Record<ApiProviderType, { name: { ru: string; en: string }; desc: { ru: string; en: string }; icon: typeof Server }> = {
   default: {
-    ru: "NeuroAPI.host — стандартный провайдер. Ключ настраивается через OPENAI_API_KEY.",
-    en: "NeuroAPI.host — default provider. Key configured via OPENAI_API_KEY.",
+    name: { ru: "IDENGINE Базовый API", en: "IDENGINE Base API" },
+    desc: { ru: "Стандартный провайдер. Ключ настраивается через OPENAI_API_KEY.", en: "Default provider. Key configured via OPENAI_API_KEY." },
     icon: Server
   },
   free: {
-    ru: "Бесплатные API: OpenRouter Free, Together.ai Free. Ключ через FREE_API_KEY.",
-    en: "Free APIs: OpenRouter Free, Together.ai Free. Key via FREE_API_KEY.",
+    name: { ru: "Бесплатный API", en: "Free API" },
+    desc: { ru: "OpenRouter Free, Together.ai, Groq. Ключ через FREE_API_KEY.", en: "OpenRouter Free, Together.ai, Groq. Key via FREE_API_KEY." },
     icon: Sparkles
   },
   replit: {
-    ru: "Встроенный Replit AI. Автоматическая настройка, без ключей.",
-    en: "Built-in Replit AI. Automatic setup, no keys required.",
+    name: { ru: "Replit AI", en: "Replit AI" },
+    desc: { ru: "Встроенный Replit AI. Автоматическая настройка.", en: "Built-in Replit AI. Automatic setup." },
     icon: Cloud
   },
   custom: {
-    ru: "Свой OpenAI-совместимый API. Ключ через CUSTOM_OPENAI_API_KEY.",
-    en: "Your own OpenAI-compatible API. Key via CUSTOM_OPENAI_API_KEY.",
+    name: { ru: "Свой API", en: "Custom API" },
+    desc: { ru: "OpenAI-совместимый API. Ключ через CUSTOM_OPENAI_API_KEY.", en: "OpenAI-compatible API. Key via CUSTOM_OPENAI_API_KEY." },
     icon: Key
   }
 };
@@ -165,8 +165,8 @@ export default function Settings() {
       toast({ 
         title: language === "ru" ? "Провайдер переключен" : "Provider switched",
         description: language === "ru" 
-          ? `Активный провайдер: ${providerDescriptions[providerType]?.ru.split("—")[0].trim()}`
-          : `Active provider: ${providerDescriptions[providerType]?.en.split("—")[0].trim()}`
+          ? `Активный провайдер: ${providerDescriptions[providerType]?.name.ru}`
+          : `Active provider: ${providerDescriptions[providerType]?.name.en}`
       });
     },
     onError: (error: any) => {
@@ -361,10 +361,7 @@ export default function Settings() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className={`font-medium text-sm ${isActive ? "text-primary" : ""}`}>
-                          {type === "default" && "NeuroAPI"}
-                          {type === "free" && (language === "ru" ? "Бесплатный API" : "Free API")}
-                          {type === "replit" && "Replit AI"}
-                          {type === "custom" && (language === "ru" ? "Свой API" : "Custom API")}
+                          {language === "ru" ? desc.name.ru : desc.name.en}
                         </span>
                         {isActive && (
                           <Badge variant="default" className="text-[10px] px-1.5 py-0">
@@ -378,7 +375,7 @@ export default function Settings() {
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {language === "ru" ? desc.ru : desc.en}
+                        {language === "ru" ? desc.desc.ru : desc.desc.en}
                       </p>
                     </div>
                     {isActive && provider?.available && (

@@ -182,7 +182,7 @@ export async function verifyApiConnection(providerType: ApiProviderType): Promis
 
 export function getProviderDisplayName(type: ApiProviderType, lang: "ru" | "en" = "ru"): string {
   const names: Record<ApiProviderType, { ru: string; en: string }> = {
-    default: { ru: "NeuroAPI (по умолчанию)", en: "NeuroAPI (default)" },
+    default: { ru: "IDENGINE Базовый API", en: "IDENGINE Base API" },
     free: { ru: "Бесплатный API", en: "Free API" },
     replit: { ru: "Replit AI", en: "Replit AI" },
     custom: { ru: "Свой API", en: "Custom API" }
