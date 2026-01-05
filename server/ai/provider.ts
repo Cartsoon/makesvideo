@@ -190,11 +190,69 @@ export function getProviderDisplayName(type: ApiProviderType, lang: "ru" | "en" 
   return names[type]?.[lang] || type;
 }
 
-export function getAvailableProviders(): { 
+export async function verifyApiConnectionWithCredentials(
+  providerType: ApiProviderType,
+  apiKey: string,
+  baseUrl?: string
+): Promise<{
+  success: boolean;
+  error?: string;
+  model?: string;
+  responseTime?: number;
+}> {
+  const startTime = Date.now();
+  
+  try {
+    if (!apiKey) {
+      return { success: false, error: "API key not provided" };
+    }
+    
+    const finalBaseUrl = baseUrl || (providerType === "free" 
+      ? "https://openrouter.ai/api/v1" 
+      : "https://api.openai.com/v1");
+    
+    const client = new OpenAI({ apiKey, baseURL: finalBaseUrl });
+    
+    const response = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: "Say 'OK' if you can read this." }],
+      max_tokens: 10,
+    });
+    
+    const responseTime = Date.now() - startTime;
+    const content = response.choices[0]?.message?.content;
+    
+    if (content) {
+      return { success: true, model: response.model, responseTime };
+    } else {
+      return { success: false, error: "Empty response from API" };
+    }
+  } catch (error: any) {
+    return { success: false, error: error.message || "Connection failed" };
+  }
+}
+
+export async function getAvailableProviders(storage?: any): Promise<{ 
   type: ApiProviderType; 
   available: boolean; 
   reason?: string;
-}[] {
+  hasStoredKey?: boolean;
+}[]> {
+  let storedKeys: Record<string, boolean> = {};
+  
+  if (storage) {
+    try {
+      const settings = await storage.getSettings();
+      const settingsMap = new Map(settings.map((s: { key: string; value: string }) => [s.key, s.value]));
+      storedKeys = {
+        free: !!settingsMap.get("free_api_key"),
+        custom: !!settingsMap.get("custom_api_key"),
+      };
+    } catch (e) {
+      console.log("[AIProvider] Could not load stored keys");
+    }
+  }
+  
   return [
     {
       type: "default",
@@ -203,8 +261,9 @@ export function getAvailableProviders(): {
     },
     {
       type: "free",
-      available: !!process.env.FREE_API_KEY,
-      reason: !process.env.FREE_API_KEY ? "FREE_API_KEY not set" : undefined
+      available: !!process.env.FREE_API_KEY || storedKeys.free,
+      hasStoredKey: storedKeys.free,
+      reason: (!process.env.FREE_API_KEY && !storedKeys.free) ? "FREE_API_KEY not set" : undefined
     },
     {
       type: "replit",
@@ -213,8 +272,24 @@ export function getAvailableProviders(): {
     },
     {
       type: "custom",
-      available: !!process.env.CUSTOM_OPENAI_API_KEY,
-      reason: !process.env.CUSTOM_OPENAI_API_KEY ? "CUSTOM_OPENAI_API_KEY not set" : undefined
+      available: !!process.env.CUSTOM_OPENAI_API_KEY || storedKeys.custom,
+      hasStoredKey: storedKeys.custom,
+      reason: (!process.env.CUSTOM_OPENAI_API_KEY && !storedKeys.custom) ? "CUSTOM_OPENAI_API_KEY not set" : undefined
     }
   ];
+}
+
+// Get stored API credentials from settings
+export async function getStoredCredentials(storage: any, providerType: ApiProviderType): Promise<{ apiKey: string; baseUrl: string }> {
+  try {
+    const settings = await storage.getSettings();
+    const settingsMap = new Map<string, string>(settings.map((s: { key: string; value: string }) => [s.key, s.value]));
+    
+    const apiKey: string = settingsMap.get(`${providerType}_api_key`) || "";
+    const baseUrl: string = settingsMap.get(`${providerType}_base_url`) || "";
+    
+    return { apiKey, baseUrl };
+  } catch (e) {
+    return { apiKey: "", baseUrl: "" };
+  }
 }

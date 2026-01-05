@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
@@ -32,7 +34,9 @@ import {
   XCircle,
   RefreshCw,
   Server,
-  Cloud
+  Cloud,
+  ChevronDown,
+  ChevronRight
 } from "lucide-react";
 import { useTipsVisibility } from "@/components/tips-bar";
 import { useAdminAccess } from "@/lib/admin-access";
@@ -107,6 +111,14 @@ export default function Settings() {
   const [settings, setSettings] = useState<SettingsData>(defaultSettings);
   const [isVerifying, setIsVerifying] = useState(false);
   const { isHidden: tipsHidden, isDisabled: tipsDisabled, showTips, setTipsDisabled } = useTipsVisibility();
+  
+  // Expandable provider state
+  const [expandedProvider, setExpandedProvider] = useState<ApiProviderType | null>(null);
+  const [freeApiKey, setFreeApiKey] = useState("");
+  const [freeBaseUrl, setFreeBaseUrl] = useState("https://openrouter.ai/api/v1");
+  const [customApiKey, setCustomApiKey] = useState("");
+  const [customBaseUrl, setCustomBaseUrl] = useState("https://api.openai.com/v1");
+  const [isSavingCredentials, setIsSavingCredentials] = useState(false);
 
   const handleShowOnboarding = () => {
     localStorage.removeItem("idengine-onboarding-complete");
@@ -219,6 +231,52 @@ export default function Settings() {
     saveMutation.mutate(settings);
   };
 
+  const handleSaveCredentials = async (providerType: ApiProviderType, apiKey: string, baseUrl?: string) => {
+    if (!apiKey.trim()) {
+      toast({ 
+        title: language === "ru" ? "Введите API ключ" : "Enter API key",
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    setIsSavingCredentials(true);
+    try {
+      const response = await apiRequest("POST", "/api/ai/credentials", {
+        providerType,
+        apiKey: apiKey.trim(),
+        baseUrl: baseUrl?.trim() || undefined
+      });
+      const result = await response.json();
+      
+      if (result.success) {
+        toast({ 
+          title: language === "ru" ? "API подключен" : "API connected",
+          description: language === "ru" 
+            ? `Модель: ${result.model}, время отклика: ${result.responseTime}ms`
+            : `Model: ${result.model}, response time: ${result.responseTime}ms`
+        });
+        setExpandedProvider(null);
+        queryClient.invalidateQueries({ queryKey: ["/api/ai/status"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      } else {
+        toast({ 
+          title: language === "ru" ? "Ошибка подключения" : "Connection error",
+          description: result.error,
+          variant: "destructive"
+        });
+      }
+    } catch (error: any) {
+      toast({ 
+        title: t("common.error"), 
+        description: error.message,
+        variant: "destructive" 
+      });
+    } finally {
+      setIsSavingCredentials(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <Layout title={t("nav.settings")}>
@@ -319,7 +377,9 @@ export default function Settings() {
             )}
 
             <div className="space-y-2">
-              {(["default", "free", "replit", "custom"] as ApiProviderType[]).map((type) => {
+              {/* IDENGINE Base API - default */}
+              {(() => {
+                const type: ApiProviderType = "default";
                 const provider = aiStatus?.providers?.find(p => p.type === type);
                 const isActive = aiStatus?.providerType === type;
                 const desc = providerDescriptions[type];
@@ -327,100 +387,233 @@ export default function Settings() {
                 
                 return (
                   <div
-                    key={type}
-                    className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
-                      isActive 
-                        ? "border-primary bg-primary/5" 
-                        : provider?.available 
-                          ? "hover-elevate" 
-                          : "opacity-50 cursor-not-allowed"
+                    className={`border rounded-lg transition-colors ${
+                      isActive ? "border-primary bg-primary/5" : provider?.available ? "hover-elevate" : "opacity-60"
                     }`}
-                    onClick={() => {
-                      if (switchProviderMutation.isPending) return;
-                      
-                      if (!provider?.available) {
-                        toast({ 
-                          title: language === "ru" ? "Провайдер недоступен" : "Provider unavailable",
-                          description: provider?.reason || (language === "ru" 
-                            ? "Настройте ключ API в Secrets" 
-                            : "Configure API key in Secrets"),
-                          variant: "destructive"
-                        });
-                        return;
-                      }
-                      
-                      if (isActive) {
-                        toast({ 
-                          title: language === "ru" ? "Провайдер активен" : "Provider active",
-                          description: language === "ru" 
-                            ? "Этот провайдер уже выбран" 
-                            : "This provider is already selected"
-                        });
-                        return;
-                      }
-                      
-                      switchProviderMutation.mutate(type);
-                    }}
                     data-testid={`provider-option-${type}`}
                   >
-                    <div className={`mt-0.5 ${isActive ? "text-primary" : "text-muted-foreground"}`}>
-                      <IconComponent className="h-5 w-5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`font-medium text-sm ${isActive ? "text-primary" : ""}`}>
-                          {language === "ru" ? desc.name.ru : desc.name.en}
-                        </span>
-                        {isActive && (
-                          <Badge variant="default" className="text-[10px] px-1.5 py-0">
-                            {language === "ru" ? "АКТИВЕН" : "ACTIVE"}
-                          </Badge>
-                        )}
-                        {!provider?.available && (
-                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                            {language === "ru" ? "НЕ НАСТРОЕН" : "NOT SET"}
-                          </Badge>
-                        )}
+                    <div 
+                      className="flex items-start gap-3 p-3 cursor-pointer"
+                      onClick={() => {
+                        if (provider?.available && !isActive && !switchProviderMutation.isPending) {
+                          switchProviderMutation.mutate(type);
+                        }
+                      }}
+                    >
+                      <IconComponent className={`h-5 w-5 mt-0.5 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`font-medium text-sm ${isActive ? "text-primary" : ""}`}>
+                            {language === "ru" ? desc.name.ru : desc.name.en}
+                          </span>
+                          {isActive && <Badge variant="default" className="text-[10px] px-1.5 py-0">{language === "ru" ? "АКТИВЕН" : "ACTIVE"}</Badge>}
+                          {!provider?.available && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{language === "ru" ? "НЕ НАСТРОЕН" : "NOT SET"}</Badge>}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">{language === "ru" ? desc.desc.ru : desc.desc.en}</p>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {language === "ru" ? desc.desc.ru : desc.desc.en}
-                      </p>
+                      {isActive && provider?.available && <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />}
                     </div>
-                    {isActive && provider?.available && (
-                      <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
-                    )}
-                    {switchProviderMutation.isPending && switchProviderMutation.variables === type && (
-                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
+                );
+              })()}
+
+              {/* Free API - expandable */}
+              {(() => {
+                const type: ApiProviderType = "free";
+                const provider = aiStatus?.providers?.find(p => p.type === type);
+                const isActive = aiStatus?.providerType === type;
+                const desc = providerDescriptions[type];
+                const IconComponent = desc.icon;
+                const isExpanded = expandedProvider === type;
+                
+                return (
+                  <div className={`border rounded-lg transition-colors ${isActive ? "border-primary bg-primary/5" : ""}`} data-testid={`provider-option-${type}`}>
+                    <div 
+                      className="flex items-start gap-3 p-3 cursor-pointer"
+                      onClick={() => {
+                        if (provider?.available && !isActive && !switchProviderMutation.isPending) {
+                          switchProviderMutation.mutate(type);
+                        } else if (!provider?.available) {
+                          setExpandedProvider(isExpanded ? null : type);
+                        }
+                      }}
+                    >
+                      <IconComponent className={`h-5 w-5 mt-0.5 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`font-medium text-sm ${isActive ? "text-primary" : ""}`}>{language === "ru" ? desc.name.ru : desc.name.en}</span>
+                          {isActive && <Badge variant="default" className="text-[10px] px-1.5 py-0">{language === "ru" ? "АКТИВЕН" : "ACTIVE"}</Badge>}
+                          {!provider?.available && <Badge variant="outline" className="text-[10px] px-1.5 py-0">{language === "ru" ? "НАСТРОИТЬ" : "CONFIGURE"}</Badge>}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">{language === "ru" ? desc.desc.ru : desc.desc.en}</p>
+                      </div>
+                      {isActive && provider?.available && <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />}
+                      {!provider?.available && (isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />)}
+                    </div>
+                    
+                    {isExpanded && (
+                      <div className="px-3 pb-3 space-y-3 border-t pt-3">
+                        <div className="p-2 bg-muted/50 rounded text-xs space-y-1">
+                          <p className="font-medium">{language === "ru" ? "Где получить бесплатный ключ:" : "Where to get a free key:"}</p>
+                          {freeApiLinks.map((link) => (
+                            <a key={link.name} href={link.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-primary hover:underline">
+                              <ExternalLink className="h-3 w-3" />
+                              <span>{link.name}</span>
+                              <span className="text-muted-foreground">— {language === "ru" ? link.note.ru : link.note.en}</span>
+                            </a>
+                          ))}
+                        </div>
+                        <div className="space-y-2">
+                          <div>
+                            <Label className="text-xs">API Key</Label>
+                            <Input 
+                              type="password" 
+                              placeholder="sk-..." 
+                              value={freeApiKey} 
+                              onChange={(e) => setFreeApiKey(e.target.value)}
+                              data-testid="input-free-api-key"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Base URL ({language === "ru" ? "необязательно" : "optional"})</Label>
+                            <Input 
+                              type="text" 
+                              placeholder="https://openrouter.ai/api/v1" 
+                              value={freeBaseUrl} 
+                              onChange={(e) => setFreeBaseUrl(e.target.value)}
+                              data-testid="input-free-base-url"
+                            />
+                          </div>
+                          <Button 
+                            className="w-full" 
+                            disabled={!freeApiKey.trim() || isSavingCredentials}
+                            onClick={() => handleSaveCredentials("free", freeApiKey, freeBaseUrl)}
+                            data-testid="button-save-free-api"
+                          >
+                            {isSavingCredentials ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
+                            {language === "ru" ? "Проверить и активировать" : "Test and Activate"}
+                          </Button>
+                        </div>
+                      </div>
                     )}
                   </div>
                 );
-              })}
-            </div>
+              })()}
 
-            {aiStatus?.providerType === "free" && (
-              <div className="p-3 border rounded-lg bg-muted/30">
-                <p className="text-xs font-medium mb-2">
-                  {language === "ru" ? "Где взять бесплатный ключ:" : "Where to get a free key:"}
-                </p>
-                <div className="space-y-1">
-                  {freeApiLinks.map((link) => (
-                    <a
-                      key={link.name}
-                      href={link.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-xs text-primary hover:underline"
+              {/* Replit AI - direct activate */}
+              {(() => {
+                const type: ApiProviderType = "replit";
+                const provider = aiStatus?.providers?.find(p => p.type === type);
+                const isActive = aiStatus?.providerType === type;
+                const desc = providerDescriptions[type];
+                const IconComponent = desc.icon;
+                
+                return (
+                  <div className={`border rounded-lg transition-colors ${isActive ? "border-primary bg-primary/5" : provider?.available ? "hover-elevate" : "opacity-60"}`} data-testid={`provider-option-${type}`}>
+                    <div 
+                      className="flex items-start gap-3 p-3 cursor-pointer"
+                      onClick={() => {
+                        if (provider?.available && !isActive && !switchProviderMutation.isPending) {
+                          switchProviderMutation.mutate(type);
+                        } else if (!provider?.available) {
+                          toast({ 
+                            title: language === "ru" ? "Replit AI недоступен" : "Replit AI unavailable",
+                            description: language === "ru" 
+                              ? "Replit AI интеграция не настроена в этом проекте" 
+                              : "Replit AI integration is not configured for this project",
+                            variant: "destructive"
+                          });
+                        }
+                      }}
                     >
-                      <ExternalLink className="h-3 w-3" />
-                      <span>{link.name}</span>
-                      <span className="text-muted-foreground">
-                        — {language === "ru" ? link.note.ru : link.note.en}
-                      </span>
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
+                      <IconComponent className={`h-5 w-5 mt-0.5 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`font-medium text-sm ${isActive ? "text-primary" : ""}`}>{language === "ru" ? desc.name.ru : desc.name.en}</span>
+                          {isActive && <Badge variant="default" className="text-[10px] px-1.5 py-0">{language === "ru" ? "АКТИВЕН" : "ACTIVE"}</Badge>}
+                          {!provider?.available && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{language === "ru" ? "НЕДОСТУПЕН" : "UNAVAILABLE"}</Badge>}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">{language === "ru" ? desc.desc.ru : desc.desc.en}</p>
+                      </div>
+                      {isActive && provider?.available && <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Custom API - expandable */}
+              {(() => {
+                const type: ApiProviderType = "custom";
+                const provider = aiStatus?.providers?.find(p => p.type === type);
+                const isActive = aiStatus?.providerType === type;
+                const desc = providerDescriptions[type];
+                const IconComponent = desc.icon;
+                const isExpanded = expandedProvider === type;
+                
+                return (
+                  <div className={`border rounded-lg transition-colors ${isActive ? "border-primary bg-primary/5" : ""}`} data-testid={`provider-option-${type}`}>
+                    <div 
+                      className="flex items-start gap-3 p-3 cursor-pointer"
+                      onClick={() => {
+                        if (provider?.available && !isActive && !switchProviderMutation.isPending) {
+                          switchProviderMutation.mutate(type);
+                        } else if (!provider?.available) {
+                          setExpandedProvider(isExpanded ? null : type);
+                        }
+                      }}
+                    >
+                      <IconComponent className={`h-5 w-5 mt-0.5 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`font-medium text-sm ${isActive ? "text-primary" : ""}`}>{language === "ru" ? desc.name.ru : desc.name.en}</span>
+                          {isActive && <Badge variant="default" className="text-[10px] px-1.5 py-0">{language === "ru" ? "АКТИВЕН" : "ACTIVE"}</Badge>}
+                          {!provider?.available && <Badge variant="outline" className="text-[10px] px-1.5 py-0">{language === "ru" ? "НАСТРОИТЬ" : "CONFIGURE"}</Badge>}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">{language === "ru" ? desc.desc.ru : desc.desc.en}</p>
+                      </div>
+                      {isActive && provider?.available && <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />}
+                      {!provider?.available && (isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />)}
+                    </div>
+                    
+                    {isExpanded && (
+                      <div className="px-3 pb-3 space-y-3 border-t pt-3">
+                        <div className="space-y-2">
+                          <div>
+                            <Label className="text-xs">API Key</Label>
+                            <Input 
+                              type="password" 
+                              placeholder="sk-..." 
+                              value={customApiKey} 
+                              onChange={(e) => setCustomApiKey(e.target.value)}
+                              data-testid="input-custom-api-key"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Base URL ({language === "ru" ? "по умолчанию OpenAI" : "default OpenAI"})</Label>
+                            <Input 
+                              type="text" 
+                              placeholder="https://api.openai.com/v1" 
+                              value={customBaseUrl} 
+                              onChange={(e) => setCustomBaseUrl(e.target.value)}
+                              data-testid="input-custom-base-url"
+                            />
+                          </div>
+                          <Button 
+                            className="w-full" 
+                            disabled={!customApiKey.trim() || isSavingCredentials}
+                            onClick={() => handleSaveCredentials("custom", customApiKey, customBaseUrl)}
+                            data-testid="button-save-custom-api"
+                          >
+                            {isSavingCredentials ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
+                            {language === "ru" ? "Проверить и активировать" : "Test and Activate"}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
 
             <div className="flex items-center justify-between p-3 border rounded-lg">
               <div className="space-y-0.5">
