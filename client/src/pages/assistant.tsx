@@ -375,6 +375,20 @@ export default function AssistantPage() {
     }
   }, [messages, streamingContent, optimisticMessages, scrollToBottom, currentPage]);
 
+  // Scroll to bottom on initial load when messages are ready
+  const hasInitiallyScrolled = useRef(false);
+  useEffect(() => {
+    if (!isLoading && messages.length > 0 && currentPage === 1 && !hasInitiallyScrolled.current) {
+      hasInitiallyScrolled.current = true;
+      // Use multiple animation frames to ensure DOM is fully rendered
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          scrollToBottom();
+        });
+      });
+    }
+  }, [isLoading, messages.length, currentPage, scrollToBottom]);
+
   useEffect(() => {
     if (messages.length > 0 && optimisticMessages.length > 0) {
       setOptimisticMessages(prev => 

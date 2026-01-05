@@ -1112,7 +1112,7 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-// Initialize default settings and auth passwords
+// Initialize default settings
 async function initializeDefaults() {
   const storage = new DatabaseStorage();
   
@@ -1125,15 +1125,8 @@ async function initializeDefaults() {
     await storage.setSetting("nextScriptNumber", "1");
   }
   
-  // Check if auth passwords exist
-  const existingPasswords = await storage.getAuthPasswords();
-  if (existingPasswords.length === 0) {
-    await db.insert(authPasswords).values([
-      { password: "Holzid56", userId: null },
-      { password: "Lerochka", userId: null },
-      { password: "Test", userId: null },
-    ]).onConflictDoNothing();
-  }
+  // Initialize default user with secure password
+  await storage.initializeDefaultUser();
 }
 
 // Create and export storage instance
