@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/lib/auth-context";
@@ -74,12 +75,14 @@ import {
   Clock,
   ThumbsUp,
   ThumbsDown,
-  Check
+  Check,
+  Plus,
+  ChevronDown
 } from "lucide-react";
 import { feedbackReasons, type FeedbackReason } from "@shared/schema";
 import { useI18n } from "@/lib/i18n";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import type { AssistantChat } from "@shared/schema";
+import type { AssistantChat, AssistantNote } from "@shared/schema";
 import { format } from "date-fns";
 import { ru, enUS } from "date-fns/locale";
 import { playSendSound, playReceiveSound } from "@/hooks/use-sound";
@@ -112,8 +115,10 @@ export default function AssistantPage() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [optimisticMessages, setOptimisticMessages] = useState<OptimisticMessage[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [notes, setNotes] = useState("");
+  const [activeNoteContent, setActiveNoteContent] = useState("");
   const [notesSaved, setNotesSaved] = useState(true);
+  const [showCreateNoteDialog, setShowCreateNoteDialog] = useState(false);
+  const [newNoteTitle, setNewNoteTitle] = useState("");
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(() => {
     const saved = localStorage.getItem("assistant-sound-enabled");
@@ -168,8 +173,13 @@ export default function AssistantPage() {
     placeholderData: (previousData) => previousData,
   });
 
-  const { data: notesData } = useQuery<{ content: string }>({
+  const { data: allNotes = [] } = useQuery<AssistantNote[]>({
     queryKey: ["/api/assistant/notes"],
+    select: (data) => Array.isArray(data) ? data : [],
+  });
+  
+  const { data: activeNote } = useQuery<AssistantNote | null>({
+    queryKey: ["/api/assistant/notes/active"],
   });
 
   const { data: archivedSessions = [] } = useQuery<{ archivedAt: string; messageCount: number; preview: string }[]>({
@@ -177,28 +187,60 @@ export default function AssistantPage() {
   });
 
   useEffect(() => {
-    if (notesData?.content !== undefined && notes === "") {
-      setNotes(notesData.content);
+    if (activeNote?.content !== undefined) {
+      setActiveNoteContent(activeNote.content);
     }
-  }, [notesData]);
+  }, [activeNote?.id, activeNote?.content]);
 
   const saveNotesMutation = useMutation({
-    mutationFn: (content: string) => apiRequest("POST", "/api/assistant/notes", { content }),
+    mutationFn: ({ noteId, content }: { noteId: number; content: string }) => 
+      apiRequest("PATCH", `/api/assistant/notes/${noteId}`, { content }),
     onSuccess: () => {
       setNotesSaved(true);
       queryClient.invalidateQueries({ queryKey: ["/api/assistant/notes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/assistant/notes/active"] });
+    },
+  });
+  
+  const createNoteMutation = useMutation({
+    mutationFn: (title: string) => apiRequest("POST", "/api/assistant/notes", { title }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/assistant/notes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/assistant/notes/active"] });
+      setShowCreateNoteDialog(false);
+      setNewNoteTitle("");
+      setActiveNoteContent("");
+    },
+  });
+  
+  const activateNoteMutation = useMutation({
+    mutationFn: (noteId: number) => apiRequest("POST", `/api/assistant/notes/${noteId}/activate`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/assistant/notes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/assistant/notes/active"] });
+      setActiveNoteContent("");
+    },
+  });
+  
+  const deleteNoteMutation = useMutation({
+    mutationFn: (noteId: number) => apiRequest("DELETE", `/api/assistant/notes/${noteId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/assistant/notes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/assistant/notes/active"] });
     },
   });
 
   const handleNotesChange = (value: string) => {
-    setNotes(value);
+    setActiveNoteContent(value);
     setNotesSaved(false);
     
     if (notesTimeoutRef.current) {
       clearTimeout(notesTimeoutRef.current);
     }
     notesTimeoutRef.current = setTimeout(() => {
-      saveNotesMutation.mutate(value);
+      if (activeNote?.id) {
+        saveNotesMutation.mutate({ noteId: activeNote.id, content: value });
+      }
     }, 1500);
   };
 
@@ -263,20 +305,43 @@ export default function AssistantPage() {
     },
   });
 
-  // Add message content to notes
-  const addToNotes = useCallback((content: string) => {
-    const separator = notes.length > 0 ? "\n\n---\n\n" : "";
+  // Add message content to notes (creates new note if none active)
+  const addToNotes = useCallback(async (content: string) => {
     const timestamp = format(new Date(), "dd.MM.yyyy HH:mm", { locale: language === "ru" ? ru : enUS });
-    const newNote = `${separator}[${timestamp}]\n${content}`;
-    const updatedNotes = notes + newNote;
-    setNotes(updatedNotes);
-    setNotesSaved(false);
-    saveNotesMutation.mutate(updatedNotes);
-    toast({
-      title: language === "ru" ? "Добавлено в заметки" : "Added to notes",
-      description: language === "ru" ? "Ответ сохранён" : "Response saved",
-    });
-  }, [notes, language, saveNotesMutation, toast]);
+    const formattedNote = `[${timestamp}]\n${content}`;
+    
+    if (activeNote?.id) {
+      const separator = activeNoteContent.length > 0 ? "\n\n---\n\n" : "";
+      const updatedNotes = activeNoteContent + separator + formattedNote;
+      setActiveNoteContent(updatedNotes);
+      setNotesSaved(false);
+      saveNotesMutation.mutate({ noteId: activeNote.id, content: updatedNotes });
+      toast({
+        title: language === "ru" ? "Добавлено в заметки" : "Added to notes",
+        description: activeNote.title,
+      });
+    } else {
+      const defaultTitle = language === "ru" ? "Заметки от " + format(new Date(), "dd.MM.yyyy") : "Notes from " + format(new Date(), "MM/dd/yyyy");
+      try {
+        const response = await apiRequest("POST", "/api/assistant/notes", { title: defaultTitle });
+        const newNote = await response.json();
+        await apiRequest("PATCH", `/api/assistant/notes/${newNote.id}`, { content: formattedNote });
+        queryClient.invalidateQueries({ queryKey: ["/api/assistant/notes"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/assistant/notes/active"] });
+        setActiveNoteContent(formattedNote);
+        toast({
+          title: language === "ru" ? "Создана новая заметка" : "New note created",
+          description: defaultTitle,
+        });
+      } catch (error) {
+        toast({
+          title: language === "ru" ? "Ошибка" : "Error",
+          description: language === "ru" ? "Не удалось создать заметку" : "Failed to create note",
+          variant: "destructive",
+        });
+      }
+    }
+  }, [activeNote, activeNoteContent, language, saveNotesMutation, toast]);
 
   const feedbackReasonLabels: Record<FeedbackReason, { ru: string; en: string }> = {
     too_generic: { ru: "Слишком общий", en: "Too generic" },
@@ -859,6 +924,57 @@ export default function AssistantPage() {
           </AlertDialogContent>
         </AlertDialog>
 
+        {/* Create Note Dialog */}
+        <Dialog open={showCreateNoteDialog} onOpenChange={setShowCreateNoteDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>
+                {language === "ru" ? "Новая заметка" : "New note"}
+              </DialogTitle>
+              <DialogDescription>
+                {language === "ru" 
+                  ? "Введите название для новой заметки"
+                  : "Enter a title for the new note"
+                }
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-4 py-4">
+              <Input
+                value={newNoteTitle}
+                onChange={(e) => setNewNoteTitle(e.target.value)}
+                placeholder={language === "ru" ? "Название заметки..." : "Note title..."}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newNoteTitle.trim()) {
+                    createNoteMutation.mutate(newNoteTitle.trim());
+                  }
+                }}
+                data-testid="input-new-note-title"
+              />
+              <div className="flex justify-end gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => { setShowCreateNoteDialog(false); setNewNoteTitle(""); }}
+                  data-testid="button-cancel-create-note"
+                >
+                  {language === "ru" ? "Отмена" : "Cancel"}
+                </Button>
+                <Button 
+                  onClick={() => createNoteMutation.mutate(newNoteTitle.trim())}
+                  disabled={!newNoteTitle.trim() || createNoteMutation.isPending}
+                  className="bg-amber-500 hover:bg-amber-600"
+                  data-testid="button-confirm-create-note"
+                >
+                  {createNoteMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    language === "ru" ? "Создать" : "Create"
+                  )}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* Timeline Track Ruler */}
         <div className="flex items-center h-5 px-3 bg-muted/30 border-b border-border/30 flex-shrink-0">
           <div className="flex-1 flex items-center gap-3">
@@ -1057,8 +1173,8 @@ export default function AssistantPage() {
               <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
                 {language === "ru" ? "Заметки" : "Notes"}
               </span>
-              {notes.length > 0 && (
-                <span className="text-[9px] bg-amber-500/20 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded-full font-mono">{notes.length}</span>
+              {activeNoteContent.length > 0 && (
+                <span className="text-[9px] bg-amber-500/20 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded-full font-mono">{allNotes.length}</span>
               )}
             </button>
             <button
@@ -1105,13 +1221,13 @@ export default function AssistantPage() {
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       {notesSaved ? <><Save className="h-3 w-3 text-green-500" />{language === "ru" ? "Сохранено" : "Saved"}</> : <><Loader2 className="h-3 w-3 animate-spin" />{language === "ru" ? "Сохранение..." : "Saving..."}</>}
                     </div>
-                    <Button variant="ghost" size="sm" onClick={() => handleNotesChange("")} disabled={notes.length === 0} className="h-7 text-xs" data-testid="button-clear-notes-drawer">
+                    <Button variant="ghost" size="sm" onClick={() => handleNotesChange("")} disabled={activeNoteContent.length === 0 || !activeNote} className="h-7 text-xs" data-testid="button-clear-notes-drawer">
                       <Trash2 className="h-3 w-3 mr-1" />
                       {language === "ru" ? "Очистить" : "Clear"}
                     </Button>
                   </div>
                   <Textarea
-                    value={notes}
+                    value={activeNoteContent}
                     onChange={(e) => handleNotesChange(e.target.value)}
                     placeholder={language === "ru" ? "Записывайте важные идеи из чата здесь..." : "Write down important ideas from chat here..."}
                     className="flex-1 resize-none border-0 rounded-none bg-gradient-to-b from-amber-500/5 via-transparent to-orange-500/5 focus-visible:ring-0 text-sm px-4 notes-scrollbar notebook-lined"
@@ -1458,76 +1574,101 @@ export default function AssistantPage() {
 
         <div className="flex flex-col w-80 gap-4 h-full">
           <Card className="flex flex-col flex-1 min-h-0 overflow-hidden">
-            <div className="flex items-center gap-3 px-4 py-3 border-b bg-gradient-to-r from-amber-500/10 to-orange-500/10">
-              <div className="w-8 h-8 rounded-md bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
-                <StickyNote className="h-4 w-4 text-white" />
-              </div>
-              <div className="flex-1">
-                <h2 className="text-sm font-semibold">
-                  {language === "ru" ? "Заметки" : "Notes"}
-                </h2>
-                <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                  {notesSaved ? (
-                    <>
-                      <Save className="h-2.5 w-2.5" />
-                      {language === "ru" ? "Сохранено" : "Saved"}
-                    </>
-                  ) : (
-                    <>
-                      <Loader2 className="h-2.5 w-2.5 animate-spin" />
-                      {language === "ru" ? "Сохранение..." : "Saving..."}
-                    </>
-                  )}
-                </p>
-              </div>
-              
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    disabled={notes.length === 0}
-                    data-testid="button-clear-notes"
-                  >
-                    <Trash2 className="h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center gap-2 px-3 py-2 border-b bg-gradient-to-r from-amber-500/10 to-orange-500/10">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 gap-1 px-2 flex-1 justify-start" data-testid="button-notes-selector">
+                    <StickyNote className="h-4 w-4 text-amber-500 flex-shrink-0" />
+                    <span className="truncate text-sm font-medium">
+                      {activeNote?.title || (language === "ru" ? "Выберите заметку" : "Select note")}
+                    </span>
+                    <ChevronDown className="h-3 w-3 ml-auto flex-shrink-0 text-muted-foreground" />
                   </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>
-                      {language === "ru" ? "Очистить заметки?" : "Clear notes?"}
-                    </AlertDialogTitle>
-                    <AlertDialogDescription>
-                      {language === "ru" 
-                        ? "Все ваши заметки будут удалены. Это действие нельзя отменить."
-                        : "All your notes will be deleted. This action cannot be undone."
-                      }
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel data-testid="button-cancel-clear-notes">
-                      {language === "ru" ? "Отмена" : "Cancel"}
-                    </AlertDialogCancel>
-                    <AlertDialogAction 
-                      onClick={() => handleNotesChange("")}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      data-testid="button-confirm-clear-notes"
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-64">
+                  <DropdownMenuItem 
+                    onClick={() => setShowCreateNoteDialog(true)}
+                    className="gap-2 text-amber-600"
+                    data-testid="button-create-new-note"
+                  >
+                    <Plus className="h-4 w-4" />
+                    {language === "ru" ? "Создать новую заметку" : "Create new note"}
+                  </DropdownMenuItem>
+                  {allNotes.length > 0 && <DropdownMenuSeparator />}
+                  {allNotes.map((note) => (
+                    <DropdownMenuItem
+                      key={note.id}
+                      onClick={() => activateNoteMutation.mutate(note.id)}
+                      className={`gap-2 ${note.isActive ? "bg-amber-500/10" : ""}`}
+                      data-testid={`button-select-note-${note.id}`}
                     >
-                      {language === "ru" ? "Очистить" : "Clear"}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+                      <StickyNote className={`h-4 w-4 ${note.isActive ? "text-amber-500" : "text-muted-foreground"}`} />
+                      <span className="flex-1 truncate">{note.title}</span>
+                      {note.isActive && <Check className="h-4 w-4 text-amber-500" />}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
+              <div className="flex items-center gap-0.5">
+                <span className="text-[9px] text-muted-foreground flex items-center gap-1">
+                  {notesSaved ? <Save className="h-2.5 w-2.5 text-green-500" /> : <Loader2 className="h-2.5 w-2.5 animate-spin" />}
+                </span>
+                
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      className="h-7 w-7"
+                      disabled={activeNoteContent.length === 0 || !activeNote}
+                      data-testid="button-clear-notes"
+                    >
+                      <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        {language === "ru" ? "Очистить содержимое?" : "Clear content?"}
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {language === "ru" 
+                          ? "Содержимое этой заметки будет удалено."
+                          : "The content of this note will be deleted."
+                        }
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel data-testid="button-cancel-clear-notes">
+                        {language === "ru" ? "Отмена" : "Cancel"}
+                      </AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={() => handleNotesChange("")}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        data-testid="button-confirm-clear-notes"
+                      >
+                        {language === "ru" ? "Очистить" : "Clear"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </div>
             
             <div className="flex-1 min-h-0 overflow-hidden">
               <Textarea
-                value={notes}
+                value={activeNoteContent}
                 onChange={(e) => handleNotesChange(e.target.value)}
-                placeholder={language === "ru" 
-                  ? "Записывайте важные идеи, ссылки, советы из чата..."
-                  : "Write down important ideas, links, tips from the chat..."
+                placeholder={activeNote 
+                  ? (language === "ru" 
+                    ? "Записывайте важные идеи, ссылки, советы из чата..."
+                    : "Write down important ideas, links, tips from the chat...")
+                  : (language === "ru" 
+                    ? "Создайте заметку, чтобы начать..."
+                    : "Create a note to get started...")
                 }
+                disabled={!activeNote}
                 className="h-full w-full resize-none border-0 rounded-none bg-card focus-visible:ring-0 text-sm p-3 overflow-y-auto notes-scrollbar notebook-lined"
                 data-testid="input-notes"
               />
@@ -1537,9 +1678,11 @@ export default function AssistantPage() {
               <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
                 <FileText className="h-3 w-3" />
                 <span>
-                  {notes.length > 0 
-                    ? (language === "ru" ? `${notes.length} символов` : `${notes.length} characters`)
-                    : (language === "ru" ? "Пусто" : "Empty")
+                  {activeNote 
+                    ? (activeNoteContent.length > 0 
+                      ? (language === "ru" ? `${activeNoteContent.length} символов` : `${activeNoteContent.length} characters`)
+                      : (language === "ru" ? "Пусто" : "Empty"))
+                    : (language === "ru" ? "Нет активной заметки" : "No active note")
                   }
                 </span>
               </div>

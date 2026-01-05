@@ -104,9 +104,15 @@ export interface IStorage {
   getArchivedChatSessions(userId: string): Promise<{ archivedAt: string; messageCount: number; preview: string }[]>;
   unarchiveChatSession(userId: string, archivedAt: string): Promise<number>;
   
-  // Assistant notes
-  getAssistantNote(userId: string): Promise<AssistantNote | undefined>;
-  saveAssistantNote(userId: string, content: string): Promise<AssistantNote>;
+  // Assistant notes (multiple notes support)
+  getAllAssistantNotes(userId: string): Promise<AssistantNote[]>;
+  getActiveAssistantNote(userId: string): Promise<AssistantNote | undefined>;
+  getAssistantNoteById(noteId: number): Promise<AssistantNote | undefined>;
+  createAssistantNote(userId: string, title: string): Promise<AssistantNote>;
+  updateAssistantNote(noteId: number, content: string): Promise<AssistantNote>;
+  updateAssistantNoteTitle(noteId: number, title: string): Promise<AssistantNote>;
+  setActiveNote(userId: string, noteId: number): Promise<void>;
+  deleteAssistantNote(noteId: number): Promise<void>;
   
   // Assistant feedback
   saveAssistantFeedback(userId: string, messageId: number, rating: "positive" | "negative", reason?: string): Promise<AssistantFeedback>;
@@ -942,51 +948,93 @@ export class DatabaseStorage implements IStorage {
     return result.rowCount ?? 0;
   }
   
-  // ============ ASSISTANT NOTES ============
+  // ============ ASSISTANT NOTES (Multiple Notes) ============
   
-  async getAssistantNote(userId: string): Promise<AssistantNote | undefined> {
-    const [row] = await db.select()
-      .from(assistantNotes)
-      .where(eq(assistantNotes.userId, userId));
-    
-    if (!row) return undefined;
-    
+  private mapNote(row: typeof assistantNotes.$inferSelect): AssistantNote {
     return {
       id: row.id,
       userId: row.userId,
+      title: row.title,
       content: row.content,
-      updatedAt: row.updatedAt.toISOString(),
+      isActive: row.isActive,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
     };
   }
   
-  async saveAssistantNote(userId: string, content: string): Promise<AssistantNote> {
-    const existing = await this.getAssistantNote(userId);
+  async getAllAssistantNotes(userId: string): Promise<AssistantNote[]> {
+    const rows = await db.select()
+      .from(assistantNotes)
+      .where(eq(assistantNotes.userId, userId))
+      .orderBy(desc(assistantNotes.updatedAt));
     
-    if (existing) {
-      const [row] = await db.update(assistantNotes)
-        .set({ content, updatedAt: new Date() })
-        .where(eq(assistantNotes.userId, userId))
-        .returning();
-      
-      return {
-        id: row.id,
-        userId: row.userId,
-        content: row.content,
-        updatedAt: row.updatedAt.toISOString(),
-      };
-    } else {
-      const [row] = await db.insert(assistantNotes).values({
-        userId,
-        content,
-      }).returning();
-      
-      return {
-        id: row.id,
-        userId: row.userId,
-        content: row.content,
-        updatedAt: row.updatedAt.toISOString(),
-      };
-    }
+    return rows.map(this.mapNote);
+  }
+  
+  async getActiveAssistantNote(userId: string): Promise<AssistantNote | undefined> {
+    const [row] = await db.select()
+      .from(assistantNotes)
+      .where(and(eq(assistantNotes.userId, userId), eq(assistantNotes.isActive, true)));
+    
+    return row ? this.mapNote(row) : undefined;
+  }
+  
+  async getAssistantNoteById(noteId: number): Promise<AssistantNote | undefined> {
+    const [row] = await db.select()
+      .from(assistantNotes)
+      .where(eq(assistantNotes.id, noteId));
+    
+    return row ? this.mapNote(row) : undefined;
+  }
+  
+  async createAssistantNote(userId: string, title: string): Promise<AssistantNote> {
+    // Deactivate all other notes for this user
+    await db.update(assistantNotes)
+      .set({ isActive: false })
+      .where(eq(assistantNotes.userId, userId));
+    
+    const [row] = await db.insert(assistantNotes).values({
+      userId,
+      title,
+      content: "",
+      isActive: true,
+    }).returning();
+    
+    return this.mapNote(row);
+  }
+  
+  async updateAssistantNote(noteId: number, content: string): Promise<AssistantNote> {
+    const [row] = await db.update(assistantNotes)
+      .set({ content, updatedAt: new Date() })
+      .where(eq(assistantNotes.id, noteId))
+      .returning();
+    
+    return this.mapNote(row);
+  }
+  
+  async updateAssistantNoteTitle(noteId: number, title: string): Promise<AssistantNote> {
+    const [row] = await db.update(assistantNotes)
+      .set({ title, updatedAt: new Date() })
+      .where(eq(assistantNotes.id, noteId))
+      .returning();
+    
+    return this.mapNote(row);
+  }
+  
+  async setActiveNote(userId: string, noteId: number): Promise<void> {
+    // Deactivate all notes
+    await db.update(assistantNotes)
+      .set({ isActive: false })
+      .where(eq(assistantNotes.userId, userId));
+    
+    // Activate the selected note
+    await db.update(assistantNotes)
+      .set({ isActive: true })
+      .where(eq(assistantNotes.id, noteId));
+  }
+  
+  async deleteAssistantNote(noteId: number): Promise<void> {
+    await db.delete(assistantNotes).where(eq(assistantNotes.id, noteId));
   }
   
   // ============ ASSISTANT FEEDBACK ============

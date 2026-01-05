@@ -2087,7 +2087,7 @@ Distribute time evenly: scenes 3-7 seconds each. Only JSON array.`;
     }
   });
   
-  // Get user's notes
+  // Get all user's notes
   app.get("/api/assistant/notes", async (req, res) => {
     try {
       const sessionId = req.cookies?.session_id;
@@ -2100,15 +2100,36 @@ Distribute time evenly: scenes 3-7 seconds each. Only JSON array.`;
         return res.status(401).json({ error: "Session expired" });
       }
       
-      const note = await storage.getAssistantNote(session.userId);
-      res.json(note || { content: "" });
+      const notes = await storage.getAllAssistantNotes(session.userId);
+      res.json(notes);
     } catch (error) {
       console.error("Failed to get notes:", error);
       res.status(500).json({ error: "Failed to get notes" });
     }
   });
   
-  // Save user's notes
+  // Get active note
+  app.get("/api/assistant/notes/active", async (req, res) => {
+    try {
+      const sessionId = req.cookies?.session_id;
+      if (!sessionId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const session = await storage.getSession(sessionId);
+      if (!session) {
+        return res.status(401).json({ error: "Session expired" });
+      }
+      
+      const note = await storage.getActiveAssistantNote(session.userId);
+      res.json(note || null);
+    } catch (error) {
+      console.error("Failed to get active note:", error);
+      res.status(500).json({ error: "Failed to get active note" });
+    }
+  });
+  
+  // Create new note
   app.post("/api/assistant/notes", async (req, res) => {
     try {
       const sessionId = req.cookies?.session_id;
@@ -2121,16 +2142,104 @@ Distribute time evenly: scenes 3-7 seconds each. Only JSON array.`;
         return res.status(401).json({ error: "Session expired" });
       }
       
-      const { content } = req.body;
-      if (typeof content !== "string") {
-        return res.status(400).json({ error: "Content must be a string" });
+      const { title } = req.body;
+      if (typeof title !== "string" || !title.trim()) {
+        return res.status(400).json({ error: "Title is required" });
       }
       
-      const note = await storage.saveAssistantNote(session.userId, content);
+      const note = await storage.createAssistantNote(session.userId, title.trim());
       res.json(note);
     } catch (error) {
-      console.error("Failed to save notes:", error);
-      res.status(500).json({ error: "Failed to save notes" });
+      console.error("Failed to create note:", error);
+      res.status(500).json({ error: "Failed to create note" });
+    }
+  });
+  
+  // Update note content
+  app.patch("/api/assistant/notes/:noteId", async (req, res) => {
+    try {
+      const sessionId = req.cookies?.session_id;
+      if (!sessionId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const session = await storage.getSession(sessionId);
+      if (!session) {
+        return res.status(401).json({ error: "Session expired" });
+      }
+      
+      const noteId = parseInt(req.params.noteId);
+      if (isNaN(noteId)) {
+        return res.status(400).json({ error: "Invalid note ID" });
+      }
+      
+      const { content, title } = req.body;
+      
+      let note;
+      if (typeof content === "string") {
+        note = await storage.updateAssistantNote(noteId, content);
+      } else if (typeof title === "string") {
+        note = await storage.updateAssistantNoteTitle(noteId, title);
+      } else {
+        return res.status(400).json({ error: "Content or title is required" });
+      }
+      
+      res.json(note);
+    } catch (error) {
+      console.error("Failed to update note:", error);
+      res.status(500).json({ error: "Failed to update note" });
+    }
+  });
+  
+  // Set active note
+  app.post("/api/assistant/notes/:noteId/activate", async (req, res) => {
+    try {
+      const sessionId = req.cookies?.session_id;
+      if (!sessionId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const session = await storage.getSession(sessionId);
+      if (!session) {
+        return res.status(401).json({ error: "Session expired" });
+      }
+      
+      const noteId = parseInt(req.params.noteId);
+      if (isNaN(noteId)) {
+        return res.status(400).json({ error: "Invalid note ID" });
+      }
+      
+      await storage.setActiveNote(session.userId, noteId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to activate note:", error);
+      res.status(500).json({ error: "Failed to activate note" });
+    }
+  });
+  
+  // Delete note
+  app.delete("/api/assistant/notes/:noteId", async (req, res) => {
+    try {
+      const sessionId = req.cookies?.session_id;
+      if (!sessionId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const session = await storage.getSession(sessionId);
+      if (!session) {
+        return res.status(401).json({ error: "Session expired" });
+      }
+      
+      const noteId = parseInt(req.params.noteId);
+      if (isNaN(noteId)) {
+        return res.status(400).json({ error: "Invalid note ID" });
+      }
+      
+      await storage.deleteAssistantNote(noteId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to delete note:", error);
+      res.status(500).json({ error: "Failed to delete note" });
     }
   });
   
