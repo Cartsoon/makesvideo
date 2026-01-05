@@ -254,7 +254,8 @@ export default function Settings() {
           title: language === "ru" ? "API подключен" : "API connected",
           description: language === "ru" 
             ? `Модель: ${result.model}, время отклика: ${result.responseTime}ms`
-            : `Model: ${result.model}, response time: ${result.responseTime}ms`
+            : `Model: ${result.model}, response time: ${result.responseTime}ms`,
+          duration: 5000
         });
         setExpandedProvider(null);
         queryClient.invalidateQueries({ queryKey: ["/api/ai/status"] });
