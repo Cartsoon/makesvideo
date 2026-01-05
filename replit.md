@@ -35,6 +35,14 @@ Preferred communication style: Simple, everyday language.
 - **API Design**: RESTful JSON API at `/api/*` endpoints
 - **Job Processing**: Custom polling-based background worker for async tasks (fetching topics, generating content)
 
+### Authentication
+- **Method**: Username + password authentication with bcrypt hashing
+- **Password Security**: bcryptjs with 10 salt rounds for secure password hashing
+- **Session Management**: Server-side sessions stored in PostgreSQL via connect-pg-simple
+- **Default User**: "Cartsoon" user auto-created at server startup with hashed password
+- **Cross-Device Sync**: User data tied to accounts, enabling access from any device
+- **Login Flow**: `/api/auth/login` validates credentials against bcrypt hash
+
 ### Data Layer
 - **ORM**: Drizzle ORM with Zod schema validation
 - **Database**: PostgreSQL (configured via DATABASE_URL environment variable)
