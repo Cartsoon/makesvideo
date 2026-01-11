@@ -485,7 +485,7 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <p className="font-bold text-sm sm:text-base text-white uppercase tracking-wide">
-                    <span className="hidden sm:inline">{t("dashboard.createFromMaterial")}</span>
+                    <span className="hidden sm:inline text-[14px]">{t("dashboard.createFromMaterial")}</span>
                     <span className="sm:hidden">{t("dashboard.createFromMaterialShort")}</span>
                   </p>
                   <p className="text-[10px] sm:text-xs text-neutral-400 mt-1 hidden sm:block">
