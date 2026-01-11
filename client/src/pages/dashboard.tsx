@@ -259,7 +259,7 @@ export default function Dashboard() {
                   <Scissors className={`relative h-4 w-4 ${stats.totalTopics > 0 ? "text-emerald-400" : "text-neutral-400"}`} />
                 </div>
                 <span className={`text-lg font-bold ${stats.totalTopics > 0 ? "text-emerald-400" : "text-neutral-400"}`} data-testid="stat-total-topics">{stats.totalTopics}</span>
-                <span className={`text-[8px] uppercase tracking-wide hidden sm:inline ${stats.totalTopics > 0 ? "text-emerald-400/70" : "text-neutral-400"}`}>{t("dashboard.totalTopics")}</span>
+                <span className="uppercase tracking-wide hidden sm:inline text-emerald-400/70 text-[12px] font-normal">{t("dashboard.totalTopics")}</span>
               </div>
               <p className={`text-[7px] text-center mt-0.5 sm:hidden uppercase tracking-wide relative ${stats.totalTopics > 0 ? "text-emerald-400/70" : "text-neutral-500"}`}>{t("dashboard.totalTopics")}</p>
             </div>
