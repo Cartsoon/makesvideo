@@ -18,6 +18,20 @@ const translations: Record<Language, Record<string, string>> = {
     "nav.settings": "Settings",
     "nav.assistant": "Assistant",
     "nav.info": "Information",
+    "nav.stockSearch": "Stock Search",
+
+    // Stock Search
+    "stock.title": "STOCK SEARCH",
+    "stock.subtitle": "Search free videos, photos, and audio from Pexels, Pixabay, Unsplash, Freesound",
+    "stock.videos": "Videos",
+    "stock.photos": "Photos",
+    "stock.audio": "Audio",
+    "stock.search": "Search",
+    "stock.searchPlaceholder": "Enter search query (auto-translated to English)",
+    "stock.translatedTo": "Translated to",
+    "stock.noResults": "No results found",
+    "stock.tryDifferent": "Try a different search query",
+    "stock.configureApi": "Configure API keys in settings for more results",
     
     // Dashboard
     "dashboard.title": "Dashboard",
@@ -491,6 +505,20 @@ const translations: Record<Language, Record<string, string>> = {
     "nav.settings": "Настройки",
     "nav.assistant": "Ассистент",
     "nav.info": "Информация",
+    "nav.stockSearch": "Поиск футажей",
+
+    // Stock Search
+    "stock.title": "ПОИСК ФУТАЖЕЙ",
+    "stock.subtitle": "Поиск бесплатных видео, фото и аудио из Pexels, Pixabay, Unsplash, Freesound",
+    "stock.videos": "Видео",
+    "stock.photos": "Фото",
+    "stock.audio": "Аудио",
+    "stock.search": "Искать",
+    "stock.searchPlaceholder": "Введите запрос (авто-перевод на английский)",
+    "stock.translatedTo": "Переведено на",
+    "stock.noResults": "Ничего не найдено",
+    "stock.tryDifferent": "Попробуйте другой запрос",
+    "stock.configureApi": "Настройте API-ключи в настройках для большего количества результатов",
     
     // Dashboard
     "dashboard.title": "Панель управления",
