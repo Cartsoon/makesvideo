@@ -33,7 +33,13 @@ export default function StockSearch() {
 
   const searchMutation = useMutation({
     mutationFn: async ({ query, mediaType }: { query: string; mediaType: StockMediaType }) => {
-      return apiRequest("POST", "/api/stock-search", { query, mediaType, limit: 30 }) as Promise<StockSearchResponse>;
+      const res = await fetch("/api/stock-search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, mediaType, limit: 30 }),
+      });
+      if (!res.ok) throw new Error("Search failed");
+      return res.json() as Promise<StockSearchResponse>;
     },
     onSuccess: (data) => {
       setResults(data);
