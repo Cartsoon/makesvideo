@@ -16,6 +16,8 @@ import { kbRouter } from "./routes/kb";
 import { registerKbAdminRoutes } from "./routes/kb-admin";
 import { ragRetrieve, formatRagContext, checkRequiresArticle, getArticleContext } from "./ai/rag";
 import { getLogs, getLogsFormatted, getRecentLogsFormatted, clearLogs, getLogStats, logError, logInfo } from "./error-logger";
+import { searchStock, getStockProviderStatus } from "./stock-search";
+import { stockSearchRequestSchema } from "@shared/schema";
 
 const imageCache = new Map<string, { data: Buffer; contentType: string; timestamp: number }>();
 const IMAGE_CACHE_TTL = 1000 * 60 * 60; // 1 hour
@@ -150,6 +152,33 @@ export async function registerRoutes(
       }
       logError("ImageProxy", error.message || "Unknown error");
       res.status(500).json({ error: "Failed to process image" });
+    }
+  });
+
+  // ============ STOCK SEARCH ============
+  
+  app.post("/api/stock-search", async (req, res) => {
+    try {
+      const parsed = stockSearchRequestSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid search request", details: parsed.error.errors });
+      }
+      
+      const { query, mediaType, limit } = parsed.data;
+      const results = await searchStock(query, mediaType, limit);
+      res.json(results);
+    } catch (error: any) {
+      logError("StockSearch", error.message || "Search failed");
+      res.status(500).json({ error: "Stock search failed" });
+    }
+  });
+
+  app.get("/api/stock-providers", async (req, res) => {
+    try {
+      const status = getStockProviderStatus();
+      res.json(status);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get provider status" });
     }
   });
 
