@@ -23,20 +23,24 @@ import {
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { apiRequest } from "@/lib/queryClient";
-import type { StockAsset, StockMediaType, StockSearchResponse } from "@shared/schema";
+import type { StockAsset, StockMediaType, StockOrientation, StockSearchResponse } from "@shared/schema";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Smartphone, Monitor } from "lucide-react";
 
 export default function StockSearch() {
   const { t } = useI18n();
   const [query, setQuery] = useState("");
   const [mediaType, setMediaType] = useState<StockMediaType>("video");
+  const [orientation, setOrientation] = useState<StockOrientation>("all");
   const [results, setResults] = useState<StockSearchResponse | null>(null);
 
   const searchMutation = useMutation({
-    mutationFn: async ({ query, mediaType }: { query: string; mediaType: StockMediaType }) => {
+    mutationFn: async ({ query, mediaType, orientation }: { query: string; mediaType: StockMediaType; orientation: StockOrientation }) => {
       const res = await fetch("/api/stock-search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query, mediaType, limit: 30 }),
+        body: JSON.stringify({ query, mediaType, orientation, limit: 30 }),
       });
       if (!res.ok) throw new Error("Search failed");
       return res.json() as Promise<StockSearchResponse>;
@@ -48,7 +52,7 @@ export default function StockSearch() {
 
   const handleSearch = () => {
     if (!query.trim()) return;
-    searchMutation.mutate({ query: query.trim(), mediaType });
+    searchMutation.mutate({ query: query.trim(), mediaType, orientation });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -123,6 +127,45 @@ export default function StockSearch() {
               <span className="ml-2 hidden sm:inline">{t("stock.search")}</span>
             </Button>
           </div>
+
+          {mediaType !== "audio" && (
+            <div className="flex flex-wrap gap-4 mt-3">
+              <div className="flex items-center gap-2">
+                <Checkbox 
+                  id="orientation-portrait" 
+                  checked={orientation === "portrait" || orientation === "all"}
+                  onCheckedChange={(checked) => {
+                    if (checked && orientation === "landscape") setOrientation("all");
+                    else if (checked) setOrientation("portrait");
+                    else if (orientation === "all") setOrientation("landscape");
+                    else setOrientation("all");
+                  }}
+                  data-testid="checkbox-portrait"
+                />
+                <Label htmlFor="orientation-portrait" className="flex items-center gap-1.5 text-sm cursor-pointer">
+                  <Smartphone className="h-4 w-4" />
+                  {t("stock.portrait")}
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox 
+                  id="orientation-landscape" 
+                  checked={orientation === "landscape" || orientation === "all"}
+                  onCheckedChange={(checked) => {
+                    if (checked && orientation === "portrait") setOrientation("all");
+                    else if (checked) setOrientation("landscape");
+                    else if (orientation === "all") setOrientation("portrait");
+                    else setOrientation("all");
+                  }}
+                  data-testid="checkbox-landscape"
+                />
+                <Label htmlFor="orientation-landscape" className="flex items-center gap-1.5 text-sm cursor-pointer">
+                  <Monitor className="h-4 w-4" />
+                  {t("stock.landscape")}
+                </Label>
+              </div>
+            </div>
+          )}
 
           {results && results.translatedQuery !== results.query && (
             <div className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
@@ -227,6 +270,12 @@ interface AssetCardProps {
 
 function AssetCard({ asset, getProviderColor, formatDuration }: AssetCardProps) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [thumbnailError, setThumbnailError] = useState(false);
+  const [thumbnailLoaded, setThumbnailLoaded] = useState(false);
+
+  const thumbnailSrc = thumbnailError 
+    ? asset.previewUrl 
+    : (asset.thumbnailUrl || asset.previewUrl);
 
   return (
     <Card 
@@ -242,15 +291,26 @@ function AssetCard({ asset, getProviderColor, formatDuration }: AssetCardProps) 
               autoPlay
               muted
               loop
+              playsInline
               onEnded={() => setIsPlaying(false)}
             />
           ) : (
             <>
+              {!thumbnailLoaded && !thumbnailError && (
+                <div className="absolute inset-0 flex items-center justify-center bg-muted">
+                  <Video className="h-8 w-8 text-muted-foreground/50" />
+                </div>
+              )}
               <img
-                src={asset.thumbnailUrl || asset.previewUrl}
+                src={thumbnailSrc}
                 alt={asset.title}
-                className="w-full h-full object-cover"
+                className={`w-full h-full object-cover transition-opacity ${thumbnailLoaded ? 'opacity-100' : 'opacity-0'}`}
                 loading="lazy"
+                onLoad={() => setThumbnailLoaded(true)}
+                onError={() => {
+                  setThumbnailError(true);
+                  setThumbnailLoaded(true);
+                }}
               />
               <button
                 onClick={() => setIsPlaying(true)}

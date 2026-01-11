@@ -32,6 +32,8 @@ const translations: Record<Language, Record<string, string>> = {
     "stock.noResults": "No results found",
     "stock.tryDifferent": "Try a different search query",
     "stock.configureApi": "Configure API keys in settings for more results",
+    "stock.portrait": "Vertical",
+    "stock.landscape": "Horizontal",
     
     // Dashboard
     "dashboard.title": "Dashboard",
@@ -519,6 +521,8 @@ const translations: Record<Language, Record<string, string>> = {
     "stock.noResults": "Ничего не найдено",
     "stock.tryDifferent": "Попробуйте другой запрос",
     "stock.configureApi": "Настройте API-ключи в настройках для большего количества результатов",
+    "stock.portrait": "Вертикальные",
+    "stock.landscape": "Горизонтальные",
     
     // Dashboard
     "dashboard.title": "Панель управления",

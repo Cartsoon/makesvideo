@@ -1094,6 +1094,9 @@ export type StockMediaType = typeof stockMediaTypes[number];
 export const stockProviders = ["pexels", "pixabay", "unsplash", "freesound"] as const;
 export type StockProvider = typeof stockProviders[number];
 
+export const stockOrientations = ["portrait", "landscape", "all"] as const;
+export type StockOrientation = typeof stockOrientations[number];
+
 export interface StockAsset {
   id: string;
   provider: StockProvider;
@@ -1116,6 +1119,7 @@ export interface StockAsset {
 export const stockSearchRequestSchema = z.object({
   query: z.string().min(1).max(200),
   mediaType: z.enum(stockMediaTypes),
+  orientation: z.enum(stockOrientations).default("all"),
   limit: z.number().min(1).max(50).default(30),
 });
 export type StockSearchRequest = z.infer<typeof stockSearchRequestSchema>;
