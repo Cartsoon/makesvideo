@@ -1121,6 +1121,7 @@ export const stockSearchRequestSchema = z.object({
   mediaType: z.enum(stockMediaTypes),
   orientation: z.enum(stockOrientations).default("all"),
   limit: z.number().min(1).max(50).default(30),
+  page: z.number().min(1).max(100).default(1),
 });
 export type StockSearchRequest = z.infer<typeof stockSearchRequestSchema>;
 
@@ -1130,4 +1131,6 @@ export interface StockSearchResponse {
   translatedQuery: string;
   mediaType: StockMediaType;
   totalResults: number;
+  page?: number;
+  hasMore?: boolean;
 }

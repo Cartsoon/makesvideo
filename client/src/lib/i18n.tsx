@@ -34,6 +34,8 @@ const translations: Record<Language, Record<string, string>> = {
     "stock.configureApi": "Configure API keys in settings for more results",
     "stock.portrait": "Vertical",
     "stock.landscape": "Horizontal",
+    "stock.loadMore": "Load More",
+    "stock.loading": "Loading...",
     
     // Dashboard
     "dashboard.title": "Dashboard",
@@ -523,6 +525,8 @@ const translations: Record<Language, Record<string, string>> = {
     "stock.configureApi": "Настройте API-ключи в настройках для большего количества результатов",
     "stock.portrait": "Вертикальные",
     "stock.landscape": "Горизонтальные",
+    "stock.loadMore": "Загрузить ещё",
+    "stock.loading": "Загрузка...",
     
     // Dashboard
     "dashboard.title": "Панель управления",

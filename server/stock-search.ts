@@ -85,13 +85,13 @@ function getOrientationParam(orientation: StockOrientation, provider: "pexels" |
   return "";
 }
 
-async function searchPexelsVideos(query: string, perPage: number = 15, orientation: StockOrientation = "all"): Promise<StockAsset[]> {
+async function searchPexelsVideos(query: string, perPage: number = 15, orientation: StockOrientation = "all", page: number = 1): Promise<StockAsset[]> {
   const apiKey = providerConfigs.pexels.apiKey;
   if (!apiKey) return [];
 
   try {
     const orientationParam = getOrientationParam(orientation, "pexels");
-    const url = `${providerConfigs.pexels.baseUrl}/videos/search?query=${encodeURIComponent(query)}&per_page=${perPage}${orientationParam}`;
+    const url = `${providerConfigs.pexels.baseUrl}/videos/search?query=${encodeURIComponent(query)}&per_page=${perPage}&page=${page}${orientationParam}`;
     const response = await fetch(url, {
       headers: { Authorization: apiKey },
     });
@@ -121,13 +121,13 @@ async function searchPexelsVideos(query: string, perPage: number = 15, orientati
   }
 }
 
-async function searchPexelsPhotos(query: string, perPage: number = 15, orientation: StockOrientation = "all"): Promise<StockAsset[]> {
+async function searchPexelsPhotos(query: string, perPage: number = 15, orientation: StockOrientation = "all", page: number = 1): Promise<StockAsset[]> {
   const apiKey = providerConfigs.pexels.apiKey;
   if (!apiKey) return [];
 
   try {
     const orientationParam = getOrientationParam(orientation, "pexels");
-    const url = `${providerConfigs.pexels.baseUrl}/v1/search?query=${encodeURIComponent(query)}&per_page=${perPage}${orientationParam}`;
+    const url = `${providerConfigs.pexels.baseUrl}/v1/search?query=${encodeURIComponent(query)}&per_page=${perPage}&page=${page}${orientationParam}`;
     const response = await fetch(url, {
       headers: { Authorization: apiKey },
     });
@@ -155,13 +155,13 @@ async function searchPexelsPhotos(query: string, perPage: number = 15, orientati
   }
 }
 
-async function searchPixabayVideos(query: string, perPage: number = 15, orientation: StockOrientation = "all"): Promise<StockAsset[]> {
+async function searchPixabayVideos(query: string, perPage: number = 15, orientation: StockOrientation = "all", page: number = 1): Promise<StockAsset[]> {
   const apiKey = providerConfigs.pixabay.apiKey;
   if (!apiKey) return [];
 
   try {
     const orientationParam = getOrientationParam(orientation, "pixabay");
-    const url = `${providerConfigs.pixabay.baseUrl}/videos/?key=${apiKey}&q=${encodeURIComponent(query)}&per_page=${perPage}${orientationParam}`;
+    const url = `${providerConfigs.pixabay.baseUrl}/videos/?key=${apiKey}&q=${encodeURIComponent(query)}&per_page=${perPage}&page=${page}${orientationParam}`;
     const response = await fetch(url);
 
     if (!response.ok) return [];
@@ -200,13 +200,13 @@ async function searchPixabayVideos(query: string, perPage: number = 15, orientat
   }
 }
 
-async function searchPixabayPhotos(query: string, perPage: number = 15, orientation: StockOrientation = "all"): Promise<StockAsset[]> {
+async function searchPixabayPhotos(query: string, perPage: number = 15, orientation: StockOrientation = "all", page: number = 1): Promise<StockAsset[]> {
   const apiKey = providerConfigs.pixabay.apiKey;
   if (!apiKey) return [];
 
   try {
     const orientationParam = getOrientationParam(orientation, "pixabay");
-    const url = `${providerConfigs.pixabay.baseUrl}/?key=${apiKey}&q=${encodeURIComponent(query)}&per_page=${perPage}&image_type=photo${orientationParam}`;
+    const url = `${providerConfigs.pixabay.baseUrl}/?key=${apiKey}&q=${encodeURIComponent(query)}&per_page=${perPage}&page=${page}&image_type=photo${orientationParam}`;
     const response = await fetch(url);
 
     if (!response.ok) return [];
@@ -234,12 +234,12 @@ async function searchPixabayPhotos(query: string, perPage: number = 15, orientat
   }
 }
 
-async function searchPixabayAudio(query: string, perPage: number = 15): Promise<StockAsset[]> {
+async function searchPixabayAudio(query: string, perPage: number = 15, page: number = 1): Promise<StockAsset[]> {
   const apiKey = providerConfigs.pixabay.apiKey;
   if (!apiKey) return [];
 
   try {
-    const url = `${providerConfigs.pixabay.baseUrl}/?key=${apiKey}&q=${encodeURIComponent(query)}&per_page=${perPage}&media_type=music`;
+    const url = `${providerConfigs.pixabay.baseUrl}/?key=${apiKey}&q=${encodeURIComponent(query)}&per_page=${perPage}&page=${page}&media_type=music`;
     const response = await fetch(url);
 
     if (!response.ok) return [];
@@ -265,13 +265,13 @@ async function searchPixabayAudio(query: string, perPage: number = 15): Promise<
   }
 }
 
-async function searchUnsplashPhotos(query: string, perPage: number = 15, orientation: StockOrientation = "all"): Promise<StockAsset[]> {
+async function searchUnsplashPhotos(query: string, perPage: number = 15, orientation: StockOrientation = "all", page: number = 1): Promise<StockAsset[]> {
   const apiKey = providerConfigs.unsplash.apiKey;
   if (!apiKey) return [];
 
   try {
     const orientationParam = getOrientationParam(orientation, "unsplash");
-    const url = `${providerConfigs.unsplash.baseUrl}/search/photos?query=${encodeURIComponent(query)}&per_page=${perPage}${orientationParam}`;
+    const url = `${providerConfigs.unsplash.baseUrl}/search/photos?query=${encodeURIComponent(query)}&per_page=${perPage}&page=${page}${orientationParam}`;
     const response = await fetch(url, {
       headers: { Authorization: `Client-ID ${apiKey}` },
     });
@@ -301,12 +301,12 @@ async function searchUnsplashPhotos(query: string, perPage: number = 15, orienta
   }
 }
 
-async function searchFreesoundAudio(query: string, perPage: number = 15): Promise<StockAsset[]> {
+async function searchFreesoundAudio(query: string, perPage: number = 15, page: number = 1): Promise<StockAsset[]> {
   const apiKey = providerConfigs.freesound.apiKey;
   if (!apiKey) return [];
 
   try {
-    const url = `${providerConfigs.freesound.baseUrl}/search/text/?query=${encodeURIComponent(query)}&page_size=${perPage}&token=${apiKey}&fields=id,name,description,duration,username,previews,tags,license`;
+    const url = `${providerConfigs.freesound.baseUrl}/search/text/?query=${encodeURIComponent(query)}&page_size=${perPage}&page=${page}&token=${apiKey}&fields=id,name,description,duration,username,previews,tags,license`;
     const response = await fetch(url);
 
     if (!response.ok) return [];
@@ -336,16 +336,17 @@ export async function searchStock(
   query: string,
   mediaType: StockMediaType,
   limit: number = 30,
-  orientation: StockOrientation = "all"
+  orientation: StockOrientation = "all",
+  page: number = 1
 ): Promise<StockSearchResponse> {
-  const cacheKey = `${mediaType}:${orientation}:${query}:${limit}`;
+  const cacheKey = `${mediaType}:${orientation}:${query}:${limit}:${page}`;
   const cached = stockCache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    logInfo("StockSearch", `Cache hit for "${query}" (${mediaType}, ${orientation})`);
+    logInfo("StockSearch", `Cache hit for "${query}" (${mediaType}, ${orientation}, page ${page})`);
     return cached.data;
   }
 
-  logInfo("StockSearch", `Searching for "${query}" (${mediaType}, ${orientation}), limit: ${limit}`);
+  logInfo("StockSearch", `Searching for "${query}" (${mediaType}, ${orientation}), limit: ${limit}, page: ${page}`);
 
   const translatedQuery = await translateToEnglish(query);
   const perProvider = Math.ceil(limit / 3);
@@ -354,21 +355,21 @@ export async function searchStock(
 
   if (mediaType === "video") {
     const [pexelsVideos, pixabayVideos] = await Promise.all([
-      searchPexelsVideos(translatedQuery, perProvider, orientation),
-      searchPixabayVideos(translatedQuery, perProvider, orientation),
+      searchPexelsVideos(translatedQuery, perProvider, orientation, page),
+      searchPixabayVideos(translatedQuery, perProvider, orientation, page),
     ]);
     assets = [...pexelsVideos, ...pixabayVideos];
   } else if (mediaType === "photo") {
     const [pexelsPhotos, pixabayPhotos, unsplashPhotos] = await Promise.all([
-      searchPexelsPhotos(translatedQuery, perProvider, orientation),
-      searchPixabayPhotos(translatedQuery, perProvider, orientation),
-      searchUnsplashPhotos(translatedQuery, perProvider, orientation),
+      searchPexelsPhotos(translatedQuery, perProvider, orientation, page),
+      searchPixabayPhotos(translatedQuery, perProvider, orientation, page),
+      searchUnsplashPhotos(translatedQuery, perProvider, orientation, page),
     ]);
     assets = [...pexelsPhotos, ...pixabayPhotos, ...unsplashPhotos];
   } else if (mediaType === "audio") {
     const [freesoundAudio, pixabayAudio] = await Promise.all([
-      searchFreesoundAudio(translatedQuery, perProvider),
-      searchPixabayAudio(translatedQuery, perProvider),
+      searchFreesoundAudio(translatedQuery, perProvider, page),
+      searchPixabayAudio(translatedQuery, perProvider, page),
     ]);
     assets = [...freesoundAudio, ...pixabayAudio];
   }
@@ -387,6 +388,8 @@ export async function searchStock(
     translatedQuery,
     mediaType,
     totalResults: sortedAssets.length,
+    page,
+    hasMore: sortedAssets.length >= limit,
   };
 
   stockCache.set(cacheKey, { data: response, timestamp: Date.now() });
@@ -395,7 +398,7 @@ export async function searchStock(
     if (oldestKey) stockCache.delete(oldestKey);
   }
 
-  logInfo("StockSearch", `Found ${sortedAssets.length} ${mediaType} results for "${query}"`);
+  logInfo("StockSearch", `Found ${sortedAssets.length} ${mediaType} results for "${query}" (page ${page})`);
   return response;
 }
 

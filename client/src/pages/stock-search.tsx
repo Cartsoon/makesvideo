@@ -34,25 +34,44 @@ export default function StockSearch() {
   const [mediaType, setMediaType] = useState<StockMediaType>("video");
   const [orientation, setOrientation] = useState<StockOrientation>("all");
   const [results, setResults] = useState<StockSearchResponse | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [allAssets, setAllAssets] = useState<StockAsset[]>([]);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const searchMutation = useMutation({
-    mutationFn: async ({ query, mediaType, orientation }: { query: string; mediaType: StockMediaType; orientation: StockOrientation }) => {
+    mutationFn: async ({ query, mediaType, orientation, page }: { query: string; mediaType: StockMediaType; orientation: StockOrientation; page: number }) => {
       const res = await fetch("/api/stock-search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query, mediaType, orientation, limit: 30 }),
+        body: JSON.stringify({ query, mediaType, orientation, limit: 30, page }),
       });
       if (!res.ok) throw new Error("Search failed");
       return res.json() as Promise<StockSearchResponse>;
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
+      if (variables.page === 1) {
+        setAllAssets(data.assets);
+      } else {
+        setAllAssets(prev => [...prev, ...data.assets]);
+      }
       setResults(data);
+      setIsLoadingMore(false);
     },
   });
 
   const handleSearch = () => {
     if (!query.trim()) return;
-    searchMutation.mutate({ query: query.trim(), mediaType, orientation });
+    setCurrentPage(1);
+    setAllAssets([]);
+    searchMutation.mutate({ query: query.trim(), mediaType, orientation, page: 1 });
+  };
+
+  const handleLoadMore = () => {
+    if (!query.trim() || isLoadingMore) return;
+    setIsLoadingMore(true);
+    const nextPage = currentPage + 1;
+    setCurrentPage(nextPage);
+    searchMutation.mutate({ query: query.trim(), mediaType, orientation, page: nextPage });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -176,32 +195,41 @@ export default function StockSearch() {
 
           <TabsContent value="video" className="mt-4">
             <ResultsGrid 
-              assets={results?.assets.filter(a => a.mediaType === "video") || []} 
-              isLoading={searchMutation.isPending && mediaType === "video"}
+              assets={allAssets.filter(a => a.mediaType === "video")} 
+              isLoading={searchMutation.isPending && !isLoadingMore && mediaType === "video"}
               mediaType="video"
               getProviderColor={getProviderColor}
               formatDuration={formatDuration}
               t={t}
+              hasMore={results?.hasMore}
+              isLoadingMore={isLoadingMore}
+              onLoadMore={handleLoadMore}
             />
           </TabsContent>
           <TabsContent value="photo" className="mt-4">
             <ResultsGrid 
-              assets={results?.assets.filter(a => a.mediaType === "photo") || []} 
-              isLoading={searchMutation.isPending && mediaType === "photo"}
+              assets={allAssets.filter(a => a.mediaType === "photo")} 
+              isLoading={searchMutation.isPending && !isLoadingMore && mediaType === "photo"}
               mediaType="photo"
               getProviderColor={getProviderColor}
               formatDuration={formatDuration}
               t={t}
+              hasMore={results?.hasMore}
+              isLoadingMore={isLoadingMore}
+              onLoadMore={handleLoadMore}
             />
           </TabsContent>
           <TabsContent value="audio" className="mt-4">
             <ResultsGrid 
-              assets={results?.assets.filter(a => a.mediaType === "audio") || []} 
-              isLoading={searchMutation.isPending && mediaType === "audio"}
+              assets={allAssets.filter(a => a.mediaType === "audio")} 
+              isLoading={searchMutation.isPending && !isLoadingMore && mediaType === "audio"}
               mediaType="audio"
               getProviderColor={getProviderColor}
               formatDuration={formatDuration}
               t={t}
+              hasMore={results?.hasMore}
+              isLoadingMore={isLoadingMore}
+              onLoadMore={handleLoadMore}
             />
           </TabsContent>
         </Tabs>
@@ -217,9 +245,12 @@ interface ResultsGridProps {
   getProviderColor: (provider: string) => string;
   formatDuration: (seconds?: number) => string | null;
   t: (key: string) => string;
+  hasMore?: boolean;
+  isLoadingMore?: boolean;
+  onLoadMore?: () => void;
 }
 
-function ResultsGrid({ assets, isLoading, mediaType, getProviderColor, formatDuration, t }: ResultsGridProps) {
+function ResultsGrid({ assets, isLoading, mediaType, getProviderColor, formatDuration, t, hasMore, isLoadingMore, onLoadMore }: ResultsGridProps) {
   if (isLoading) {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
@@ -258,6 +289,26 @@ function ResultsGrid({ assets, isLoading, mediaType, getProviderColor, formatDur
           />
         ))}
       </div>
+      
+      {hasMore && onLoadMore && (
+        <div className="flex justify-center py-4">
+          <Button 
+            variant="outline" 
+            onClick={onLoadMore}
+            disabled={isLoadingMore}
+            data-testid="button-load-more"
+          >
+            {isLoadingMore ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                {t("stock.loading")}
+              </>
+            ) : (
+              t("stock.loadMore")
+            )}
+          </Button>
+        </div>
+      )}
     </ScrollArea>
   );
 }

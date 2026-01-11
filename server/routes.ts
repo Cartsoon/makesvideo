@@ -164,8 +164,8 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid search request", details: parsed.error.errors });
       }
       
-      const { query, mediaType, limit, orientation } = parsed.data;
-      const results = await searchStock(query, mediaType, limit, orientation);
+      const { query, mediaType, limit, orientation, page } = parsed.data;
+      const results = await searchStock(query, mediaType, limit, orientation, page);
       res.json(results);
     } catch (error: any) {
       logError("StockSearch", error.message || "Search failed");
