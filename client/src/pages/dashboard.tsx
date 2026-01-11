@@ -608,7 +608,7 @@ export default function Dashboard() {
                           </div>
                           
                           <div className="min-w-0 flex-1">
-                            <p className="font-medium text-[11px] text-neutral-200 truncate group-hover:text-white leading-tight">
+                            <p className="font-medium text-neutral-200 truncate group-hover:text-white text-[12px]">
                               {language === "en" 
                                 ? (topic.translatedTitleEn || topic.generatedTitle || topic.title)
                                 : (topic.translatedTitle || topic.generatedTitle || topic.title)}
