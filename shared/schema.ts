@@ -1085,3 +1085,45 @@ export const insertAiMessageSchema = createInsertSchema(aiMessages).omit({
   createdAt: true,
 });
 export type AiMessage = typeof aiMessages.$inferSelect;
+
+// ============ STOCK SEARCH ============
+
+export const stockMediaTypes = ["video", "photo", "audio"] as const;
+export type StockMediaType = typeof stockMediaTypes[number];
+
+export const stockProviders = ["pexels", "pixabay", "unsplash", "freesound"] as const;
+export type StockProvider = typeof stockProviders[number];
+
+export interface StockAsset {
+  id: string;
+  provider: StockProvider;
+  mediaType: StockMediaType;
+  title: string;
+  description?: string;
+  previewUrl: string;
+  downloadUrl: string;
+  thumbnailUrl?: string;
+  duration?: number; // for video/audio in seconds
+  width?: number;
+  height?: number;
+  author?: string;
+  authorUrl?: string;
+  license?: string;
+  tags?: string[];
+  relevanceScore?: number;
+}
+
+export const stockSearchRequestSchema = z.object({
+  query: z.string().min(1).max(200),
+  mediaType: z.enum(stockMediaTypes),
+  limit: z.number().min(1).max(50).default(30),
+});
+export type StockSearchRequest = z.infer<typeof stockSearchRequestSchema>;
+
+export interface StockSearchResponse {
+  assets: StockAsset[];
+  query: string;
+  translatedQuery: string;
+  mediaType: StockMediaType;
+  totalResults: number;
+}
