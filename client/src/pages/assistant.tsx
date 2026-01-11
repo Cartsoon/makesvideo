@@ -82,7 +82,7 @@ import {
 import { feedbackReasons, type FeedbackReason } from "@shared/schema";
 import { useI18n } from "@/lib/i18n";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import type { AssistantChat, AssistantNote } from "@shared/schema";
+import type { AssistantChat, AssistantNote, StockAsset, StockSearchResponse, StockMediaType } from "@shared/schema";
 import { format } from "date-fns";
 import { ru, enUS } from "date-fns/locale";
 import { playSendSound, playReceiveSound } from "@/hooks/use-sound";
@@ -134,6 +134,8 @@ export default function AssistantPage() {
   
   const [pendingConsoleUnlock, setPendingConsoleUnlock] = useState(false);
   const [consoleMessageIds, setConsoleMessageIds] = useState<string[]>([]);
+  const [stockSearching, setStockSearching] = useState(false);
+  const [stockResults, setStockResults] = useState<StockAsset[]>([]);
   
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -409,6 +411,78 @@ export default function AssistantPage() {
     
     if (currentPage !== 1) {
       setCurrentPage(1);
+    }
+    
+    const stockMatch = userMessage.match(/^\/stock\s+(.+)$/i);
+    if (stockMatch) {
+      const stockQuery = stockMatch[1].trim();
+      const userMsgId = `stock-user-${Date.now()}`;
+      const searchMsgId = `stock-search-${Date.now()}`;
+      
+      if (soundEnabled) {
+        playSendSound();
+      }
+      
+      setOptimisticMessages(prev => [
+        ...prev,
+        {
+          id: userMsgId,
+          role: "user",
+          content: userMessage,
+          createdAt: new Date().toISOString(),
+          isOptimistic: true,
+        },
+        {
+          id: searchMsgId,
+          role: "assistant",
+          content: language === "ru" ? `Ищу футажи по запросу "${stockQuery}"...` : `Searching for "${stockQuery}" footage...`,
+          createdAt: new Date().toISOString(),
+          isOptimistic: true,
+        },
+      ]);
+      
+      setInput("");
+      setStockSearching(true);
+      
+      try {
+        const [videoRes, photoRes, audioRes] = await Promise.all([
+          fetch("/api/stock-search", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: stockQuery, mediaType: "video", limit: 4 }) }).then(r => r.json()) as Promise<StockSearchResponse>,
+          fetch("/api/stock-search", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: stockQuery, mediaType: "photo", limit: 4 }) }).then(r => r.json()) as Promise<StockSearchResponse>,
+          fetch("/api/stock-search", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: stockQuery, mediaType: "audio", limit: 2 }) }).then(r => r.json()) as Promise<StockSearchResponse>,
+        ]);
+        
+        const allAssets = [...videoRes.assets, ...photoRes.assets, ...audioRes.assets].slice(0, 10);
+        setStockResults(allAssets);
+        
+        const translatedNote = videoRes.translatedQuery !== stockQuery 
+          ? (language === "ru" ? ` (переведено: "${videoRes.translatedQuery}")` : ` (translated: "${videoRes.translatedQuery}")`)
+          : "";
+        
+        const resultText = allAssets.length > 0
+          ? (language === "ru" 
+              ? `Найдено ${allAssets.length} футажей по запросу "${stockQuery}"${translatedNote}:\n\n${allAssets.map((a, i) => `${i + 1}. **${a.title}** (${a.provider}) - [Скачать](${a.downloadUrl})`).join("\n")}`
+              : `Found ${allAssets.length} assets for "${stockQuery}"${translatedNote}:\n\n${allAssets.map((a, i) => `${i + 1}. **${a.title}** (${a.provider}) - [Download](${a.downloadUrl})`).join("\n")}`)
+          : (language === "ru" ? `По запросу "${stockQuery}" ничего не найдено. Попробуйте другой запрос или настройте API-ключи стоков.` : `No results found for "${stockQuery}". Try a different query or configure stock API keys.`);
+        
+        setOptimisticMessages(prev => prev.map(m => 
+          m.id === searchMsgId 
+            ? { ...m, content: resultText }
+            : m
+        ));
+        
+        if (soundEnabled) {
+          playReceiveSound();
+        }
+      } catch (error) {
+        setOptimisticMessages(prev => prev.map(m => 
+          m.id === searchMsgId 
+            ? { ...m, content: language === "ru" ? "Ошибка поиска футажей. Попробуйте позже." : "Error searching for footage. Please try again." }
+            : m
+        ));
+      }
+      
+      setStockSearching(false);
+      return;
     }
     
     if (userMessage === "/console" && !pendingConsoleUnlock && !isUnlocked) {
