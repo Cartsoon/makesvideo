@@ -385,6 +385,9 @@ export async function searchStock(
     index === self.findIndex(a => a.downloadUrl === asset.downloadUrl)
   );
 
+  // Check if there are more results BEFORE slicing
+  const hasMoreResults = uniqueAssets.length >= limit;
+
   const sortedAssets = uniqueAssets
     .sort(() => Math.random() - 0.5)
     .slice(0, limit);
@@ -396,7 +399,7 @@ export async function searchStock(
     mediaType,
     totalResults: sortedAssets.length,
     page,
-    hasMore: sortedAssets.length >= limit,
+    hasMore: hasMoreResults,
   };
 
   stockCache.set(cacheKey, { data: response, timestamp: Date.now() });
