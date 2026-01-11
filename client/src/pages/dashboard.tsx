@@ -406,7 +406,7 @@ export default function Dashboard() {
                       <p className="font-bold text-sm text-white uppercase tracking-wide leading-tight">
                         {t("dashboard.createFromText")}
                       </p>
-                      <p className="text-[10px] text-neutral-300 mt-1 leading-relaxed">
+                      <p className="text-neutral-300 mt-1 text-[13px]">
                         {t("dashboard.createFromTextDesc")}
                       </p>
                     </div>
@@ -699,7 +699,6 @@ export default function Dashboard() {
           </p>
         </div>
       </div>
-
       <ComingSoonModal open={comingSoonOpen} onOpenChange={setComingSoonOpen} />
     </Layout>
   );
