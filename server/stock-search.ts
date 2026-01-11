@@ -170,8 +170,11 @@ async function searchPixabayVideos(query: string, perPage: number = 15, orientat
     return (data.hits || []).map((video: any): StockAsset => {
       const videoWidth = video.videos?.large?.width || video.videos?.medium?.width || 1920;
       const videoHeight = video.videos?.large?.height || video.videos?.medium?.height || 1080;
-      const isPortrait = videoHeight > videoWidth;
-      const thumbSize = isPortrait ? "360x640" : "640x360";
+      
+      const thumbnailUrl = video.videos?.medium?.thumbnail || 
+                          video.videos?.small?.thumbnail || 
+                          video.videos?.large?.thumbnail ||
+                          (video.videos?.small?.url?.replace('.mp4', '.jpg'));
       
       return {
         id: `pixabay-v-${video.id}`,
@@ -181,7 +184,7 @@ async function searchPixabayVideos(query: string, perPage: number = 15, orientat
         description: video.tags,
         previewUrl: video.videos?.small?.url || video.videos?.medium?.url,
         downloadUrl: video.videos?.large?.url || video.videos?.medium?.url,
-        thumbnailUrl: `https://i.vimeocdn.com/video/${video.picture_id}_${thumbSize}.jpg`,
+        thumbnailUrl: thumbnailUrl,
         duration: video.duration,
         width: videoWidth,
         height: videoHeight,
