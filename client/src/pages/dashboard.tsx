@@ -289,7 +289,7 @@ export default function Dashboard() {
                   <Film className={`relative h-4 w-4 ${stats.totalScripts > 0 ? "text-emerald-400" : "text-neutral-400"}`} />
                 </div>
                 <span className={`text-lg font-bold ${stats.totalScripts > 0 ? "text-emerald-400" : "text-neutral-400"}`} data-testid="stat-total-scripts">{stats.totalScripts}</span>
-                <span className={`text-[8px] uppercase tracking-wide hidden sm:inline ${stats.totalScripts > 0 ? "text-emerald-400/70" : "text-neutral-400"}`}>{t("dashboard.scriptsInWork")}</span>
+                <span className="uppercase tracking-wide hidden sm:inline text-emerald-400/70 text-[12px] font-normal">{t("dashboard.scriptsInWork")}</span>
               </div>
               <p className={`text-[7px] text-center mt-0.5 sm:hidden uppercase tracking-wide relative ${stats.totalScripts > 0 ? "text-emerald-400/70" : "text-neutral-500"}`}>{t("dashboard.scriptsInWorkShort")}</p>
             </div>
@@ -319,7 +319,7 @@ export default function Dashboard() {
                   <Play className={`relative h-4 w-4 ${stats.readyScripts > 0 ? "text-emerald-400" : "text-neutral-400"}`} />
                 </div>
                 <span className={`text-lg font-bold ${stats.readyScripts > 0 ? "text-emerald-400" : "text-neutral-400"}`} data-testid="stat-ready-scripts">{stats.readyScripts}</span>
-                <span className={`text-[8px] uppercase tracking-wide hidden sm:inline ${stats.readyScripts > 0 ? "text-emerald-400/70" : "text-neutral-400"}`}>{t("dashboard.readyScripts")}</span>
+                <span className="uppercase tracking-wide hidden sm:inline text-emerald-400/70 text-[12px] font-normal">{t("dashboard.readyScripts")}</span>
               </div>
               <p className={`text-[7px] text-center mt-0.5 sm:hidden uppercase tracking-wide relative ${stats.readyScripts > 0 ? "text-emerald-400/70" : "text-neutral-500"}`}>{t("dashboard.readyScriptsShort")}</p>
             </div>
@@ -588,39 +588,39 @@ export default function Dashboard() {
                     else if (index === 6) visibilityClass = "hidden lg:block"; // 7th item: lg+
                     else if (index === 7) visibilityClass = "hidden xl:block"; // 8th item: xl+
                     return (
-                    <Link key={topic.id} href={`/topics?highlight=${topic.id}`} className={visibilityClass}>
-                      <div
-                        className={`group flex items-center gap-2 p-1.5 bg-neutral-800/50 border border-rose-500/20 hover-elevate cursor-pointer transition-all duration-300 ${
-                          isNewlyAdded ? "animate-new-item border-emerald-400/30" : ""
-                        }`}
-                        style={{ borderRadius: '2px' }}
-                        data-testid={`topic-item-${topic.id}`}
-                      >
-                        <div className="relative w-14 h-10 flex-shrink-0 overflow-hidden bg-neutral-900" style={{ borderRadius: '2px' }}>
-                          <img
-                            src={getTopicImage(topic)}
-                            alt=""
-                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                            onError={() => handleImageError(topic.id)}
-                            loading="lazy"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-r from-transparent to-neutral-900/30" />
+                      <Link key={topic.id} href={`/topics?highlight=${topic.id}`} className={visibilityClass}>
+                        <div
+                          className={`group flex items-center gap-2 p-1.5 bg-neutral-800/50 border border-rose-500/20 hover-elevate cursor-pointer transition-all duration-300 ${
+                            isNewlyAdded ? "animate-new-item border-emerald-400/30" : ""
+                          }`}
+                          style={{ borderRadius: '2px' }}
+                          data-testid={`topic-item-${topic.id}`}
+                        >
+                          <div className="relative w-14 h-10 flex-shrink-0 overflow-hidden bg-neutral-900" style={{ borderRadius: '2px' }}>
+                            <img
+                              src={getTopicImage(topic)}
+                              alt=""
+                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                              onError={() => handleImageError(topic.id)}
+                              loading="lazy"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent to-neutral-900/30" />
+                          </div>
+                          
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-[11px] text-neutral-200 truncate group-hover:text-white leading-tight">
+                              {language === "en" 
+                                ? (topic.translatedTitleEn || topic.generatedTitle || topic.title)
+                                : (topic.translatedTitle || topic.generatedTitle || topic.title)}
+                            </p>
+                            <p className="text-neutral-400 truncate mt-0.5 text-[12px]">
+                              {topic.insights?.summary || topic.rawText || ""}
+                            </p>
+                          </div>
+                          
+                          <ChevronRight className="h-4 w-4 text-neutral-400 group-hover:text-rose-400 flex-shrink-0" />
                         </div>
-                        
-                        <div className="min-w-0 flex-1">
-                          <p className="font-medium text-[11px] text-neutral-200 truncate group-hover:text-white leading-tight">
-                            {language === "en" 
-                              ? (topic.translatedTitleEn || topic.generatedTitle || topic.title)
-                              : (topic.translatedTitle || topic.generatedTitle || topic.title)}
-                          </p>
-                          <p className="text-[10px] text-neutral-400 truncate mt-0.5 leading-tight">
-                            {topic.insights?.summary || topic.rawText || ""}
-                          </p>
-                        </div>
-                        
-                        <ChevronRight className="h-4 w-4 text-neutral-400 group-hover:text-rose-400 flex-shrink-0" />
-                      </div>
-                    </Link>
+                      </Link>
                     );
                   })}
                 </div>
