@@ -167,23 +167,30 @@ async function searchPixabayVideos(query: string, perPage: number = 15, orientat
     if (!response.ok) return [];
     const data = await response.json();
 
-    return (data.hits || []).map((video: any): StockAsset => ({
-      id: `pixabay-v-${video.id}`,
-      provider: "pixabay",
-      mediaType: "video",
-      title: video.tags?.split(",")[0] || "Pixabay Video",
-      description: video.tags,
-      previewUrl: video.videos?.small?.url || video.videos?.medium?.url,
-      downloadUrl: video.videos?.large?.url || video.videos?.medium?.url,
-      thumbnailUrl: `https://i.vimeocdn.com/video/${video.picture_id}_295x166.jpg`,
-      duration: video.duration,
-      width: video.videos?.large?.width,
-      height: video.videos?.large?.height,
-      author: video.user,
-      authorUrl: `https://pixabay.com/users/${video.user}-${video.user_id}/`,
-      license: "Pixabay License (Free)",
-      tags: video.tags?.split(", ") || [],
-    }));
+    return (data.hits || []).map((video: any): StockAsset => {
+      const videoWidth = video.videos?.large?.width || video.videos?.medium?.width || 1920;
+      const videoHeight = video.videos?.large?.height || video.videos?.medium?.height || 1080;
+      const isPortrait = videoHeight > videoWidth;
+      const thumbSize = isPortrait ? "360x640" : "640x360";
+      
+      return {
+        id: `pixabay-v-${video.id}`,
+        provider: "pixabay",
+        mediaType: "video",
+        title: video.tags?.split(",")[0] || "Pixabay Video",
+        description: video.tags,
+        previewUrl: video.videos?.small?.url || video.videos?.medium?.url,
+        downloadUrl: video.videos?.large?.url || video.videos?.medium?.url,
+        thumbnailUrl: `https://i.vimeocdn.com/video/${video.picture_id}_${thumbSize}.jpg`,
+        duration: video.duration,
+        width: videoWidth,
+        height: videoHeight,
+        author: video.user,
+        authorUrl: `https://pixabay.com/users/${video.user}-${video.user_id}/`,
+        license: "Pixabay License (Free)",
+        tags: video.tags?.split(", ") || [],
+      };
+    });
   } catch (error) {
     logError("StockSearch", "Pixabay video search failed", error);
     return [];
