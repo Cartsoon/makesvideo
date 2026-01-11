@@ -1106,6 +1106,7 @@ export interface StockAsset {
   previewUrl: string;
   downloadUrl: string;
   thumbnailUrl?: string;
+  sourceUrl?: string; // direct link to the asset page
   duration?: number; // for video/audio in seconds
   width?: number;
   height?: number;

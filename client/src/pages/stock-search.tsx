@@ -19,8 +19,11 @@ import {
   User,
   Clock,
   AlertCircle,
-  Loader2
+  Loader2,
+  X,
+  Maximize2
 } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useI18n } from "@/lib/i18n";
 import { apiRequest } from "@/lib/queryClient";
 import type { StockAsset, StockMediaType, StockOrientation, StockSearchResponse } from "@shared/schema";
@@ -37,6 +40,7 @@ export default function StockSearch() {
   const [currentPage, setCurrentPage] = useState(1);
   const [allAssets, setAllAssets] = useState<StockAsset[]>([]);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [previewAsset, setPreviewAsset] = useState<StockAsset | null>(null);
 
   const searchMutation = useMutation({
     mutationFn: async ({ query, mediaType, orientation, page }: { query: string; mediaType: StockMediaType; orientation: StockOrientation; page: number }) => {
@@ -204,6 +208,7 @@ export default function StockSearch() {
               hasMore={results?.hasMore}
               isLoadingMore={isLoadingMore}
               onLoadMore={handleLoadMore}
+              onOpenPreview={setPreviewAsset}
             />
           </TabsContent>
           <TabsContent value="photo" className="mt-4">
@@ -217,6 +222,7 @@ export default function StockSearch() {
               hasMore={results?.hasMore}
               isLoadingMore={isLoadingMore}
               onLoadMore={handleLoadMore}
+              onOpenPreview={setPreviewAsset}
             />
           </TabsContent>
           <TabsContent value="audio" className="mt-4">
@@ -230,10 +236,73 @@ export default function StockSearch() {
               hasMore={results?.hasMore}
               isLoadingMore={isLoadingMore}
               onLoadMore={handleLoadMore}
+              onOpenPreview={setPreviewAsset}
             />
           </TabsContent>
         </Tabs>
       </div>
+
+      <Dialog open={!!previewAsset} onOpenChange={(open) => !open && setPreviewAsset(null)}>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden bg-black/95">
+          {previewAsset && (
+            <div className="relative w-full h-full flex items-center justify-center">
+              <button
+                onClick={() => setPreviewAsset(null)}
+                className="absolute top-3 right-3 z-10 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-colors"
+                data-testid="button-close-preview"
+              >
+                <X className="h-5 w-5" />
+              </button>
+              
+              {previewAsset.mediaType === "video" ? (
+                <video
+                  src={previewAsset.previewUrl}
+                  className="max-w-full max-h-[80vh] object-contain"
+                  autoPlay
+                  controls
+                  loop
+                  playsInline
+                />
+              ) : previewAsset.mediaType === "photo" ? (
+                <img
+                  src={previewAsset.downloadUrl || previewAsset.previewUrl}
+                  alt={previewAsset.title}
+                  className="max-w-full max-h-[80vh] object-contain"
+                />
+              ) : null}
+              
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                <p className="text-white text-sm font-medium">{previewAsset.title}</p>
+                {previewAsset.author && (
+                  <p className="text-white/70 text-xs mt-1">{previewAsset.author}</p>
+                )}
+                <div className="flex gap-2 mt-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                    onClick={() => window.open(previewAsset.downloadUrl, "_blank")}
+                  >
+                    <Download className="h-3 w-3 mr-1" />
+                    {t("stock.download")}
+                  </Button>
+                  {previewAsset.sourceUrl && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                      onClick={() => window.open(previewAsset.sourceUrl, "_blank")}
+                    >
+                      <ExternalLink className="h-3 w-3 mr-1" />
+                      {previewAsset.provider}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
@@ -248,9 +317,10 @@ interface ResultsGridProps {
   hasMore?: boolean;
   isLoadingMore?: boolean;
   onLoadMore?: () => void;
+  onOpenPreview: (asset: StockAsset) => void;
 }
 
-function ResultsGrid({ assets, isLoading, mediaType, getProviderColor, formatDuration, t, hasMore, isLoadingMore, onLoadMore }: ResultsGridProps) {
+function ResultsGrid({ assets, isLoading, mediaType, getProviderColor, formatDuration, t, hasMore, isLoadingMore, onLoadMore, onOpenPreview }: ResultsGridProps) {
   if (isLoading) {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
@@ -286,6 +356,8 @@ function ResultsGrid({ assets, isLoading, mediaType, getProviderColor, formatDur
             asset={asset} 
             getProviderColor={getProviderColor}
             formatDuration={formatDuration}
+            t={t}
+            onOpenPreview={onOpenPreview}
           />
         ))}
       </div>
@@ -317,9 +389,11 @@ interface AssetCardProps {
   asset: StockAsset;
   getProviderColor: (provider: string) => string;
   formatDuration: (seconds?: number) => string | null;
+  t: (key: string) => string;
+  onOpenPreview: (asset: StockAsset) => void;
 }
 
-function AssetCard({ asset, getProviderColor, formatDuration }: AssetCardProps) {
+function AssetCard({ asset, getProviderColor, formatDuration, t, onOpenPreview }: AssetCardProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [thumbnailError, setThumbnailError] = useState(false);
   const [thumbnailLoaded, setThumbnailLoaded] = useState(false);
@@ -327,6 +401,12 @@ function AssetCard({ asset, getProviderColor, formatDuration }: AssetCardProps) 
   const thumbnailSrc = thumbnailError 
     ? asset.previewUrl 
     : (asset.thumbnailUrl || asset.previewUrl);
+
+  const handleVideoClick = () => {
+    if (isPlaying) {
+      onOpenPreview(asset);
+    }
+  };
 
   return (
     <Card 
@@ -338,11 +418,12 @@ function AssetCard({ asset, getProviderColor, formatDuration }: AssetCardProps) 
           isPlaying ? (
             <video
               src={asset.previewUrl}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover cursor-pointer"
               autoPlay
               muted
               loop
               playsInline
+              onClick={handleVideoClick}
               onEnded={() => setIsPlaying(false)}
             />
           ) : (
@@ -376,8 +457,9 @@ function AssetCard({ asset, getProviderColor, formatDuration }: AssetCardProps) 
           <img
             src={asset.previewUrl}
             alt={asset.title}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover cursor-pointer"
             loading="lazy"
+            onClick={() => onOpenPreview(asset)}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-accent/20">
@@ -405,6 +487,16 @@ function AssetCard({ asset, getProviderColor, formatDuration }: AssetCardProps) 
         >
           {asset.provider}
         </Badge>
+        
+        {isPlaying && (
+          <button
+            onClick={() => onOpenPreview(asset)}
+            className="absolute top-2 right-2 bg-black/70 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+            data-testid={`button-fullscreen-${asset.id}`}
+          >
+            <Maximize2 className="h-3 w-3" />
+          </button>
+        )}
       </div>
 
       <div className="p-2 space-y-1">
@@ -413,10 +505,14 @@ function AssetCard({ asset, getProviderColor, formatDuration }: AssetCardProps) 
         </p>
         
         {asset.author && (
-          <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+          <button 
+            className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+            onClick={() => asset.authorUrl && window.open(asset.authorUrl, "_blank")}
+            data-testid={`button-author-collection-${asset.id}`}
+          >
             <User className="h-3 w-3" />
             <span className="truncate">{asset.author}</span>
-          </div>
+          </button>
         )}
 
         <div className="flex gap-1 pt-1">
@@ -428,15 +524,15 @@ function AssetCard({ asset, getProviderColor, formatDuration }: AssetCardProps) 
             data-testid={`button-download-${asset.id}`}
           >
             <Download className="h-3 w-3 mr-1" />
-            Download
+            {t("stock.download")}
           </Button>
-          {asset.authorUrl && (
+          {asset.sourceUrl && (
             <Button
               variant="ghost"
               size="icon"
               className="h-7 w-7"
-              onClick={() => window.open(asset.authorUrl, "_blank")}
-              data-testid={`button-author-${asset.id}`}
+              onClick={() => window.open(asset.sourceUrl, "_blank")}
+              data-testid={`button-source-${asset.id}`}
             >
               <ExternalLink className="h-3 w-3" />
             </Button>
