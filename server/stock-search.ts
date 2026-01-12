@@ -356,7 +356,11 @@ export async function searchStock(
   logInfo("StockSearch", `Searching for "${query}" (${mediaType}, ${orientation}), limit: ${limit}, page: ${page}`);
 
   const translatedQuery = await translateToEnglish(query);
-  const perProvider = Math.ceil(limit / 3);
+  
+  // Calculate per-provider limit based on actual number of providers + buffer for deduplication
+  const providerCounts = { video: 2, photo: 3, audio: 2 };
+  const numProviders = providerCounts[mediaType] || 2;
+  const perProvider = Math.ceil((limit * 1.5) / numProviders); // Request 50% extra for deduplication buffer
 
   let assets: StockAsset[] = [];
 
