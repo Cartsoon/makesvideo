@@ -827,7 +827,8 @@ function AudioTrackRow({ asset, getProviderColor, formatDuration, t }: AudioTrac
                   <span className="truncate">{asset.author}</span>
                 </button>
               )}
-              {asset.description && asset.description !== asset.author && (
+              {/* Only show description for Jamendo (artist - album format), not for Freesound (long text) */}
+              {asset.provider === "jamendo" && asset.description && asset.description !== asset.author && (
                 <span className="truncate hidden sm:inline">{asset.description}</span>
               )}
             </div>
@@ -871,10 +872,10 @@ function AudioTrackRow({ asset, getProviderColor, formatDuration, t }: AudioTrac
           </span>
         </div>
 
-        {/* Tags (mobile hidden) */}
-        {asset.tags && asset.tags.length > 0 && (
+        {/* Tags (mobile hidden) - only for Jamendo which has useful genre tags */}
+        {asset.provider === "jamendo" && asset.tags && asset.tags.length > 0 && (
           <div className="hidden sm:flex flex-wrap gap-1">
-            {asset.tags.slice(0, 4).map((tag, i) => (
+            {asset.tags.slice(0, 3).map((tag, i) => (
               <span key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
                 {tag}
               </span>
