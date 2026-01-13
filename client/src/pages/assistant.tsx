@@ -1679,7 +1679,7 @@ export default function AssistantPage() {
             </div>
           </ScrollArea>
 
-          <div className="p-3 border-t bg-card/50 backdrop-blur-sm flex-shrink-0">
+          <div className="p-3 border-t bg-card/50 backdrop-blur-sm flex-shrink-0 pt-[5px] pb-[5px] pl-[10px] pr-[10px] ml-[0px] mr-[0px]">
             <div className="flex gap-2 items-end">
               <Textarea
                 ref={textareaRef}
