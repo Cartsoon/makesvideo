@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Search, 
   Video, 
-  Image, 
+  Image as ImageIcon, 
   Music, 
   ExternalLink, 
   Download, 
@@ -124,7 +124,7 @@ export default function StockSearch() {
               <span className="hidden sm:inline">{t("stock.videos")}</span>
             </TabsTrigger>
             <TabsTrigger value="photo" className="gap-2" data-testid="tab-photo">
-              <Image className="h-4 w-4" />
+              <ImageIcon className="h-4 w-4" />
               <span className="hidden sm:inline">{t("stock.photos")}</span>
             </TabsTrigger>
             <TabsTrigger value="audio" className="gap-2" data-testid="tab-audio">
@@ -551,10 +551,16 @@ function AssetCard({ asset, getProviderColor, formatDuration, t, onOpenPreview }
   const [isPlaying, setIsPlaying] = useState(false);
   const [thumbnailError, setThumbnailError] = useState(false);
   const [thumbnailLoaded, setThumbnailLoaded] = useState(false);
+  const [photoLoaded, setPhotoLoaded] = useState(false);
+  const [photoError, setPhotoError] = useState(false);
 
   const thumbnailSrc = thumbnailError 
     ? asset.previewUrl 
     : (asset.thumbnailUrl || asset.previewUrl);
+  
+  const photoSrc = photoError 
+    ? (asset.thumbnailUrl || asset.previewUrl)
+    : asset.previewUrl;
 
   const handleVideoClick = () => {
     if (isPlaying) {
@@ -608,13 +614,25 @@ function AssetCard({ asset, getProviderColor, formatDuration, t, onOpenPreview }
             </>
           )
         ) : asset.mediaType === "photo" ? (
-          <img
-            src={asset.previewUrl}
-            alt={asset.title}
-            className="w-full h-full object-cover cursor-pointer"
-            loading="lazy"
-            onClick={() => onOpenPreview(asset)}
-          />
+          <>
+            {!photoLoaded && !photoError && (
+              <div className="absolute inset-0 flex items-center justify-center bg-muted">
+                <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
+              </div>
+            )}
+            <img
+              src={photoSrc}
+              alt={asset.title}
+              className={`w-full h-full object-cover cursor-pointer transition-opacity ${photoLoaded ? 'opacity-100' : 'opacity-0'}`}
+              loading="lazy"
+              onLoad={() => setPhotoLoaded(true)}
+              onError={() => {
+                setPhotoError(true);
+                setPhotoLoaded(true);
+              }}
+              onClick={() => onOpenPreview(asset)}
+            />
+          </>
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-accent/20">
             <Music className="h-12 w-12 text-primary/60" />
