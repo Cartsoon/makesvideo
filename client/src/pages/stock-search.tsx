@@ -764,7 +764,11 @@ function AudioTrackRow({ asset, getProviderColor, formatDuration, t }: AudioTrac
 
   return (
     <div 
-      className="group relative flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-muted/40 via-muted/20 to-transparent hover:from-primary/10 hover:via-primary/5 hover:to-transparent border border-border/50 hover:border-primary/30 transition-all duration-300"
+      className={`group relative flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-xl border transition-all duration-300 ${
+        isPlaying 
+          ? 'bg-gradient-to-r from-emerald-500/15 via-emerald-500/10 to-emerald-500/5 border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.15)]' 
+          : 'bg-gradient-to-r from-muted/40 via-muted/20 to-transparent border-border/50 hover:from-primary/10 hover:via-primary/5 hover:to-transparent hover:border-primary/30'
+      }`}
       data-testid={`audio-track-${asset.id}`}
     >
       <audio ref={audioRef} src={asset.previewUrl} preload="metadata" />
