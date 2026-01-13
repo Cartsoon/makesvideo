@@ -243,24 +243,23 @@ export default function StockSearch() {
       </div>
 
       <Dialog open={!!previewAsset} onOpenChange={(open) => !open && setPreviewAsset(null)}>
-        <DialogContent className="max-w-4xl p-0 overflow-hidden bg-card border-2 border-primary/20 gap-0">
+        <DialogContent className="max-w-4xl p-0 overflow-hidden bg-card border-2 border-primary/20 gap-0" hideCloseButton>
           {previewAsset && (
             <div className="flex flex-col">
               {/* Corner markers - top */}
-              <div className="absolute top-0 left-0 w-6 h-6 border-l-2 border-t-2 border-primary/60 rounded-tl-md" />
-              <div className="absolute top-0 right-0 w-6 h-6 border-r-2 border-t-2 border-primary/60 rounded-tr-md" />
+              <div className="absolute top-0 left-0 w-6 h-6 border-l-2 border-t-2 border-primary/60 rounded-tl-md z-10" />
+              <div className="absolute top-0 right-0 w-6 h-6 border-r-2 border-t-2 border-primary/60 rounded-tr-md z-10" />
               
-              {/* Close button */}
-              <button
-                onClick={() => setPreviewAsset(null)}
-                className="absolute top-3 right-3 z-20 bg-background/80 backdrop-blur-sm text-foreground p-2 rounded-md hover-elevate border border-border transition-colors"
-                data-testid="button-close-preview"
-              >
-                <X className="h-4 w-4" />
-              </button>
-              
-              {/* Media container */}
+              {/* Media container with close button inside */}
               <div className="relative bg-black flex items-center justify-center min-h-[300px] max-h-[60vh]">
+                {/* Close button - positioned on the video */}
+                <button
+                  onClick={() => setPreviewAsset(null)}
+                  className="absolute top-3 right-3 z-30 bg-black/60 hover:bg-black/80 backdrop-blur-sm text-white p-2.5 rounded-full border-2 border-white/30 hover:border-white/60 transition-all shadow-lg"
+                  data-testid="button-close-preview"
+                >
+                  <X className="h-5 w-5" />
+                </button>
                 {previewAsset.mediaType === "video" ? (
                   <video
                     src={previewAsset.previewUrl}
