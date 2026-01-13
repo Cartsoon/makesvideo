@@ -37,6 +37,7 @@ const translations: Record<Language, Record<string, string>> = {
     "stock.loadMore": "Load More",
     "stock.loading": "Loading...",
     "stock.download": "Download",
+    "stock.openSource": "Open Source",
     
     // Dashboard
     "dashboard.title": "Dashboard",
@@ -529,6 +530,7 @@ const translations: Record<Language, Record<string, string>> = {
     "stock.loadMore": "Загрузить ещё",
     "stock.loading": "Загрузка...",
     "stock.download": "Скачать",
+    "stock.openSource": "Открыть источник",
     
     // Dashboard
     "dashboard.title": "Панель управления",

@@ -243,62 +243,131 @@ export default function StockSearch() {
       </div>
 
       <Dialog open={!!previewAsset} onOpenChange={(open) => !open && setPreviewAsset(null)}>
-        <DialogContent className="max-w-4xl p-0 overflow-hidden bg-black/95">
+        <DialogContent className="max-w-4xl p-0 overflow-hidden bg-card border-2 border-primary/20 gap-0">
           {previewAsset && (
-            <div className="relative w-full h-full flex items-center justify-center">
+            <div className="flex flex-col">
+              {/* Corner markers - top */}
+              <div className="absolute top-0 left-0 w-6 h-6 border-l-2 border-t-2 border-primary/60 rounded-tl-md" />
+              <div className="absolute top-0 right-0 w-6 h-6 border-r-2 border-t-2 border-primary/60 rounded-tr-md" />
+              
+              {/* Close button */}
               <button
                 onClick={() => setPreviewAsset(null)}
-                className="absolute top-3 right-3 z-10 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-colors"
+                className="absolute top-3 right-3 z-20 bg-background/80 backdrop-blur-sm text-foreground p-2 rounded-md hover-elevate border border-border transition-colors"
                 data-testid="button-close-preview"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
               
-              {previewAsset.mediaType === "video" ? (
-                <video
-                  src={previewAsset.previewUrl}
-                  className="max-w-full max-h-[80vh] object-contain"
-                  autoPlay
-                  controls
-                  loop
-                  playsInline
-                />
-              ) : previewAsset.mediaType === "photo" ? (
-                <img
-                  src={previewAsset.downloadUrl || previewAsset.previewUrl}
-                  alt={previewAsset.title}
-                  className="max-w-full max-h-[80vh] object-contain"
-                />
-              ) : null}
+              {/* Media container */}
+              <div className="relative bg-black flex items-center justify-center min-h-[300px] max-h-[60vh]">
+                {previewAsset.mediaType === "video" ? (
+                  <video
+                    src={previewAsset.previewUrl}
+                    className="w-full h-full max-h-[60vh] object-contain"
+                    autoPlay
+                    controls
+                    loop
+                    playsInline
+                    controlsList="nodownload"
+                  />
+                ) : previewAsset.mediaType === "photo" ? (
+                  <img
+                    src={previewAsset.downloadUrl || previewAsset.previewUrl}
+                    alt={previewAsset.title}
+                    className="w-full h-full max-h-[60vh] object-contain"
+                  />
+                ) : null}
+              </div>
               
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-                <p className="text-white text-sm font-medium">{previewAsset.title}</p>
-                {previewAsset.author && (
-                  <p className="text-white/70 text-xs mt-1">{previewAsset.author}</p>
+              {/* Info panel - separate from video */}
+              <div className="p-4 bg-gradient-to-r from-primary/5 via-transparent to-accent/5 border-t border-border">
+                {/* Title and author */}
+                <div className="flex items-start justify-between gap-4 mb-3">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-foreground truncate">
+                      {previewAsset.title}
+                    </h3>
+                    {previewAsset.author && (
+                      <button
+                        onClick={() => previewAsset.authorUrl && window.open(previewAsset.authorUrl, "_blank")}
+                        className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 mt-0.5"
+                      >
+                        <User className="h-3 w-3" />
+                        {previewAsset.author}
+                      </button>
+                    )}
+                  </div>
+                  
+                  {/* Provider badge */}
+                  <Badge 
+                    variant="outline" 
+                    className={`${getProviderColor(previewAsset.provider)} shrink-0`}
+                  >
+                    {previewAsset.provider}
+                  </Badge>
+                </div>
+                
+                {/* Meta info */}
+                <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mb-3">
+                  {previewAsset.duration && (
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {formatDuration(previewAsset.duration)}
+                    </span>
+                  )}
+                  {previewAsset.width && previewAsset.height && (
+                    <span>{previewAsset.width}x{previewAsset.height}</span>
+                  )}
+                  {previewAsset.license && (
+                    <span className="text-green-600 dark:text-green-400">{previewAsset.license}</span>
+                  )}
+                </div>
+                
+                {/* Tags */}
+                {previewAsset.tags && previewAsset.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-3">
+                    {previewAsset.tags.slice(0, 6).map((tag, i) => (
+                      <Badge key={i} variant="secondary" className="text-xs px-2 py-0">
+                        {tag}
+                      </Badge>
+                    ))}
+                    {previewAsset.tags.length > 6 && (
+                      <Badge variant="secondary" className="text-xs px-2 py-0">
+                        +{previewAsset.tags.length - 6}
+                      </Badge>
+                    )}
+                  </div>
                 )}
-                <div className="flex gap-2 mt-2">
+                
+                {/* Action buttons */}
+                <div className="flex flex-wrap gap-2">
                   <Button
                     size="sm"
-                    variant="outline"
-                    className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                    className="bg-gradient-to-r from-primary to-accent text-primary-foreground"
                     onClick={() => window.open(previewAsset.downloadUrl, "_blank")}
+                    data-testid="button-download-preview"
                   >
-                    <Download className="h-3 w-3 mr-1" />
+                    <Download className="h-4 w-4 mr-2" />
                     {t("stock.download")}
                   </Button>
                   {previewAsset.sourceUrl && (
                     <Button
                       size="sm"
                       variant="outline"
-                      className="bg-white/10 border-white/20 text-white hover:bg-white/20"
                       onClick={() => window.open(previewAsset.sourceUrl, "_blank")}
+                      data-testid="button-source-preview"
                     >
-                      <ExternalLink className="h-3 w-3 mr-1" />
-                      {previewAsset.provider}
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      {t("stock.openSource")}
                     </Button>
                   )}
                 </div>
               </div>
+              
+              {/* Corner markers - bottom */}
+              <div className="absolute bottom-0 left-0 w-6 h-6 border-l-2 border-b-2 border-accent/60 rounded-bl-md" />
+              <div className="absolute bottom-0 right-0 w-6 h-6 border-r-2 border-b-2 border-accent/60 rounded-br-md" />
             </div>
           )}
         </DialogContent>
