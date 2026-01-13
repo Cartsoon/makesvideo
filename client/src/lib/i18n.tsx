@@ -38,6 +38,8 @@ const translations: Record<Language, Record<string, string>> = {
     "stock.loading": "Loading...",
     "stock.download": "Download",
     "stock.openSource": "Open Source",
+    "stock.foundCount": "Found {count} results",
+    "stock.noMoreResults": "Unfortunately, there are no more matches. Try a different query to get more results.",
     
     // Dashboard
     "dashboard.title": "Dashboard",
@@ -531,6 +533,8 @@ const translations: Record<Language, Record<string, string>> = {
     "stock.loading": "Загрузка...",
     "stock.download": "Скачать",
     "stock.openSource": "Открыть источник",
+    "stock.foundCount": "По вашему запросу найдено {count} совпадений",
+    "stock.noMoreResults": "К сожалению, больше совпадений нету. Попробуйте другой запрос, чтобы увеличить количество выдаваемых результатов.",
     
     // Dashboard
     "dashboard.title": "Панель управления",

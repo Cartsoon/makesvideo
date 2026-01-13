@@ -473,6 +473,18 @@ function ResultsGrid({ assets, isLoading, mediaType, getProviderColor, formatDur
             </Button>
           </div>
         )}
+        
+        {!hasMore && assets.length > 0 && assets.length < 30 && (
+          <div className="mx-auto max-w-md my-6 p-4 rounded-xl border border-border/50 bg-gradient-to-r from-muted/30 via-muted/20 to-transparent text-center">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <Search className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">{t("stock.foundCount").replace("{count}", String(assets.length))}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {t("stock.noMoreResults")}
+            </p>
+          </div>
+        )}
       </ScrollArea>
     );
   }
@@ -509,6 +521,18 @@ function ResultsGrid({ assets, isLoading, mediaType, getProviderColor, formatDur
               t("stock.loadMore")
             )}
           </Button>
+        </div>
+      )}
+      
+      {!hasMore && assets.length > 0 && assets.length < 30 && (
+        <div className="mx-auto max-w-md my-6 p-4 rounded-xl border border-border/50 bg-gradient-to-r from-muted/30 via-muted/20 to-transparent text-center">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">{t("stock.foundCount").replace("{count}", String(assets.length))}</span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {t("stock.noMoreResults")}
+          </p>
         </div>
       )}
     </ScrollArea>
