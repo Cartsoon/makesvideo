@@ -293,13 +293,25 @@ async function searchUnsplashPhotos(query: string, perPage: number = 15, orienta
 
 async function searchFreesoundAudio(query: string, perPage: number = 15, page: number = 1): Promise<StockAsset[]> {
   const apiKey = providerConfigs.freesound.apiKey;
-  if (!apiKey) return [];
+  if (!apiKey) {
+    logInfo("StockSearch", "Freesound API key not configured");
+    return [];
+  }
 
   try {
     const url = `${providerConfigs.freesound.baseUrl}/search/text/?query=${encodeURIComponent(query)}&page_size=${perPage}&page=${page}&token=${apiKey}&fields=id,name,description,duration,username,previews,tags,license`;
-    const response = await fetch(url);
+    
+    // Add timeout to prevent hanging
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
 
-    if (!response.ok) return [];
+    if (!response.ok) {
+      logError("StockSearch", `Freesound API returned ${response.status}`);
+      return [];
+    }
     const data = await response.json();
 
     return (data.results || []).map((sound: any): StockAsset => ({
@@ -317,8 +329,12 @@ async function searchFreesoundAudio(query: string, perPage: number = 15, page: n
       license: sound.license || "Creative Commons",
       tags: sound.tags || [],
     }));
-  } catch (error) {
-    logError("StockSearch", "Freesound audio search failed", error);
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      logError("StockSearch", "Freesound request timed out");
+    } else {
+      logError("StockSearch", "Freesound audio search failed", error);
+    }
     return [];
   }
 }
