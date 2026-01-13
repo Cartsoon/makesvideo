@@ -76,12 +76,23 @@ async function translateToEnglish(query: string): Promise<string> {
 
 function getOrientationParam(orientation: StockOrientation, provider: "pexels" | "pixabay" | "unsplash"): string {
   if (orientation === "all") return "";
+  
   if (provider === "pexels" || provider === "unsplash") {
+    // Pexels/Unsplash use: portrait, landscape, square
     return `&orientation=${orientation}`;
   }
+  
   if (provider === "pixabay") {
-    return `&orientation=${orientation === "portrait" ? "vertical" : "horizontal"}`;
+    // Pixabay uses: vertical, horizontal (no square option)
+    if (orientation === "portrait") {
+      return "&orientation=vertical";
+    } else if (orientation === "landscape") {
+      return "&orientation=horizontal";
+    }
+    // For square or other values, don't filter by orientation
+    return "";
   }
+  
   return "";
 }
 
