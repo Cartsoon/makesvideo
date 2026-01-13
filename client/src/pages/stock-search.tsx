@@ -16,18 +16,23 @@ import {
   ExternalLink, 
   Download, 
   Play, 
+  Pause,
   User,
   Clock,
   AlertCircle,
   Loader2,
   X,
-  Maximize2
+  Maximize2,
+  Volume2,
+  Disc3
 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useI18n } from "@/lib/i18n";
 import { apiRequest } from "@/lib/queryClient";
 import type { StockAsset, StockMediaType, StockOrientation, StockSearchResponse } from "@shared/schema";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Slider } from "@/components/ui/slider";
+import { useRef, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Smartphone, Monitor } from "lucide-react";
 
@@ -90,6 +95,7 @@ export default function StockSearch() {
       case "pixabay": return "bg-blue-500/20 text-blue-600 dark:text-blue-400";
       case "unsplash": return "bg-purple-500/20 text-purple-600 dark:text-purple-400";
       case "freesound": return "bg-orange-500/20 text-orange-600 dark:text-orange-400";
+      case "jamendo": return "bg-rose-500/20 text-rose-600 dark:text-rose-400";
       default: return "bg-muted text-muted-foreground";
     }
   };
@@ -390,6 +396,22 @@ interface ResultsGridProps {
 
 function ResultsGrid({ assets, isLoading, mediaType, getProviderColor, formatDuration, t, hasMore, isLoadingMore, onLoadMore, onOpenPreview }: ResultsGridProps) {
   if (isLoading) {
+    if (mediaType === "audio") {
+      return (
+        <div className="space-y-2">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+              <Skeleton className="h-14 w-14 rounded-lg shrink-0" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-1/2" />
+              </div>
+              <Skeleton className="h-8 w-24" />
+            </div>
+          ))}
+        </div>
+      );
+    }
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
         {Array.from({ length: 12 }).map((_, i) => (
@@ -412,6 +434,44 @@ function ResultsGrid({ assets, isLoading, mediaType, getProviderColor, formatDur
         <p>{t("stock.noResults")}</p>
         <p className="text-sm mt-1">{t("stock.tryDifferent")}</p>
       </div>
+    );
+  }
+
+  if (mediaType === "audio") {
+    return (
+      <ScrollArea className="h-[calc(100vh-280px)]">
+        <div className="space-y-2 pb-4">
+          {assets.map((asset) => (
+            <AudioTrackRow 
+              key={asset.id} 
+              asset={asset} 
+              getProviderColor={getProviderColor}
+              formatDuration={formatDuration}
+              t={t}
+            />
+          ))}
+        </div>
+        
+        {hasMore && onLoadMore && (
+          <div className="flex justify-center py-4">
+            <Button 
+              variant="outline" 
+              onClick={onLoadMore}
+              disabled={isLoadingMore}
+              data-testid="button-load-more"
+            >
+              {isLoadingMore ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {t("stock.loading")}
+                </>
+              ) : (
+                t("stock.loadMore")
+              )}
+            </Button>
+          </div>
+        )}
+      </ScrollArea>
     );
   }
 
@@ -608,5 +668,219 @@ function AssetCard({ asset, getProviderColor, formatDuration, t, onOpenPreview }
         </div>
       </div>
     </Card>
+  );
+}
+
+interface AudioTrackRowProps {
+  asset: StockAsset;
+  getProviderColor: (provider: string) => string;
+  formatDuration: (seconds?: number) => string | null;
+  t: (key: string) => string;
+}
+
+function AudioTrackRow({ asset, getProviderColor, formatDuration, t }: AudioTrackRowProps) {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(asset.duration || 0);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
+    const handleLoadedMetadata = () => {
+      setDuration(audio.duration);
+      setIsLoaded(true);
+    };
+    const handleEnded = () => setIsPlaying(false);
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('pause', handlePause);
+
+    return () => {
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
+    };
+  }, []);
+
+  const togglePlay = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    
+    if (isPlaying) {
+      audio.pause();
+    } else {
+      audio.play();
+    }
+  };
+
+  const handleSeek = (value: number[]) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.currentTime = value[0];
+    setCurrentTime(value[0]);
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+  return (
+    <div 
+      className="group relative flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-muted/40 via-muted/20 to-transparent hover:from-primary/10 hover:via-primary/5 hover:to-transparent border border-border/50 hover:border-primary/30 transition-all duration-300"
+      data-testid={`audio-track-${asset.id}`}
+    >
+      <audio ref={audioRef} src={asset.previewUrl} preload="metadata" />
+      
+      {/* Album art / Play button */}
+      <div className="relative shrink-0">
+        <div 
+          className={`w-14 h-14 rounded-lg overflow-hidden bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center cursor-pointer group/play ${isPlaying ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''}`}
+          onClick={togglePlay}
+        >
+          {asset.thumbnailUrl ? (
+            <img 
+              src={asset.thumbnailUrl} 
+              alt={asset.title}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <Disc3 className={`h-7 w-7 text-primary/60 ${isPlaying ? 'animate-spin' : ''}`} style={{ animationDuration: '3s' }} />
+          )}
+          
+          {/* Play/Pause overlay */}
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/play:opacity-100 transition-opacity rounded-lg">
+            {isPlaying ? (
+              <Pause className="h-6 w-6 text-white" fill="white" />
+            ) : (
+              <Play className="h-6 w-6 text-white" fill="white" />
+            )}
+          </div>
+        </div>
+        
+        {/* Playing indicator */}
+        {isPlaying && (
+          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 flex gap-0.5">
+            <span className="w-1 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+            <span className="w-1 h-3 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+            <span className="w-1 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          </div>
+        )}
+      </div>
+
+      {/* Track info and player */}
+      <div className="flex-1 min-w-0 space-y-2">
+        {/* Title and meta */}
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <h3 className="font-medium text-sm truncate" title={asset.title}>
+              {asset.title}
+            </h3>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              {asset.author && (
+                <button 
+                  className="flex items-center gap-1 hover:text-primary transition-colors truncate"
+                  onClick={() => asset.authorUrl && window.open(asset.authorUrl, "_blank")}
+                >
+                  <User className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{asset.author}</span>
+                </button>
+              )}
+              {asset.description && asset.description !== asset.author && (
+                <span className="truncate hidden sm:inline">{asset.description}</span>
+              )}
+            </div>
+          </div>
+          
+          <Badge 
+            className={`${getProviderColor(asset.provider)} shrink-0 text-[10px]`}
+          >
+            {asset.provider}
+          </Badge>
+        </div>
+
+        {/* Progress bar / Seek slider */}
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-muted-foreground w-8 text-right tabular-nums">
+            {formatTime(currentTime)}
+          </span>
+          
+          <div className="flex-1 relative group/slider">
+            {/* Background track */}
+            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+              {/* Progress fill */}
+              <div 
+                className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-100 rounded-full"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            
+            {/* Seek slider overlay */}
+            <Slider
+              value={[currentTime]}
+              max={duration || 100}
+              step={0.1}
+              onValueChange={handleSeek}
+              className="absolute inset-0 opacity-0 group-hover/slider:opacity-100 transition-opacity cursor-pointer"
+            />
+          </div>
+          
+          <span className="text-[10px] text-muted-foreground w-8 tabular-nums">
+            {formatTime(duration)}
+          </span>
+        </div>
+
+        {/* Tags (mobile hidden) */}
+        {asset.tags && asset.tags.length > 0 && (
+          <div className="hidden sm:flex flex-wrap gap-1">
+            {asset.tags.slice(0, 4).map((tag, i) => (
+              <span key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Action buttons */}
+      <div className="flex items-center gap-1.5 shrink-0 sm:opacity-70 sm:group-hover:opacity-100 transition-opacity">
+        <Button
+          size="sm"
+          variant="default"
+          className="h-8 bg-gradient-to-r from-primary to-accent text-primary-foreground"
+          onClick={() => window.open(asset.downloadUrl, "_blank")}
+          data-testid={`button-download-${asset.id}`}
+        >
+          <Download className="h-3.5 w-3.5 mr-1.5" />
+          <span className="hidden sm:inline">{t("stock.download")}</span>
+        </Button>
+        
+        {asset.sourceUrl && (
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8"
+            onClick={() => window.open(asset.sourceUrl, "_blank")}
+            data-testid={`button-source-${asset.id}`}
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+          </Button>
+        )}
+      </div>
+    </div>
   );
 }
