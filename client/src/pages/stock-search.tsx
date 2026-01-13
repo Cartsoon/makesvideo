@@ -252,13 +252,13 @@ export default function StockSearch() {
               
               {/* Media container with close button inside */}
               <div className="relative bg-black flex items-center justify-center min-h-[300px] max-h-[60vh]">
-                {/* Close button - positioned on the video */}
+                {/* Close button - modern glass morphism style */}
                 <button
                   onClick={() => setPreviewAsset(null)}
-                  className="absolute top-3 right-3 z-30 bg-black/60 hover:bg-black/80 backdrop-blur-sm text-white p-2.5 rounded-full border-2 border-white/30 hover:border-white/60 transition-all shadow-lg"
+                  className="absolute top-4 right-4 z-30 group/close w-10 h-10 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 hover:border-white/40 transition-all duration-300 shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_32px_rgba(0,0,0,0.5)] hover:scale-105"
                   data-testid="button-close-preview"
                 >
-                  <X className="h-5 w-5" />
+                  <X className="h-5 w-5 text-white/90 group-hover/close:text-white transition-colors" strokeWidth={2.5} />
                 </button>
                 {previewAsset.mediaType === "video" ? (
                   <video
