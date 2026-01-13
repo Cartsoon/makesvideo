@@ -98,6 +98,7 @@ export default function StockSearch() {
       case "unsplash": return "bg-purple-500/20 text-purple-600 dark:text-purple-400";
       case "freesound": return "bg-orange-500/20 text-orange-600 dark:text-orange-400";
       case "jamendo": return "bg-rose-500/20 text-rose-600 dark:text-rose-400";
+      case "ccmixter": return "bg-cyan-500/20 text-cyan-600 dark:text-cyan-400";
       default: return "bg-muted text-muted-foreground";
     }
   };

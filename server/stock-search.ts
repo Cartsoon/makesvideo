@@ -37,6 +37,11 @@ const providerConfigs: Record<StockProvider, ProviderConfig> = {
     baseUrl: "https://api.jamendo.com/v3.0",
     rateLimit: 35000, // per month
   },
+  ccmixter: {
+    apiKey: undefined, // No API key required
+    baseUrl: "https://ccmixter.org/api/query",
+    rateLimit: 100, // be polite
+  },
 };
 
 async function translateToEnglish(query: string): Promise<string> {
@@ -359,6 +364,107 @@ async function searchJamendoMusic(query: string, perPage: number = 15, page: num
   }
 }
 
+async function searchCCMixterMusic(query: string, perPage: number = 15, page: number = 1): Promise<StockAsset[]> {
+  try {
+    const offset = (page - 1) * perPage;
+    const url = `${providerConfigs.ccmixter.baseUrl}?tags=${encodeURIComponent(query)}&limit=${perPage}&offset=${offset}&f=json&dataview=default`;
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      // Try RSS fallback
+      return await searchCCMixterRSS(query, perPage, page);
+    }
+    
+    const data = await response.json();
+    
+    if (!Array.isArray(data) || data.length === 0) {
+      // Try RSS fallback
+      return await searchCCMixterRSS(query, perPage, page);
+    }
+
+    return data.map((track: any): StockAsset => ({
+      id: `ccmixter-m-${track.upload_id}`,
+      provider: "ccmixter",
+      mediaType: "audio",
+      title: track.upload_name || "ccMixter Track",
+      description: track.upload_description_plain?.substring(0, 200) || `by ${track.user_name}`,
+      previewUrl: track.files?.[0]?.download_url || track.file_page_url,
+      downloadUrl: track.files?.[0]?.download_url || track.file_page_url,
+      thumbnailUrl: track.user_avatar_url,
+      sourceUrl: track.file_page_url,
+      duration: undefined,
+      author: track.user_name,
+      authorUrl: `https://ccmixter.org/people/${track.user_name}`,
+      license: track.license_name || "Creative Commons",
+      tags: track.upload_tags?.split(",").map((t: string) => t.trim()) || [],
+    }));
+  } catch (error) {
+    logError("StockSearch", "ccMixter JSON search failed, trying RSS", error);
+    return await searchCCMixterRSS(query, perPage, page);
+  }
+}
+
+async function searchCCMixterRSS(query: string, perPage: number = 15, page: number = 1): Promise<StockAsset[]> {
+  try {
+    const offset = (page - 1) * perPage;
+    const url = `${providerConfigs.ccmixter.baseUrl}?tags=${encodeURIComponent(query)}&limit=${perPage}&offset=${offset}&f=rss`;
+    const response = await fetch(url);
+
+    if (!response.ok) return [];
+    
+    const xmlText = await response.text();
+    
+    // Parse RSS XML manually
+    const items: StockAsset[] = [];
+    const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+    let match;
+    
+    while ((match = itemRegex.exec(xmlText)) !== null) {
+      const itemXml = match[1];
+      
+      const getTag = (tag: string): string => {
+        const tagMatch = itemXml.match(new RegExp(`<${tag}><!\\[CDATA\\[([\\s\\S]*?)\\]\\]></${tag}>|<${tag}>([^<]*)</${tag}>`));
+        return tagMatch ? (tagMatch[1] || tagMatch[2] || "").trim() : "";
+      };
+      
+      const title = getTag("title");
+      const link = getTag("link");
+      const creator = getTag("dc:creator");
+      const description = getTag("description");
+      
+      // Get enclosure URL for audio file
+      const enclosureMatch = itemXml.match(/<enclosure[^>]+url="([^"]+)"/);
+      const audioUrl = enclosureMatch ? enclosureMatch[1] : "";
+      
+      // Extract ID from link
+      const idMatch = link.match(/\/(\d+)$/);
+      const id = idMatch ? idMatch[1] : String(Date.now() + Math.random());
+      
+      if (audioUrl || link) {
+        items.push({
+          id: `ccmixter-m-${id}`,
+          provider: "ccmixter",
+          mediaType: "audio",
+          title: title || "ccMixter Track",
+          description: description?.substring(0, 200) || `by ${creator}`,
+          previewUrl: audioUrl || link,
+          downloadUrl: audioUrl || link,
+          sourceUrl: link,
+          author: creator,
+          authorUrl: `https://ccmixter.org/people/${creator}`,
+          license: "Creative Commons",
+          tags: [],
+        });
+      }
+    }
+    
+    return items;
+  } catch (error) {
+    logError("StockSearch", "ccMixter RSS search failed", error);
+    return [];
+  }
+}
+
 export async function searchStock(
   query: string,
   mediaType: StockMediaType,
@@ -378,7 +484,7 @@ export async function searchStock(
   const translatedQuery = await translateToEnglish(query);
   
   // Calculate per-provider limit based on actual number of providers + buffer for deduplication
-  const providerCounts = { video: 2, photo: 3, audio: 2 }; // Freesound + Jamendo for audio
+  const providerCounts = { video: 2, photo: 3, audio: 3 }; // Freesound + Jamendo + ccMixter for audio
   const numProviders = providerCounts[mediaType] || 2;
   const perProvider = Math.ceil((limit * 1.5) / numProviders); // Request 50% extra for deduplication buffer
 
@@ -398,11 +504,12 @@ export async function searchStock(
     ]);
     assets = [...pexelsPhotos, ...pixabayPhotos, ...unsplashPhotos];
   } else if (mediaType === "audio") {
-    const [freesoundAudio, jamendoMusic] = await Promise.all([
+    const [freesoundAudio, jamendoMusic, ccmixterMusic] = await Promise.all([
       searchFreesoundAudio(translatedQuery, perProvider, page),
       searchJamendoMusic(translatedQuery, perProvider, page),
+      searchCCMixterMusic(translatedQuery, perProvider, page),
     ]);
-    assets = [...freesoundAudio, ...jamendoMusic];
+    assets = [...freesoundAudio, ...jamendoMusic, ...ccmixterMusic];
   }
 
   const uniqueAssets = assets.filter((asset, index, self) => 
@@ -443,5 +550,6 @@ export function getStockProviderStatus(): Record<StockProvider, boolean> {
     unsplash: !!providerConfigs.unsplash.apiKey,
     freesound: !!providerConfigs.freesound.apiKey,
     jamendo: !!providerConfigs.jamendo.apiKey,
+    ccmixter: true, // No API key required
   };
 }
