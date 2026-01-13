@@ -39,6 +39,27 @@ const providerConfigs: Record<StockProvider, ProviderConfig> = {
   },
 };
 
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), timeoutMs))
+  ]);
+}
+
+async function fetchWithTimeout(url: string, options?: RequestInit, timeoutMs: number = 10000): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timeout);
+    return response;
+  } catch (error) {
+    clearTimeout(timeout);
+    throw error;
+  }
+}
+
 async function translateToEnglish(query: string): Promise<string> {
   const isEnglish = /^[a-zA-Z0-9\s.,!?'-]+$/.test(query);
   if (isEnglish) return query;
@@ -57,7 +78,7 @@ async function translateToEnglish(query: string): Promise<string> {
       baseURL: baseUrl || "https://api.openai.com/v1"
     });
 
-    const response = await openai.chat.completions.create({
+    const translatePromise = openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
@@ -69,6 +90,13 @@ async function translateToEnglish(query: string): Promise<string> {
       max_tokens: 50,
       temperature: 0.1,
     });
+
+    const response = await withTimeout(translatePromise, 5000, null);
+    
+    if (!response) {
+      logInfo("StockSearch", "Translation timed out, using original query");
+      return query;
+    }
 
     const translated = response.choices[0]?.message?.content?.trim() || query;
     logInfo("StockSearch", `Translated "${query}" -> "${translated}"`);
@@ -108,9 +136,9 @@ async function searchPexelsVideos(query: string, perPage: number = 15, orientati
   try {
     const orientationParam = getOrientationParam(orientation, "pexels");
     const url = `${providerConfigs.pexels.baseUrl}/videos/search?query=${encodeURIComponent(query)}&per_page=${perPage}&page=${page}${orientationParam}`;
-    const response = await fetch(url, {
+    const response = await fetchWithTimeout(url, {
       headers: { Authorization: apiKey },
-    });
+    }, 10000);
 
     if (!response.ok) return [];
     const data = await response.json();
@@ -145,9 +173,9 @@ async function searchPexelsPhotos(query: string, perPage: number = 15, orientati
   try {
     const orientationParam = getOrientationParam(orientation, "pexels");
     const url = `${providerConfigs.pexels.baseUrl}/v1/search?query=${encodeURIComponent(query)}&per_page=${perPage}&page=${page}${orientationParam}`;
-    const response = await fetch(url, {
+    const response = await fetchWithTimeout(url, {
       headers: { Authorization: apiKey },
-    });
+    }, 10000);
 
     if (!response.ok) return [];
     const data = await response.json();
@@ -180,7 +208,7 @@ async function searchPixabayVideos(query: string, perPage: number = 15, orientat
   try {
     const orientationParam = getOrientationParam(orientation, "pixabay");
     const url = `${providerConfigs.pixabay.baseUrl}/videos/?key=${apiKey}&q=${encodeURIComponent(query)}&per_page=${perPage}&page=${page}${orientationParam}`;
-    const response = await fetch(url);
+    const response = await fetchWithTimeout(url, undefined, 10000);
 
     if (!response.ok) return [];
     const data = await response.json();
@@ -226,7 +254,7 @@ async function searchPixabayPhotos(query: string, perPage: number = 15, orientat
   try {
     const orientationParam = getOrientationParam(orientation, "pixabay");
     const url = `${providerConfigs.pixabay.baseUrl}/?key=${apiKey}&q=${encodeURIComponent(query)}&per_page=${perPage}&page=${page}&image_type=photo${orientationParam}`;
-    const response = await fetch(url);
+    const response = await fetchWithTimeout(url, undefined, 10000);
 
     if (!response.ok) return [];
     const data = await response.json();
@@ -261,9 +289,9 @@ async function searchUnsplashPhotos(query: string, perPage: number = 15, orienta
   try {
     const orientationParam = getOrientationParam(orientation, "unsplash");
     const url = `${providerConfigs.unsplash.baseUrl}/search/photos?query=${encodeURIComponent(query)}&per_page=${perPage}&page=${page}${orientationParam}`;
-    const response = await fetch(url, {
+    const response = await fetchWithTimeout(url, {
       headers: { Authorization: `Client-ID ${apiKey}` },
-    });
+    }, 10000);
 
     if (!response.ok) return [];
     const data = await response.json();
@@ -356,7 +384,7 @@ async function searchJamendoMusic(query: string, perPage: number = 15, page: num
   try {
     const offset = (page - 1) * perPage;
     const url = `${providerConfigs.jamendo.baseUrl}/tracks/?client_id=${clientId}&format=json&limit=${perPage}&offset=${offset}&search=${encodeURIComponent(query)}&include=musicinfo`;
-    const response = await fetch(url);
+    const response = await fetchWithTimeout(url, undefined, 10000);
 
     if (!response.ok) return [];
     const data = await response.json();
