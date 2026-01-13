@@ -24,6 +24,8 @@ import {
   X,
   Maximize2,
   Volume2,
+  VolumeX,
+  Volume1,
   Disc3
 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -46,6 +48,7 @@ export default function StockSearch() {
   const [allAssets, setAllAssets] = useState<StockAsset[]>([]);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [previewAsset, setPreviewAsset] = useState<StockAsset | null>(null);
+  const [globalVolume, setGlobalVolume] = useState(0.7);
 
   const searchMutation = useMutation({
     mutationFn: async ({ query, mediaType, orientation, page }: { query: string; mediaType: StockMediaType; orientation: StockOrientation; page: number }) => {
@@ -243,6 +246,8 @@ export default function StockSearch() {
               isLoadingMore={isLoadingMore}
               onLoadMore={handleLoadMore}
               onOpenPreview={setPreviewAsset}
+              globalVolume={globalVolume}
+              onVolumeChange={setGlobalVolume}
             />
           </TabsContent>
         </Tabs>
@@ -392,9 +397,11 @@ interface ResultsGridProps {
   isLoadingMore?: boolean;
   onLoadMore?: () => void;
   onOpenPreview: (asset: StockAsset) => void;
+  globalVolume?: number;
+  onVolumeChange?: (volume: number) => void;
 }
 
-function ResultsGrid({ assets, isLoading, mediaType, getProviderColor, formatDuration, t, hasMore, isLoadingMore, onLoadMore, onOpenPreview }: ResultsGridProps) {
+function ResultsGrid({ assets, isLoading, mediaType, getProviderColor, formatDuration, t, hasMore, isLoadingMore, onLoadMore, onOpenPreview, globalVolume = 0.7, onVolumeChange }: ResultsGridProps) {
   if (isLoading) {
     if (mediaType === "audio") {
       return (
@@ -438,40 +445,71 @@ function ResultsGrid({ assets, isLoading, mediaType, getProviderColor, formatDur
   }
 
   if (mediaType === "audio") {
+    const VolumeIcon = globalVolume === 0 ? VolumeX : globalVolume < 0.5 ? Volume1 : Volume2;
+    
     return (
-      <ScrollArea className="h-[calc(100vh-280px)]">
-        <div className="space-y-2 pb-4">
-          {assets.map((asset) => (
-            <AudioTrackRow 
-              key={asset.id} 
-              asset={asset} 
-              getProviderColor={getProviderColor}
-              formatDuration={formatDuration}
-              t={t}
-            />
-          ))}
-        </div>
-        
-        {hasMore && onLoadMore && (
-          <div className="flex justify-center py-4">
-            <Button 
-              variant="outline" 
-              onClick={onLoadMore}
-              disabled={isLoadingMore}
-              data-testid="button-load-more"
+      <div className="space-y-3">
+        {/* Global volume control */}
+        {onVolumeChange && (
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-primary/10 via-accent/5 to-transparent border border-primary/20">
+            <button
+              onClick={() => onVolumeChange(globalVolume === 0 ? 0.7 : 0)}
+              className="p-2 rounded-lg hover:bg-primary/10 transition-colors"
+              data-testid="button-volume-toggle"
             >
-              {isLoadingMore ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  {t("stock.loading")}
-                </>
-              ) : (
-                t("stock.loadMore")
-              )}
-            </Button>
+              <VolumeIcon className="h-5 w-5 text-primary" />
+            </button>
+            <div className="flex-1 max-w-xs">
+              <Slider
+                value={[globalVolume * 100]}
+                max={100}
+                step={1}
+                onValueChange={(value) => onVolumeChange(value[0] / 100)}
+                className="cursor-pointer"
+                data-testid="slider-global-volume"
+              />
+            </div>
+            <span className="text-xs text-muted-foreground w-10 text-right tabular-nums">
+              {Math.round(globalVolume * 100)}%
+            </span>
           </div>
         )}
-      </ScrollArea>
+        
+        <ScrollArea className="h-[calc(100vh-340px)]">
+          <div className="space-y-2 pb-4">
+            {assets.map((asset) => (
+              <AudioTrackRow 
+                key={asset.id} 
+                asset={asset} 
+                getProviderColor={getProviderColor}
+                formatDuration={formatDuration}
+                t={t}
+                volume={globalVolume}
+              />
+            ))}
+          </div>
+          
+          {hasMore && onLoadMore && (
+            <div className="flex justify-center py-4">
+              <Button 
+                variant="outline" 
+                onClick={onLoadMore}
+                disabled={isLoadingMore}
+                data-testid="button-load-more"
+              >
+                {isLoadingMore ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    {t("stock.loading")}
+                  </>
+                ) : (
+                  t("stock.loadMore")
+                )}
+              </Button>
+            </div>
+          )}
+        </ScrollArea>
+      </div>
     );
   }
 
@@ -676,9 +714,10 @@ interface AudioTrackRowProps {
   getProviderColor: (provider: string) => string;
   formatDuration: (seconds?: number) => string | null;
   t: (key: string) => string;
+  volume?: number;
 }
 
-function AudioTrackRow({ asset, getProviderColor, formatDuration, t }: AudioTrackRowProps) {
+function AudioTrackRow({ asset, getProviderColor, formatDuration, t, volume = 0.7 }: AudioTrackRowProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -712,6 +751,13 @@ function AudioTrackRow({ asset, getProviderColor, formatDuration, t }: AudioTrac
       audio.removeEventListener('pause', handlePause);
     };
   }, []);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.volume = volume;
+    }
+  }, [volume]);
 
   const togglePlay = () => {
     const audio = audioRef.current;
