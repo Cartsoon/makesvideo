@@ -23,7 +23,7 @@ export function Layout({ children, title, fullHeight, hideBottomNav }: LayoutPro
         
         {!fullHeight && <TipsBar />}
         
-        <main className={`${hideBottomNav ? 'pb-0' : 'pb-20'} md:pb-6 ${hideBottomNav ? 'h-[calc(100dvh-3.5rem)] overflow-hidden' : 'min-h-screen'} relative z-10 ${fullHeight ? 'lg:pb-0 lg:flex-1 lg:overflow-hidden lg:min-h-0' : ''}`}>
+        <main className={`${hideBottomNav ? 'pb-0' : 'pb-16'} md:pb-0 ${hideBottomNav ? 'h-[calc(100dvh-3.5rem)] overflow-hidden' : 'min-h-screen'} relative z-10 ${fullHeight ? 'lg:pb-0 lg:flex-1 lg:overflow-hidden lg:min-h-0' : ''}`}>
           {children}
         </main>
         
