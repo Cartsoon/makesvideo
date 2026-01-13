@@ -299,20 +299,30 @@ async function searchFreesoundAudio(query: string, perPage: number = 15, page: n
   }
 
   try {
-    const url = `${providerConfigs.freesound.baseUrl}/search/text/?query=${encodeURIComponent(query)}&page_size=${perPage}&page=${page}&token=${apiKey}&fields=id,name,description,duration,username,previews,tags,license`;
+    // Use Authorization header as per Freesound docs
+    const url = `${providerConfigs.freesound.baseUrl}/search/text/?query=${encodeURIComponent(query)}&page_size=${perPage}&page=${page}&fields=id,name,description,duration,username,previews,tags,license`;
     
-    // Add timeout to prevent hanging
+    logInfo("StockSearch", `Freesound: searching for "${query}"`);
+    
+    // Increase timeout to 30s for slower API
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
+    const timeout = setTimeout(() => controller.abort(), 30000);
     
-    const response = await fetch(url, { signal: controller.signal });
+    const response = await fetch(url, { 
+      signal: controller.signal,
+      headers: {
+        'Authorization': `Token ${apiKey}`,
+      }
+    });
     clearTimeout(timeout);
 
     if (!response.ok) {
-      logError("StockSearch", `Freesound API returned ${response.status}`);
+      const errorText = await response.text().catch(() => 'Unknown error');
+      logError("StockSearch", `Freesound API returned ${response.status}: ${errorText}`);
       return [];
     }
     const data = await response.json();
+    logInfo("StockSearch", `Freesound: found ${data.count || 0} results`);
 
     return (data.results || []).map((sound: any): StockAsset => ({
       id: `freesound-a-${sound.id}`,
