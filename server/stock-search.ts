@@ -32,6 +32,11 @@ const providerConfigs: Record<StockProvider, ProviderConfig> = {
     baseUrl: "https://freesound.org/apiv2",
     rateLimit: 60, // per minute
   },
+  jamendo: {
+    apiKey: process.env.JAMENDO_CLIENT_ID,
+    baseUrl: "https://api.jamendo.com/v3.0",
+    rateLimit: 35000, // per month
+  },
 };
 
 async function translateToEnglish(query: string): Promise<string> {
@@ -249,38 +254,6 @@ async function searchPixabayPhotos(query: string, perPage: number = 15, orientat
   }
 }
 
-async function searchPixabayAudio(query: string, perPage: number = 15, page: number = 1): Promise<StockAsset[]> {
-  const apiKey = providerConfigs.pixabay.apiKey;
-  if (!apiKey) return [];
-
-  try {
-    const url = `${providerConfigs.pixabay.baseUrl}/?key=${apiKey}&q=${encodeURIComponent(query)}&per_page=${perPage}&page=${page}&media_type=music`;
-    const response = await fetch(url);
-
-    if (!response.ok) return [];
-    const data = await response.json();
-
-    return (data.hits || []).map((audio: any): StockAsset => ({
-      id: `pixabay-a-${audio.id}`,
-      provider: "pixabay",
-      mediaType: "audio",
-      title: audio.tags?.split(",")[0] || "Pixabay Audio",
-      description: audio.tags,
-      previewUrl: audio.previewURL || audio.webformatURL,
-      downloadUrl: audio.largeImageURL || audio.webformatURL,
-      sourceUrl: audio.pageURL,
-      duration: audio.duration,
-      author: audio.user,
-      authorUrl: `https://pixabay.com/users/${audio.user}-${audio.user_id}/`,
-      license: "Pixabay License (Free)",
-      tags: audio.tags?.split(", ") || [],
-    }));
-  } catch (error) {
-    logError("StockSearch", "Pixabay audio search failed", error);
-    return [];
-  }
-}
-
 async function searchUnsplashPhotos(query: string, perPage: number = 15, orientation: StockOrientation = "all", page: number = 1): Promise<StockAsset[]> {
   const apiKey = providerConfigs.unsplash.apiKey;
   if (!apiKey) return [];
@@ -350,6 +323,42 @@ async function searchFreesoundAudio(query: string, perPage: number = 15, page: n
   }
 }
 
+async function searchJamendoMusic(query: string, perPage: number = 15, page: number = 1): Promise<StockAsset[]> {
+  const clientId = providerConfigs.jamendo.apiKey;
+  if (!clientId) return [];
+
+  try {
+    const offset = (page - 1) * perPage;
+    const url = `${providerConfigs.jamendo.baseUrl}/tracks/?client_id=${clientId}&format=json&limit=${perPage}&offset=${offset}&search=${encodeURIComponent(query)}&include=musicinfo`;
+    const response = await fetch(url);
+
+    if (!response.ok) return [];
+    const data = await response.json();
+
+    if (data.headers?.status !== "success") return [];
+
+    return (data.results || []).map((track: any): StockAsset => ({
+      id: `jamendo-m-${track.id}`,
+      provider: "jamendo",
+      mediaType: "audio",
+      title: track.name || "Jamendo Track",
+      description: `${track.artist_name} - ${track.album_name || "Single"}`,
+      previewUrl: track.audio,
+      downloadUrl: track.audiodownload || track.audio,
+      thumbnailUrl: track.album_image,
+      sourceUrl: track.shareurl,
+      duration: track.duration,
+      author: track.artist_name,
+      authorUrl: `https://www.jamendo.com/artist/${track.artist_id}`,
+      license: track.license_ccurl || "Creative Commons",
+      tags: track.musicinfo?.tags?.genres || [],
+    }));
+  } catch (error) {
+    logError("StockSearch", "Jamendo music search failed", error);
+    return [];
+  }
+}
+
 export async function searchStock(
   query: string,
   mediaType: StockMediaType,
@@ -369,7 +378,7 @@ export async function searchStock(
   const translatedQuery = await translateToEnglish(query);
   
   // Calculate per-provider limit based on actual number of providers + buffer for deduplication
-  const providerCounts = { video: 2, photo: 3, audio: 2 };
+  const providerCounts = { video: 2, photo: 3, audio: 2 }; // Freesound + Jamendo for audio
   const numProviders = providerCounts[mediaType] || 2;
   const perProvider = Math.ceil((limit * 1.5) / numProviders); // Request 50% extra for deduplication buffer
 
@@ -389,11 +398,11 @@ export async function searchStock(
     ]);
     assets = [...pexelsPhotos, ...pixabayPhotos, ...unsplashPhotos];
   } else if (mediaType === "audio") {
-    const [freesoundAudio, pixabayAudio] = await Promise.all([
+    const [freesoundAudio, jamendoMusic] = await Promise.all([
       searchFreesoundAudio(translatedQuery, perProvider, page),
-      searchPixabayAudio(translatedQuery, perProvider, page),
+      searchJamendoMusic(translatedQuery, perProvider, page),
     ]);
-    assets = [...freesoundAudio, ...pixabayAudio];
+    assets = [...freesoundAudio, ...jamendoMusic];
   }
 
   const uniqueAssets = assets.filter((asset, index, self) => 
@@ -433,5 +442,6 @@ export function getStockProviderStatus(): Record<StockProvider, boolean> {
     pixabay: !!providerConfigs.pixabay.apiKey,
     unsplash: !!providerConfigs.unsplash.apiKey,
     freesound: !!providerConfigs.freesound.apiKey,
+    jamendo: !!providerConfigs.jamendo.apiKey,
   };
 }

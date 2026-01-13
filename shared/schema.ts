@@ -1091,7 +1091,7 @@ export type AiMessage = typeof aiMessages.$inferSelect;
 export const stockMediaTypes = ["video", "photo", "audio"] as const;
 export type StockMediaType = typeof stockMediaTypes[number];
 
-export const stockProviders = ["pexels", "pixabay", "unsplash", "freesound"] as const;
+export const stockProviders = ["pexels", "pixabay", "unsplash", "freesound", "jamendo"] as const;
 export type StockProvider = typeof stockProviders[number];
 
 export const stockOrientations = ["portrait", "landscape", "all"] as const;
