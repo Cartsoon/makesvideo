@@ -48,7 +48,6 @@ export default function StockSearch() {
   const [allAssets, setAllAssets] = useState<StockAsset[]>([]);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [previewAsset, setPreviewAsset] = useState<StockAsset | null>(null);
-  const [globalVolume, setGlobalVolume] = useState(0.7);
 
   const searchMutation = useMutation({
     mutationFn: async ({ query, mediaType, orientation, page }: { query: string; mediaType: StockMediaType; orientation: StockOrientation; page: number }) => {
@@ -246,8 +245,6 @@ export default function StockSearch() {
               isLoadingMore={isLoadingMore}
               onLoadMore={handleLoadMore}
               onOpenPreview={setPreviewAsset}
-              globalVolume={globalVolume}
-              onVolumeChange={setGlobalVolume}
             />
           </TabsContent>
         </Tabs>
@@ -397,11 +394,9 @@ interface ResultsGridProps {
   isLoadingMore?: boolean;
   onLoadMore?: () => void;
   onOpenPreview: (asset: StockAsset) => void;
-  globalVolume?: number;
-  onVolumeChange?: (volume: number) => void;
 }
 
-function ResultsGrid({ assets, isLoading, mediaType, getProviderColor, formatDuration, t, hasMore, isLoadingMore, onLoadMore, onOpenPreview, globalVolume = 0.7, onVolumeChange }: ResultsGridProps) {
+function ResultsGrid({ assets, isLoading, mediaType, getProviderColor, formatDuration, t, hasMore, isLoadingMore, onLoadMore, onOpenPreview }: ResultsGridProps) {
   if (isLoading) {
     if (mediaType === "audio") {
       return (
@@ -445,71 +440,40 @@ function ResultsGrid({ assets, isLoading, mediaType, getProviderColor, formatDur
   }
 
   if (mediaType === "audio") {
-    const VolumeIcon = globalVolume === 0 ? VolumeX : globalVolume < 0.5 ? Volume1 : Volume2;
-    
     return (
-      <div className="space-y-3">
-        {/* Global volume control */}
-        {onVolumeChange && (
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-primary/10 via-accent/5 to-transparent border border-primary/20">
-            <button
-              onClick={() => onVolumeChange(globalVolume === 0 ? 0.7 : 0)}
-              className="p-2 rounded-lg hover:bg-primary/10 transition-colors"
-              data-testid="button-volume-toggle"
+      <ScrollArea className="h-[calc(100vh-280px)]">
+        <div className="space-y-2 pb-4">
+          {assets.map((asset) => (
+            <AudioTrackRow 
+              key={asset.id} 
+              asset={asset} 
+              getProviderColor={getProviderColor}
+              formatDuration={formatDuration}
+              t={t}
+            />
+          ))}
+        </div>
+        
+        {hasMore && onLoadMore && (
+          <div className="flex justify-center py-4">
+            <Button 
+              variant="outline" 
+              onClick={onLoadMore}
+              disabled={isLoadingMore}
+              data-testid="button-load-more"
             >
-              <VolumeIcon className="h-5 w-5 text-primary" />
-            </button>
-            <div className="flex-1 max-w-xs">
-              <Slider
-                value={[globalVolume * 100]}
-                max={100}
-                step={1}
-                onValueChange={(value) => onVolumeChange(value[0] / 100)}
-                className="cursor-pointer"
-                data-testid="slider-global-volume"
-              />
-            </div>
-            <span className="text-xs text-muted-foreground w-10 text-right tabular-nums">
-              {Math.round(globalVolume * 100)}%
-            </span>
+              {isLoadingMore ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {t("stock.loading")}
+                </>
+              ) : (
+                t("stock.loadMore")
+              )}
+            </Button>
           </div>
         )}
-        
-        <ScrollArea className="h-[calc(100vh-340px)]">
-          <div className="space-y-2 pb-4">
-            {assets.map((asset) => (
-              <AudioTrackRow 
-                key={asset.id} 
-                asset={asset} 
-                getProviderColor={getProviderColor}
-                formatDuration={formatDuration}
-                t={t}
-                volume={globalVolume}
-              />
-            ))}
-          </div>
-          
-          {hasMore && onLoadMore && (
-            <div className="flex justify-center py-4">
-              <Button 
-                variant="outline" 
-                onClick={onLoadMore}
-                disabled={isLoadingMore}
-                data-testid="button-load-more"
-              >
-                {isLoadingMore ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    {t("stock.loading")}
-                  </>
-                ) : (
-                  t("stock.loadMore")
-                )}
-              </Button>
-            </div>
-          )}
-        </ScrollArea>
-      </div>
+      </ScrollArea>
     );
   }
 
@@ -714,15 +678,17 @@ interface AudioTrackRowProps {
   getProviderColor: (provider: string) => string;
   formatDuration: (seconds?: number) => string | null;
   t: (key: string) => string;
-  volume?: number;
 }
 
-function AudioTrackRow({ asset, getProviderColor, formatDuration, t, volume = 0.7 }: AudioTrackRowProps) {
+let currentlyPlayingAudio: HTMLAudioElement | null = null;
+
+function AudioTrackRow({ asset, getProviderColor, formatDuration, t }: AudioTrackRowProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(asset.duration || 0);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [volume, setVolume] = useState(0.7);
+  const [showVolume, setShowVolume] = useState(false);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -731,9 +697,13 @@ function AudioTrackRow({ asset, getProviderColor, formatDuration, t, volume = 0.
     const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
     const handleLoadedMetadata = () => {
       setDuration(audio.duration);
-      setIsLoaded(true);
     };
-    const handleEnded = () => setIsPlaying(false);
+    const handleEnded = () => {
+      setIsPlaying(false);
+      if (currentlyPlayingAudio === audio) {
+        currentlyPlayingAudio = null;
+      }
+    };
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
 
@@ -765,7 +735,14 @@ function AudioTrackRow({ asset, getProviderColor, formatDuration, t, volume = 0.
     
     if (isPlaying) {
       audio.pause();
+      if (currentlyPlayingAudio === audio) {
+        currentlyPlayingAudio = null;
+      }
     } else {
+      if (currentlyPlayingAudio && currentlyPlayingAudio !== audio) {
+        currentlyPlayingAudio.pause();
+      }
+      currentlyPlayingAudio = audio;
       audio.play();
     }
   };
@@ -902,8 +879,50 @@ function AudioTrackRow({ asset, getProviderColor, formatDuration, t, volume = 0.
         )}
       </div>
 
-      {/* Action buttons */}
-      <div className="flex items-center gap-1.5 shrink-0 sm:opacity-70 sm:group-hover:opacity-100 transition-opacity">
+      {/* Volume & Action buttons */}
+      <div className="flex items-center gap-1 shrink-0 sm:opacity-70 sm:group-hover:opacity-100 transition-opacity">
+        {/* Minimalist volume control */}
+        <div className="relative">
+          <button
+            onClick={() => setShowVolume(!showVolume)}
+            className="p-1.5 rounded-md hover:bg-muted transition-colors"
+            data-testid={`button-volume-${asset.id}`}
+          >
+            {volume === 0 ? (
+              <VolumeX className="h-4 w-4 text-muted-foreground" />
+            ) : volume < 0.5 ? (
+              <Volume1 className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <Volume2 className="h-4 w-4 text-muted-foreground" />
+            )}
+          </button>
+          
+          {showVolume && (
+            <div className="absolute bottom-full right-0 mb-2 p-2 rounded-lg bg-popover border shadow-lg z-10 flex items-center gap-2">
+              <button
+                onClick={() => setVolume(volume === 0 ? 0.7 : 0)}
+                className="p-1 rounded hover:bg-muted"
+              >
+                {volume === 0 ? (
+                  <VolumeX className="h-3.5 w-3.5" />
+                ) : (
+                  <Volume2 className="h-3.5 w-3.5" />
+                )}
+              </button>
+              <Slider
+                value={[volume * 100]}
+                max={100}
+                step={1}
+                onValueChange={(v) => setVolume(v[0] / 100)}
+                className="w-20"
+              />
+              <span className="text-[10px] w-7 text-muted-foreground tabular-nums">
+                {Math.round(volume * 100)}%
+              </span>
+            </div>
+          )}
+        </div>
+
         <Button
           size="sm"
           variant="default"
