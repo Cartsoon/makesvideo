@@ -1839,8 +1839,8 @@ export default function AssistantPage() {
             
             <div className="flex-1 min-h-0 overflow-hidden">
               {showNotesList && !isCreatingNote ? (
-                <ScrollArea className="h-full w-full">
-                  <div className="p-2 space-y-1 overflow-hidden">
+                <ScrollArea className="h-full">
+                  <div className="p-2 space-y-1 max-w-full">
                     {allNotes.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-8 text-center">
                         <StickyNote className="h-10 w-10 text-amber-500/30 mb-3" />
@@ -1863,7 +1863,7 @@ export default function AssistantPage() {
                         <div
                           key={note.id}
                           onClick={() => activateNoteMutation.mutate(note.id)}
-                          className={`flex items-center gap-3 p-3 rounded-md cursor-pointer transition-colors overflow-hidden ${
+                          className={`flex items-center gap-2 p-2.5 rounded-md cursor-pointer transition-colors max-w-full ${
                             note.isActive ? "bg-amber-500/10 border border-amber-500/30" : "bg-muted/30 hover:bg-muted/50"
                           }`}
                           data-testid={`button-select-note-${note.id}`}
