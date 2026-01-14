@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { Clapperboard, Radar, Scissors, Film, Settings, Play, User, Bot, BookOpen, Search } from "lucide-react";
+import { SiTelegram } from "react-icons/si";
 import { cn } from "@/lib/utils";
 import { LanguageToggle } from "@/components/language-toggle";
 import { InfoModal } from "@/components/info-modal";
@@ -29,30 +30,41 @@ export function DesktopSidebar() {
   return (
     <aside className="hidden md:flex md:w-56 md:flex-col md:fixed md:inset-y-0 z-50 border-r bg-sidebar">
       <div className="flex flex-col h-full">
-        <Link href="/">
-          <div className="flex items-center gap-2.5 h-14 px-3 border-b border-sidebar-border bg-gradient-to-r from-transparent via-sidebar to-transparent cursor-pointer hover-elevate active-elevate-2" data-testid="link-sidebar-logo-home">
-            <div className="relative flex items-center justify-center w-9 h-9 rounded-sm bg-gradient-to-br from-rose-600 via-rose-500 to-amber-500 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-white/20" />
-              <div className="absolute inset-0">
-                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-300/50 to-transparent" />
+        <div className="flex items-center h-14 px-3 border-b border-sidebar-border bg-gradient-to-r from-transparent via-sidebar to-transparent">
+          <Link href="/">
+            <div className="flex items-center gap-2.5 cursor-pointer hover-elevate active-elevate-2 rounded-sm p-0.5 -m-0.5" data-testid="link-sidebar-logo-home">
+              <div className="relative flex items-center justify-center w-9 h-9 rounded-sm bg-gradient-to-br from-rose-600 via-rose-500 to-amber-500 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-white/20" />
+                <div className="absolute inset-0">
+                  <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-300/50 to-transparent" />
+                </div>
+                <Play className="h-4 w-4 text-white relative z-10 drop-shadow-md" fill="white" />
+                <div className="absolute -top-0.5 -left-0.5 w-1.5 h-1.5 border-t border-l border-cyan-400" />
+                <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 border-t border-r border-rose-400" />
+                <div className="absolute -bottom-0.5 -left-0.5 w-1.5 h-1.5 border-b border-l border-rose-400" />
+                <div className="absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 border-b border-r border-cyan-400" />
               </div>
-              <Play className="h-4 w-4 text-white relative z-10 drop-shadow-md" fill="white" />
-              <div className="absolute -top-0.5 -left-0.5 w-1.5 h-1.5 border-t border-l border-cyan-400" />
-              <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 border-t border-r border-rose-400" />
-              <div className="absolute -bottom-0.5 -left-0.5 w-1.5 h-1.5 border-b border-l border-rose-400" />
-              <div className="absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 border-b border-r border-cyan-400" />
+              <div className="flex flex-col">
+                <span className="font-black text-sm tracking-tight leading-tight glitch-text" data-text="IDENGINE" data-testid="text-sidebar-title">
+                  IDENGINE
+                </span>
+                <span className="text-[9px] text-neutral-500 leading-tight tracking-[0.15em] uppercase">
+                  VIDEO FACTORY
+                </span>
+              </div>
             </div>
-            <div className="flex flex-col">
-              <span className="font-black text-sm tracking-tight leading-tight glitch-text" data-text="IDENGINE" data-testid="text-sidebar-title">
-                IDENGINE
-              </span>
-              <span className="text-[9px] text-neutral-500 leading-tight tracking-[0.15em] uppercase">
-                VIDEO FACTORY
-              </span>
-            </div>
-          </div>
-        </Link>
+          </Link>
+          <a 
+            href="https://t.me/idengine" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="ml-auto text-muted-foreground hover:text-[#26A5E4] transition-colors"
+            data-testid="link-telegram-sidebar"
+          >
+            <SiTelegram className="h-4 w-4" />
+          </a>
+        </div>
 
         <nav className="flex-1 px-2 py-3 space-y-0.5">
           {navItems.map((item) => {

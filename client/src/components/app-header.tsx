@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Play, User } from "lucide-react";
+import { SiTelegram } from "react-icons/si";
 import { getAvatarById } from "@/lib/avatars";
 
 interface AppHeaderProps {
@@ -42,6 +43,15 @@ export function AppHeader({ title = "IDENGINE" }: AppHeaderProps) {
             </div>
           </div>
         </Link>
+        <a 
+          href="https://t.me/idengine" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="ml-1 text-muted-foreground hover:text-[#26A5E4] transition-colors"
+          data-testid="link-telegram"
+        >
+          <SiTelegram className="h-4 w-4" />
+        </a>
         <div className="flex items-center gap-0.5">
           {user ? (
             <ProfileModal
