@@ -1839,8 +1839,8 @@ export default function AssistantPage() {
             
             <div className="flex-1 min-h-0 overflow-hidden">
               {showNotesList && !isCreatingNote ? (
-                <ScrollArea className="h-full">
-                  <div className="p-2 space-y-1">
+                <ScrollArea className="h-full w-full">
+                  <div className="p-2 space-y-1 overflow-hidden">
                     {allNotes.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-8 text-center">
                         <StickyNote className="h-10 w-10 text-amber-500/30 mb-3" />
