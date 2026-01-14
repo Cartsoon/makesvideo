@@ -230,7 +230,8 @@ export default function Dashboard() {
                   <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-cyan-500" />
                   <span className="relative flex items-center gap-2">
                     <Search className="h-4 w-4" />
-                    {language === "ru" ? "Поиск футажей" : "Stock Search"}
+                    <span className="sm:hidden">{language === "ru" ? "Футажи" : "Stock"}</span>
+                    <span className="hidden sm:inline">{language === "ru" ? "Поиск футажей" : "Stock Search"}</span>
                   </span>
                 </div>
               </Link>
