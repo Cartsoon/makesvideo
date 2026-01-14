@@ -259,7 +259,7 @@ export default function StockSearch() {
               <div className="absolute top-0 right-0 w-6 h-6 border-r-2 border-t-2 border-primary/60 rounded-tr-md z-10" />
               
               {/* Media container with close button inside */}
-              <div className={`relative flex items-center justify-center ${previewAsset.mediaType === "video" ? "bg-black min-h-[300px] max-h-[60vh]" : ""}`}>
+              <div className={`relative flex items-center justify-center ${previewAsset.mediaType === "video" ? "bg-black" : ""}`}>
                 {/* Close button - modern glass morphism style */}
                 <button
                   onClick={() => setPreviewAsset(null)}
@@ -275,7 +275,7 @@ export default function StockSearch() {
                 {previewAsset.mediaType === "video" ? (
                   <video
                     src={previewAsset.previewUrl}
-                    className="w-full h-full max-h-[60vh] object-contain"
+                    className="w-full max-h-[50vh] md:max-h-[60vh]"
                     autoPlay
                     controls
                     loop
