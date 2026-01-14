@@ -459,7 +459,15 @@ export async function searchStock(
     assets = [...freesoundAudio, ...jamendoMusic];
   }
 
-  const uniqueAssets = assets.filter((asset, index, self) => 
+  // Filter by orientation if specified (some APIs don't filter correctly)
+  let orientedAssets = assets;
+  if (orientation === "portrait" && mediaType !== "audio") {
+    orientedAssets = assets.filter(a => a.height && a.width && a.height > a.width);
+  } else if (orientation === "landscape" && mediaType !== "audio") {
+    orientedAssets = assets.filter(a => a.height && a.width && a.width > a.height);
+  }
+  
+  const uniqueAssets = orientedAssets.filter((asset, index, self) => 
     index === self.findIndex(a => a.downloadUrl === asset.downloadUrl)
   );
 
