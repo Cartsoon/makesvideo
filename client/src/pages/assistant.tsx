@@ -206,7 +206,13 @@ export default function AssistantPage() {
   });
   
   const createNoteMutation = useMutation({
-    mutationFn: (title: string) => apiRequest("POST", "/api/assistant/notes", { title }),
+    mutationFn: async (title: string) => {
+      // Create new note and activate it immediately
+      const response = await apiRequest("POST", "/api/assistant/notes", { title });
+      const newNote = await response.json();
+      await apiRequest("POST", `/api/assistant/notes/${newNote.id}/activate`);
+      return newNote;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/assistant/notes"] });
       queryClient.invalidateQueries({ queryKey: ["/api/assistant/notes/active"] });
