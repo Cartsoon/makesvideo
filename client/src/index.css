@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Global scrollbar hiding */
+html, body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+}
+
 /* LIGHT MODE - Studio Editor Theme: Modern, flat, angular */
 :root {
   --button-outline: rgba(0,0,0, .06);
