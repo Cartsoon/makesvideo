@@ -308,23 +308,23 @@ export default function StockSearch() {
               <div className="absolute top-0 left-0 w-6 h-6 border-l-2 border-t-2 border-primary/60 rounded-tl-md z-10" />
               <div className="absolute top-0 right-0 w-6 h-6 border-r-2 border-t-2 border-primary/60 rounded-tr-md z-10" />
               
-              {/* Navigation arrows */}
+              {/* Navigation arrows - inside dialog bounds */}
               {canGoPrev && (
                 <button
                   onClick={goToPrevAsset}
-                  className="absolute left-2 md:-left-14 top-1/2 -translate-y-1/2 z-40 group/nav w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full backdrop-blur-md border transition-all duration-300 hover:scale-110 bg-black/50 hover:bg-black/70 border-white/20 hover:border-white/40 shadow-lg"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 z-40 group/nav w-10 h-10 flex items-center justify-center rounded-full backdrop-blur-md border transition-all duration-300 hover:scale-110 bg-black/60 hover:bg-black/80 border-white/30 hover:border-white/50 shadow-lg"
                   data-testid="button-prev-asset"
                 >
-                  <ChevronLeft className="h-6 w-6 md:h-7 md:w-7 text-white/90 group-hover/nav:text-white transition-colors" strokeWidth={2.5} />
+                  <ChevronLeft className="h-6 w-6 text-white" strokeWidth={2.5} />
                 </button>
               )}
               {canGoNext && (
                 <button
                   onClick={goToNextAsset}
-                  className="absolute right-2 md:-right-14 top-1/2 -translate-y-1/2 z-40 group/nav w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full backdrop-blur-md border transition-all duration-300 hover:scale-110 bg-black/50 hover:bg-black/70 border-white/20 hover:border-white/40 shadow-lg"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 z-40 group/nav w-10 h-10 flex items-center justify-center rounded-full backdrop-blur-md border transition-all duration-300 hover:scale-110 bg-black/60 hover:bg-black/80 border-white/30 hover:border-white/50 shadow-lg"
                   data-testid="button-next-asset"
                 >
-                  <ChevronRight className="h-6 w-6 md:h-7 md:w-7 text-white/90 group-hover/nav:text-white transition-colors" strokeWidth={2.5} />
+                  <ChevronRight className="h-6 w-6 text-white" strokeWidth={2.5} />
                 </button>
               )}
               
