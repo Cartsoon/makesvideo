@@ -59,10 +59,10 @@ export function DesktopSidebar() {
             href="https://t.me/idengine" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="ml-auto text-muted-foreground hover:text-[#26A5E4] transition-colors"
+            className="ml-auto flex items-center justify-center w-6 h-6 rounded-[4px] bg-[#26A5E4]/10 hover:bg-[#26A5E4] text-[#26A5E4] hover:text-white transition-all"
             data-testid="link-telegram-sidebar"
           >
-            <SiTelegram className="h-4 w-4" />
+            <SiTelegram className="h-3.5 w-3.5" />
           </a>
         </div>
 

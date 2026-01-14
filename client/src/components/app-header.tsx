@@ -47,10 +47,10 @@ export function AppHeader({ title = "IDENGINE" }: AppHeaderProps) {
           href="https://t.me/idengine" 
           target="_blank" 
           rel="noopener noreferrer"
-          className="ml-1 text-muted-foreground hover:text-[#26A5E4] transition-colors"
+          className="ml-1 flex items-center justify-center w-5 h-5 rounded-[3px] bg-[#26A5E4]/10 hover:bg-[#26A5E4] text-[#26A5E4] hover:text-white transition-all"
           data-testid="link-telegram"
         >
-          <SiTelegram className="h-4 w-4" />
+          <SiTelegram className="h-3 w-3" />
         </a>
         <div className="flex items-center gap-0.5">
           {user ? (
