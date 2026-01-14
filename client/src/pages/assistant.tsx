@@ -140,6 +140,7 @@ export default function AssistantPage() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const notesTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingNoteIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     return () => {
@@ -190,6 +191,16 @@ export default function AssistantPage() {
   });
 
   useEffect(() => {
+    // Skip sync if we're waiting for a specific note to become active
+    if (pendingNoteIdRef.current !== null) {
+      if (activeNote?.id === pendingNoteIdRef.current) {
+        // The note we were waiting for is now active - clear the ref and sync
+        pendingNoteIdRef.current = null;
+        setActiveNoteContent(activeNote.content || "");
+      }
+      // Otherwise, skip - we're still waiting for the new note
+      return;
+    }
     if (activeNote?.content !== undefined) {
       setActiveNoteContent(activeNote.content);
     }
@@ -213,13 +224,17 @@ export default function AssistantPage() {
       await apiRequest("POST", `/api/assistant/notes/${newNote.id}/activate`);
       return newNote;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/assistant/notes"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/assistant/notes/active"] });
+    onSuccess: (newNote) => {
+      // Set pending note ID so the sync effect waits for this note
+      pendingNoteIdRef.current = newNote.id;
+      // Clear content immediately - the sync effect will skip until newNote is active
+      setActiveNoteContent("");
       setIsCreatingNote(false);
       setNewNoteTitle("");
-      setActiveNoteContent("");
       setShowNotesList(false);
+      // Invalidate queries to fetch the new active note
+      queryClient.invalidateQueries({ queryKey: ["/api/assistant/notes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/assistant/notes/active"] });
     },
   });
   
