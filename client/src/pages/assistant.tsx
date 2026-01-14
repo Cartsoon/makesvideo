@@ -218,11 +218,20 @@ export default function AssistantPage() {
   });
   
   const activateNoteMutation = useMutation({
-    mutationFn: (noteId: number) => apiRequest("POST", `/api/assistant/notes/${noteId}/activate`),
+    mutationFn: async (noteId: number) => {
+      // Save current note immediately before switching
+      if (activeNote?.id && activeNote.id !== noteId && activeNoteContent !== activeNote.content) {
+        if (notesTimeoutRef.current) {
+          clearTimeout(notesTimeoutRef.current);
+          notesTimeoutRef.current = null;
+        }
+        await apiRequest("PATCH", `/api/assistant/notes/${activeNote.id}`, { content: activeNoteContent });
+      }
+      return apiRequest("POST", `/api/assistant/notes/${noteId}/activate`);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/assistant/notes"] });
       queryClient.invalidateQueries({ queryKey: ["/api/assistant/notes/active"] });
-      setActiveNoteContent("");
       setShowNotesList(false);
     },
   });
@@ -248,6 +257,27 @@ export default function AssistantPage() {
       }
     }, 1500);
   };
+
+  // Save note immediately before going back to list
+  const handleBackToNotesList = useCallback(async () => {
+    if (activeNote?.id && activeNoteContent !== activeNote.content) {
+      // Cancel debounced save
+      if (notesTimeoutRef.current) {
+        clearTimeout(notesTimeoutRef.current);
+        notesTimeoutRef.current = null;
+      }
+      // Save immediately
+      try {
+        await apiRequest("PATCH", `/api/assistant/notes/${activeNote.id}`, { content: activeNoteContent });
+        setNotesSaved(true);
+        queryClient.invalidateQueries({ queryKey: ["/api/assistant/notes"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/assistant/notes/active"] });
+      } catch (error) {
+        console.error("Failed to save note before going to list:", error);
+      }
+    }
+    setShowNotesList(true);
+  }, [activeNote?.id, activeNote?.content, activeNoteContent]);
 
   const messages = paginatedData?.messages || [];
   const totalPages = paginatedData?.totalPages || 1;
@@ -1282,7 +1312,7 @@ export default function AssistantPage() {
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          onClick={() => setShowNotesList(true)} 
+                          onClick={handleBackToNotesList} 
                           className="h-7 text-xs gap-1"
                           data-testid="button-show-notes-list-mobile"
                         >
@@ -1802,7 +1832,7 @@ export default function AssistantPage() {
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8"
-                    onClick={() => setShowNotesList(true)}
+                    onClick={handleBackToNotesList}
                     data-testid="button-back-to-notes-list"
                   >
                     <ChevronLeft className="h-4 w-4" />
