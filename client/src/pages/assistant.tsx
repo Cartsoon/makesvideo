@@ -1848,24 +1848,25 @@ export default function AssistantPage() {
                   </Button>
                 </div>
               ) : (
-                <div className="flex items-center gap-2 flex-1">
+                <div className="flex items-center gap-2 flex-1 min-w-0 pr-1">
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8"
+                    className="h-8 w-8 flex-shrink-0"
                     onClick={handleBackToNotesList}
                     data-testid="button-back-to-notes-list"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
                   <StickyNote className="h-4 w-4 text-amber-500 flex-shrink-0" />
-                  <span className="truncate text-sm font-medium flex-1">
+                  <span className="truncate text-sm font-medium min-w-0 max-w-[120px]">
                     {activeNote?.title || (language === "ru" ? "Заметка" : "Note")}
                   </span>
-                  <span className="text-[9px] text-muted-foreground flex items-center">
-                    {notesSaved ? <Save className="h-2.5 w-2.5 text-green-500" /> : <Loader2 className="h-2.5 w-2.5 animate-spin" />}
-                  </span>
-                  <AlertDialog>
+                  <div className="flex items-center gap-1 ml-auto flex-shrink-0">
+                    <span className="text-[9px] text-muted-foreground flex items-center">
+                      {notesSaved ? <Save className="h-2.5 w-2.5 text-green-500" /> : <Loader2 className="h-2.5 w-2.5 animate-spin" />}
+                    </span>
+                    <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button 
                         variant="ghost" 
@@ -1902,7 +1903,8 @@ export default function AssistantPage() {
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
-                  </AlertDialog>
+                    </AlertDialog>
+                  </div>
                 </div>
               )}
             </div>
