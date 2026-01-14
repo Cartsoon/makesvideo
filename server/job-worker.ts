@@ -352,7 +352,7 @@ let isProcessing = false;
 const MAX_CONCURRENT_JOBS = 1;
 
 async function processJob(job: Job): Promise<void> {
-  console.log(`[JobWorker] Starting job ${job.id}: ${job.kind}`);
+  logInfo("JobWorker", `Starting job ${job.id}: ${job.kind}`);
   
   try {
     await storage.updateJob(job.id, { status: "running", progress: 0 });
@@ -407,10 +407,10 @@ async function processJob(job: Job): Promise<void> {
     }
 
     await storage.updateJob(job.id, { status: "done", progress: 100 });
-    console.log(`[JobWorker] Completed job ${job.id}: ${job.kind}`);
+    logInfo("JobWorker", `Completed job ${job.id}: ${job.kind}`);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    console.error(`[JobWorker] Error in job ${job.id}:`, errorMessage);
+    logError("JobWorker", `Error in job ${job.id}: ${errorMessage}`);
     await storage.updateJob(job.id, { status: "error", error: errorMessage });
     
     // Also update the script status if applicable
@@ -815,7 +815,7 @@ async function processFetchTopics(job: Job): Promise<void> {
     await updateIngestionStats(topicsAdded);
   }
   
-  console.log(`[JobWorker] Fetch complete. Added: ${topicsAdded}, Duplicates skipped: ${duplicatesSkipped}`);
+  logInfo("JobWorker", `Fetch complete. Added: ${topicsAdded}, Duplicates skipped: ${duplicatesSkipped}`);
   await storage.updateJob(job.id, { progress: 100 });
 }
 
@@ -825,7 +825,7 @@ export function startAutoFetch(): void {
     return;
   }
   
-  console.log(`[JobWorker] Starting auto-fetch every ${FETCH_INTERVAL_MS / 1000}s`);
+  logInfo("JobWorker", `Auto-fetch started, interval: ${FETCH_INTERVAL_MS / 1000}s`);
   
   autoFetchInterval = setInterval(async () => {
     try {
@@ -1297,7 +1297,7 @@ async function processHealthCheck(job: Job, sourceId: string): Promise<void> {
   
   if (!result) throw new Error("Source not found");
   
-  console.log(`[JobWorker] Health check for ${result.source.name}: ${result.source.health.status}`);
+  logInfo("HealthCheck", `${result.source.name}: ${result.source.health.status}`);
 }
 
 async function processHealthCheckAll(job: Job): Promise<void> {
@@ -1358,7 +1358,7 @@ async function cleanupStaleJobs(): Promise<void> {
 }
 
 export async function startJobWorker(): Promise<void> {
-  console.log("[JobWorker] Starting job worker...");
+  logInfo("JobWorker", "Job worker started, polling every 2s");
   
   // Clean up any stale jobs from previous runs on startup
   await cleanupStaleJobs();
