@@ -119,6 +119,8 @@ export default function AssistantPage() {
   const [notesSaved, setNotesSaved] = useState(true);
   const [isCreatingNote, setIsCreatingNote] = useState(false);
   const [newNoteTitle, setNewNoteTitle] = useState("");
+  const [isEditingNoteTitle, setIsEditingNoteTitle] = useState(false);
+  const [editingTitleValue, setEditingTitleValue] = useState("");
   const [showNotesList, setShowNotesList] = useState(true);
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(() => {
@@ -262,6 +264,17 @@ export default function AssistantPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/assistant/notes"] });
       queryClient.invalidateQueries({ queryKey: ["/api/assistant/notes/active"] });
+    },
+  });
+
+  const renameNoteMutation = useMutation({
+    mutationFn: ({ noteId, title }: { noteId: number; title: string }) => 
+      apiRequest("PATCH", `/api/assistant/notes/${noteId}`, { title }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/assistant/notes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/assistant/notes/active"] });
+      setIsEditingNoteTitle(false);
+      setEditingTitleValue("");
     },
   });
 
@@ -1859,9 +1872,45 @@ export default function AssistantPage() {
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
                   <StickyNote className="h-4 w-4 text-amber-500 flex-shrink-0" />
-                  <span className="truncate text-sm font-medium min-w-0 max-w-[120px]">
-                    {activeNote?.title || (language === "ru" ? "Заметка" : "Note")}
-                  </span>
+                  {isEditingNoteTitle ? (
+                    <div className="flex items-center gap-1 min-w-0 flex-1">
+                      <Input
+                        value={editingTitleValue}
+                        onChange={(e) => setEditingTitleValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && editingTitleValue.trim() && activeNote?.id) {
+                            renameNoteMutation.mutate({ noteId: activeNote.id, title: editingTitleValue.trim() });
+                          } else if (e.key === "Escape") {
+                            setIsEditingNoteTitle(false);
+                            setEditingTitleValue("");
+                          }
+                        }}
+                        onBlur={() => {
+                          if (editingTitleValue.trim() && activeNote?.id && editingTitleValue.trim() !== activeNote.title) {
+                            renameNoteMutation.mutate({ noteId: activeNote.id, title: editingTitleValue.trim() });
+                          } else {
+                            setIsEditingNoteTitle(false);
+                            setEditingTitleValue("");
+                          }
+                        }}
+                        className="h-7 text-sm px-2 flex-1 min-w-0"
+                        autoFocus
+                        data-testid="input-rename-note"
+                      />
+                    </div>
+                  ) : (
+                    <span 
+                      className="truncate text-sm font-medium min-w-0 max-w-[120px] cursor-pointer hover:text-amber-600 transition-colors"
+                      onClick={() => {
+                        setEditingTitleValue(activeNote?.title || "");
+                        setIsEditingNoteTitle(true);
+                      }}
+                      title={language === "ru" ? "Нажмите чтобы переименовать" : "Click to rename"}
+                      data-testid="button-edit-note-title"
+                    >
+                      {activeNote?.title || (language === "ru" ? "Заметка" : "Note")}
+                    </span>
+                  )}
                   <div className="flex items-center gap-1 ml-auto flex-shrink-0">
                     <span className="text-[9px] text-muted-foreground flex items-center">
                       {notesSaved ? <Save className="h-2.5 w-2.5 text-green-500" /> : <Loader2 className="h-2.5 w-2.5 animate-spin" />}
