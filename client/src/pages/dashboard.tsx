@@ -668,7 +668,7 @@ export default function Dashboard() {
                   <p className="text-xs text-neutral-400">{t("scripts.noScripts")}</p>
                 </div>
               ) : (
-                <ScrollArea className="max-h-[calc(100vh-400px)] min-h-[200px]">
+                <ScrollArea className="max-h-[calc(100vh-320px)] min-h-[200px]">
                   <div className="space-y-1.5 pr-2">
                     {recentScripts.map((script) => (
                       <Link key={script.id} href={`/script/${script.id}`}>
