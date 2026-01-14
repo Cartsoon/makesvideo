@@ -28,7 +28,8 @@ import {
   Play,
   ChevronRight,
   TrendingUp,
-  Bot
+  Bot,
+  Search
 } from "lucide-react";
 import type { Topic, Script, Job } from "@shared/schema";
 import { ComingSoonModal } from "@/components/coming-soon-modal";
@@ -216,22 +217,40 @@ export default function Dashboard() {
                 </h1>
               </div>
             </div>
-            <Link href="/assistant">
-              <div
-                className="relative overflow-hidden px-3 py-1.5 sm:px-4 sm:py-2 border border-rose-500/50 bg-gradient-to-r from-rose-500/20 to-amber-500/20 text-white font-semibold text-sm uppercase tracking-wide hover-elevate active-elevate-2 flex items-center justify-center gap-2 w-full sm:w-auto flex-shrink-0 cursor-pointer"
-                data-testid="button-assistant"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-rose-500/10 via-transparent to-amber-500/10" />
-                <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-rose-400" />
-                <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-rose-400" />
-                <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-amber-500" />
-                <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-amber-500" />
-                <span className="relative flex items-center gap-2">
-                  <Bot className="h-4 w-4" />
-                  {t("nav.assistant")}
-                </span>
-              </div>
-            </Link>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Link href="/stock-search" className="flex-1 sm:flex-initial">
+                <div
+                  className="relative overflow-hidden px-3 py-1.5 sm:px-4 sm:py-2 border border-blue-500/50 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 text-white font-semibold text-sm uppercase tracking-wide hover-elevate active-elevate-2 flex items-center justify-center gap-2 w-full sm:w-auto flex-shrink-0 cursor-pointer"
+                  data-testid="button-stock-search"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-transparent to-cyan-500/10" />
+                  <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-blue-400" />
+                  <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-blue-400" />
+                  <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-cyan-500" />
+                  <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-cyan-500" />
+                  <span className="relative flex items-center gap-2">
+                    <Search className="h-4 w-4" />
+                    {language === "ru" ? "Футажи" : "Stock"}
+                  </span>
+                </div>
+              </Link>
+              <Link href="/assistant" className="flex-1 sm:flex-initial">
+                <div
+                  className="relative overflow-hidden px-3 py-1.5 sm:px-4 sm:py-2 border border-rose-500/50 bg-gradient-to-r from-rose-500/20 to-amber-500/20 text-white font-semibold text-sm uppercase tracking-wide hover-elevate active-elevate-2 flex items-center justify-center gap-2 w-full sm:w-auto flex-shrink-0 cursor-pointer"
+                  data-testid="button-assistant"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-rose-500/10 via-transparent to-amber-500/10" />
+                  <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-rose-400" />
+                  <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-rose-400" />
+                  <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-amber-500" />
+                  <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-amber-500" />
+                  <span className="relative flex items-center gap-2">
+                    <Bot className="h-4 w-4" />
+                    {t("nav.assistant")}
+                  </span>
+                </div>
+              </Link>
+            </div>
           </div>
         </div>
 
