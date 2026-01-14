@@ -1863,8 +1863,8 @@ export default function AssistantPage() {
                         <div
                           key={note.id}
                           onClick={() => activateNoteMutation.mutate(note.id)}
-                          className={`flex items-center gap-3 p-3 rounded-md cursor-pointer hover-elevate transition-colors ${
-                            note.isActive ? "bg-amber-500/10 border border-amber-500/30" : "bg-muted/30"
+                          className={`flex items-center gap-3 p-3 rounded-md cursor-pointer transition-colors overflow-hidden ${
+                            note.isActive ? "bg-amber-500/10 border border-amber-500/30" : "bg-muted/30 hover:bg-muted/50"
                           }`}
                           data-testid={`button-select-note-${note.id}`}
                         >
