@@ -4,6 +4,7 @@ import { Link, useLocation } from "wouter";
 import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { StatusBadge } from "@/components/status-badge";
@@ -169,7 +170,7 @@ export default function Dashboard() {
   const newTopics = filteredTopics;
   const recentScripts = scripts
     ?.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 4) || [];
+    .slice(0, 20) || [];
 
   // Track newly added topics for animation
   const topicIdsString = newTopics.map(t => t.id).join(',');
@@ -667,27 +668,29 @@ export default function Dashboard() {
                   <p className="text-xs text-neutral-400">{t("scripts.noScripts")}</p>
                 </div>
               ) : (
-                <div className="space-y-1.5">
-                  {recentScripts.map((script) => (
-                    <Link key={script.id} href={`/script/${script.id}`}>
-                      <div
-                        className="flex items-center gap-2 p-2 bg-neutral-800/50 border border-blue-500/20 hover-elevate cursor-pointer group"
-                        data-testid={`script-item-${script.id}`}
-                      >
-                        <div className="min-w-0 flex-1">
-                          <p className="font-medium text-xs text-neutral-200 truncate group-hover:text-white">
-                            {script.displayName || script.hook || t("scripts.untitled")}
-                          </p>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <span className="text-[10px] text-blue-400 font-medium">{script.durationSec}s</span>
-                            <StatusBadge status={script.status} />
+                <ScrollArea className="max-h-[calc(100vh-400px)] min-h-[200px]">
+                  <div className="space-y-1.5 pr-2">
+                    {recentScripts.map((script) => (
+                      <Link key={script.id} href={`/script/${script.id}`}>
+                        <div
+                          className="flex items-center gap-2 p-2 bg-neutral-800/50 border border-blue-500/20 hover-elevate cursor-pointer group"
+                          data-testid={`script-item-${script.id}`}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-xs text-neutral-200 truncate group-hover:text-white">
+                              {script.displayName || script.hook || t("scripts.untitled")}
+                            </p>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className="text-[10px] text-blue-400 font-medium">{script.durationSec}s</span>
+                              <StatusBadge status={script.status} />
+                            </div>
                           </div>
+                          <ChevronRight className="h-4 w-4 text-neutral-400 group-hover:text-blue-400 flex-shrink-0" />
                         </div>
-                        <ChevronRight className="h-4 w-4 text-neutral-400 group-hover:text-blue-400 flex-shrink-0" />
-                      </div>
-                    </Link>
-                  ))}
-                </div>
+                      </Link>
+                    ))}
+                  </div>
+                </ScrollArea>
               )}
             </div>
           </div>
