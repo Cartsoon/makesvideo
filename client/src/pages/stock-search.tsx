@@ -251,7 +251,7 @@ export default function StockSearch() {
       </div>
 
       <Dialog open={!!previewAsset} onOpenChange={(open) => !open && setPreviewAsset(null)}>
-        <DialogContent className="max-w-4xl p-0 overflow-hidden bg-card border-2 border-primary/20 gap-0" hideCloseButton>
+        <DialogContent className={`p-0 overflow-hidden bg-card border-2 border-primary/20 gap-0 ${previewAsset?.mediaType === "photo" ? "max-w-fit" : "max-w-4xl"}`} hideCloseButton>
           {previewAsset && (
             <div className="flex flex-col">
               {/* Corner markers - top */}
@@ -259,11 +259,15 @@ export default function StockSearch() {
               <div className="absolute top-0 right-0 w-6 h-6 border-r-2 border-t-2 border-primary/60 rounded-tr-md z-10" />
               
               {/* Media container with close button inside */}
-              <div className="relative bg-black flex items-center justify-center min-h-[300px] max-h-[60vh]">
+              <div className={`relative flex items-center justify-center ${previewAsset.mediaType === "video" ? "bg-black min-h-[300px] max-h-[60vh]" : ""}`}>
                 {/* Close button - modern glass morphism style */}
                 <button
                   onClick={() => setPreviewAsset(null)}
-                  className="absolute top-4 right-4 z-30 group/close w-10 h-10 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 hover:border-white/40 transition-all duration-300 shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_32px_rgba(0,0,0,0.5)] hover:scale-105"
+                  className={`absolute top-4 right-4 z-30 group/close w-10 h-10 flex items-center justify-center rounded-xl backdrop-blur-md border transition-all duration-300 hover:scale-105 ${
+                    previewAsset.mediaType === "video" 
+                      ? "bg-white/10 hover:bg-white/20 border-white/20 hover:border-white/40 shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_32px_rgba(0,0,0,0.5)]"
+                      : "bg-black/40 hover:bg-black/60 border-black/20 hover:border-black/40 shadow-lg"
+                  }`}
                   data-testid="button-close-preview"
                 >
                   <X className="h-5 w-5 text-white/90 group-hover/close:text-white transition-colors" strokeWidth={2.5} />
@@ -282,7 +286,7 @@ export default function StockSearch() {
                   <img
                     src={previewAsset.downloadUrl || previewAsset.previewUrl}
                     alt={previewAsset.title}
-                    className="w-full h-full max-h-[60vh] object-contain"
+                    className="w-full max-h-[70vh] object-contain rounded-t-md"
                   />
                 ) : null}
               </div>
