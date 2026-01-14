@@ -26,7 +26,9 @@ import {
   Volume2,
   VolumeX,
   Volume1,
-  Disc3
+  Disc3,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useI18n } from "@/lib/i18n";
@@ -48,6 +50,50 @@ export default function StockSearch() {
   const [allAssets, setAllAssets] = useState<StockAsset[]>([]);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [previewAsset, setPreviewAsset] = useState<StockAsset | null>(null);
+  const [slideDirection, setSlideDirection] = useState<"left" | "right" | null>(null);
+
+  // Get current preview index and navigation functions
+  const currentPreviewIndex = previewAsset ? allAssets.findIndex(a => a.id === previewAsset.id) : -1;
+  const canGoPrev = currentPreviewIndex > 0;
+  const canGoNext = currentPreviewIndex >= 0 && currentPreviewIndex < allAssets.length - 1;
+
+  const goToPrevAsset = () => {
+    if (canGoPrev) {
+      setSlideDirection("right");
+      setTimeout(() => {
+        setPreviewAsset(allAssets[currentPreviewIndex - 1]);
+        setSlideDirection(null);
+      }, 150);
+    }
+  };
+
+  const goToNextAsset = () => {
+    if (canGoNext) {
+      setSlideDirection("left");
+      setTimeout(() => {
+        setPreviewAsset(allAssets[currentPreviewIndex + 1]);
+        setSlideDirection(null);
+      }, 150);
+    }
+  };
+
+  // Keyboard navigation for preview
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!previewAsset) return;
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        goToPrevAsset();
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        goToNextAsset();
+      } else if (e.key === "Escape") {
+        setPreviewAsset(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [previewAsset, currentPreviewIndex, canGoPrev, canGoNext]);
 
   const searchMutation = useMutation({
     mutationFn: async ({ query, mediaType, orientation, page }: { query: string; mediaType: StockMediaType; orientation: StockOrientation; page: number }) => {
@@ -253,10 +299,34 @@ export default function StockSearch() {
       <Dialog open={!!previewAsset} onOpenChange={(open) => !open && setPreviewAsset(null)}>
         <DialogContent className={`p-0 overflow-hidden bg-card border-2 border-primary/20 gap-0 ${previewAsset?.mediaType === "photo" ? "max-w-fit" : "max-w-4xl"}`} hideCloseButton>
           {previewAsset && (
-            <div className="flex flex-col">
+            <div className={`flex flex-col transition-all duration-150 ${
+              slideDirection === "left" ? "opacity-0 translate-x-[-20px]" : 
+              slideDirection === "right" ? "opacity-0 translate-x-[20px]" : 
+              "opacity-100 translate-x-0"
+            }`}>
               {/* Corner markers - top */}
               <div className="absolute top-0 left-0 w-6 h-6 border-l-2 border-t-2 border-primary/60 rounded-tl-md z-10" />
               <div className="absolute top-0 right-0 w-6 h-6 border-r-2 border-t-2 border-primary/60 rounded-tr-md z-10" />
+              
+              {/* Navigation arrows */}
+              {canGoPrev && (
+                <button
+                  onClick={goToPrevAsset}
+                  className="absolute left-2 md:-left-14 top-1/2 -translate-y-1/2 z-40 group/nav w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full backdrop-blur-md border transition-all duration-300 hover:scale-110 bg-black/50 hover:bg-black/70 border-white/20 hover:border-white/40 shadow-lg"
+                  data-testid="button-prev-asset"
+                >
+                  <ChevronLeft className="h-6 w-6 md:h-7 md:w-7 text-white/90 group-hover/nav:text-white transition-colors" strokeWidth={2.5} />
+                </button>
+              )}
+              {canGoNext && (
+                <button
+                  onClick={goToNextAsset}
+                  className="absolute right-2 md:-right-14 top-1/2 -translate-y-1/2 z-40 group/nav w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full backdrop-blur-md border transition-all duration-300 hover:scale-110 bg-black/50 hover:bg-black/70 border-white/20 hover:border-white/40 shadow-lg"
+                  data-testid="button-next-asset"
+                >
+                  <ChevronRight className="h-6 w-6 md:h-7 md:w-7 text-white/90 group-hover/nav:text-white transition-colors" strokeWidth={2.5} />
+                </button>
+              )}
               
               {/* Media container with close button inside */}
               <div className={`relative flex items-center justify-center ${previewAsset.mediaType === "video" ? "bg-black" : ""}`}>
@@ -274,6 +344,7 @@ export default function StockSearch() {
                 </button>
                 {previewAsset.mediaType === "video" ? (
                   <video
+                    key={previewAsset.id}
                     src={previewAsset.previewUrl}
                     className="w-full max-h-[50vh] md:max-h-[60vh]"
                     autoPlay
@@ -284,6 +355,7 @@ export default function StockSearch() {
                   />
                 ) : previewAsset.mediaType === "photo" ? (
                   <img
+                    key={previewAsset.id}
                     src={previewAsset.downloadUrl || previewAsset.previewUrl}
                     alt={previewAsset.title}
                     className="w-full max-h-[70vh] object-contain rounded-t-md"
