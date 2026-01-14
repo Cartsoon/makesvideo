@@ -297,71 +297,115 @@ export default function StockSearch() {
       </div>
 
       <Dialog open={!!previewAsset} onOpenChange={(open) => !open && setPreviewAsset(null)}>
-        <DialogContent className={`p-0 overflow-hidden bg-card border-2 border-primary/20 gap-0 ${previewAsset?.mediaType === "photo" ? "max-w-fit" : "max-w-4xl"}`} hideCloseButton>
+        <DialogContent className={`p-0 overflow-visible bg-transparent border-0 shadow-none gap-0 ${previewAsset?.mediaType === "photo" ? "max-w-fit" : "max-w-4xl"}`} hideCloseButton>
           {previewAsset && (
-            <div className={`flex flex-col transition-all duration-150 ${
-              slideDirection === "left" ? "opacity-0 translate-x-[-20px]" : 
-              slideDirection === "right" ? "opacity-0 translate-x-[20px]" : 
-              "opacity-100 translate-x-0"
-            }`}>
-              {/* Corner markers - top */}
-              <div className="absolute top-0 left-0 w-6 h-6 border-l-2 border-t-2 border-primary/60 rounded-tl-md z-10" />
-              <div className="absolute top-0 right-0 w-6 h-6 border-r-2 border-t-2 border-primary/60 rounded-tr-md z-10" />
-              
-              {/* Navigation arrows - inside dialog bounds */}
+            <div className="relative">
+              {/* Stylish navigation arrows - OUTSIDE the card */}
               {canGoPrev && (
                 <button
                   onClick={goToPrevAsset}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 z-40 group/nav w-10 h-10 flex items-center justify-center rounded-full backdrop-blur-md border transition-all duration-300 hover:scale-110 bg-black/60 hover:bg-black/80 border-white/30 hover:border-white/50 shadow-lg"
+                  className="absolute -left-16 md:-left-20 top-1/2 -translate-y-1/2 z-50 group/nav hidden md:flex items-center justify-center"
                   data-testid="button-prev-asset"
+                  aria-label="Previous"
                 >
-                  <ChevronLeft className="h-6 w-6 text-white" strokeWidth={2.5} />
+                  <div className="relative w-12 h-12 flex items-center justify-center">
+                    {/* Glow effect */}
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary/40 to-accent/40 blur-xl opacity-0 group-hover/nav:opacity-100 transition-opacity duration-300" />
+                    {/* Button background */}
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-br from-neutral-900/90 to-neutral-800/90 backdrop-blur-xl border border-white/10 group-hover/nav:border-primary/50 shadow-2xl transition-all duration-300 group-hover/nav:scale-110" />
+                    {/* Icon */}
+                    <ChevronLeft className="relative h-6 w-6 text-white/70 group-hover/nav:text-white transition-colors duration-300" strokeWidth={2} />
+                  </div>
                 </button>
               )}
               {canGoNext && (
                 <button
                   onClick={goToNextAsset}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 z-40 group/nav w-10 h-10 flex items-center justify-center rounded-full backdrop-blur-md border transition-all duration-300 hover:scale-110 bg-black/60 hover:bg-black/80 border-white/30 hover:border-white/50 shadow-lg"
+                  className="absolute -right-16 md:-right-20 top-1/2 -translate-y-1/2 z-50 group/nav hidden md:flex items-center justify-center"
                   data-testid="button-next-asset"
+                  aria-label="Next"
                 >
-                  <ChevronRight className="h-6 w-6 text-white" strokeWidth={2.5} />
+                  <div className="relative w-12 h-12 flex items-center justify-center">
+                    {/* Glow effect */}
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-accent/40 to-primary/40 blur-xl opacity-0 group-hover/nav:opacity-100 transition-opacity duration-300" />
+                    {/* Button background */}
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-br from-neutral-900/90 to-neutral-800/90 backdrop-blur-xl border border-white/10 group-hover/nav:border-accent/50 shadow-2xl transition-all duration-300 group-hover/nav:scale-110" />
+                    {/* Icon */}
+                    <ChevronRight className="relative h-6 w-6 text-white/70 group-hover/nav:text-white transition-colors duration-300" strokeWidth={2} />
+                  </div>
                 </button>
               )}
-              
-              {/* Media container with close button inside */}
-              <div className={`relative flex items-center justify-center ${previewAsset.mediaType === "video" ? "bg-black" : ""}`}>
-                {/* Close button - modern glass morphism style */}
+
+              {/* Mobile navigation arrows - inside but stylish */}
+              {canGoPrev && (
                 <button
-                  onClick={() => setPreviewAsset(null)}
-                  className={`absolute top-4 right-4 z-30 group/close w-10 h-10 flex items-center justify-center rounded-xl backdrop-blur-md border transition-all duration-300 hover:scale-105 ${
-                    previewAsset.mediaType === "video" 
-                      ? "bg-white/10 hover:bg-white/20 border-white/20 hover:border-white/40 shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_32px_rgba(0,0,0,0.5)]"
-                      : "bg-black/40 hover:bg-black/60 border-black/20 hover:border-black/40 shadow-lg"
-                  }`}
-                  data-testid="button-close-preview"
+                  onClick={goToPrevAsset}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 z-50 md:hidden group/nav"
+                  data-testid="button-prev-asset-mobile"
+                  aria-label="Previous"
                 >
-                  <X className="h-5 w-5 text-white/90 group-hover/close:text-white transition-colors" strokeWidth={2.5} />
+                  <div className="w-10 h-10 rounded-full bg-black/60 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg active:scale-95 transition-transform">
+                    <ChevronLeft className="h-5 w-5 text-white" strokeWidth={2.5} />
+                  </div>
                 </button>
-                {previewAsset.mediaType === "video" ? (
-                  <video
-                    key={previewAsset.id}
-                    src={previewAsset.previewUrl}
-                    className="w-full max-h-[50vh] md:max-h-[60vh]"
-                    autoPlay
-                    controls
-                    loop
-                    playsInline
-                    controlsList="nodownload"
-                  />
-                ) : previewAsset.mediaType === "photo" ? (
-                  <img
-                    key={previewAsset.id}
-                    src={previewAsset.downloadUrl || previewAsset.previewUrl}
-                    alt={previewAsset.title}
-                    className="w-full max-h-[70vh] object-contain rounded-t-md"
-                  />
-                ) : null}
-              </div>
+              )}
+              {canGoNext && (
+                <button
+                  onClick={goToNextAsset}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 z-50 md:hidden group/nav"
+                  data-testid="button-next-asset-mobile"
+                  aria-label="Next"
+                >
+                  <div className="w-10 h-10 rounded-full bg-black/60 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg active:scale-95 transition-transform">
+                    <ChevronRight className="h-5 w-5 text-white" strokeWidth={2.5} />
+                  </div>
+                </button>
+              )}
+
+              {/* Main card with content */}
+              <div className={`overflow-hidden bg-card border-2 border-primary/20 rounded-md flex flex-col transition-all duration-150 ${
+                slideDirection === "left" ? "opacity-0 translate-x-[-20px]" : 
+                slideDirection === "right" ? "opacity-0 translate-x-[20px]" : 
+                "opacity-100 translate-x-0"
+              }`}>
+                {/* Corner markers - top */}
+                <div className="absolute top-0 left-0 w-6 h-6 border-l-2 border-t-2 border-primary/60 rounded-tl-md z-10" />
+                <div className="absolute top-0 right-0 w-6 h-6 border-r-2 border-t-2 border-primary/60 rounded-tr-md z-10" />
+                
+                {/* Media container with close button inside */}
+                <div className={`relative flex items-center justify-center ${previewAsset.mediaType === "video" ? "bg-black" : ""}`}>
+                  {/* Close button - modern glass morphism style */}
+                  <button
+                    onClick={() => setPreviewAsset(null)}
+                    className={`absolute top-4 right-4 z-30 group/close w-10 h-10 flex items-center justify-center rounded-xl backdrop-blur-md border transition-all duration-300 hover:scale-105 ${
+                      previewAsset.mediaType === "video" 
+                        ? "bg-white/10 hover:bg-white/20 border-white/20 hover:border-white/40 shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_32px_rgba(0,0,0,0.5)]"
+                        : "bg-black/40 hover:bg-black/60 border-black/20 hover:border-black/40 shadow-lg"
+                    }`}
+                    data-testid="button-close-preview"
+                  >
+                    <X className="h-5 w-5 text-white/90 group-hover/close:text-white transition-colors" strokeWidth={2.5} />
+                  </button>
+                  {previewAsset.mediaType === "video" ? (
+                    <video
+                      key={previewAsset.id}
+                      src={previewAsset.previewUrl}
+                      className="w-full max-h-[50vh] md:max-h-[60vh]"
+                      autoPlay
+                      controls
+                      loop
+                      playsInline
+                      controlsList="nodownload"
+                    />
+                  ) : previewAsset.mediaType === "photo" ? (
+                    <img
+                      key={previewAsset.id}
+                      src={previewAsset.downloadUrl || previewAsset.previewUrl}
+                      alt={previewAsset.title}
+                      className="w-full max-h-[70vh] object-contain rounded-t-md"
+                    />
+                  ) : null}
+                </div>
               
               {/* Info panel - separate from video */}
               <div className="p-4 bg-gradient-to-r from-primary/5 via-transparent to-accent/5 border-t border-border">
@@ -449,8 +493,9 @@ export default function StockSearch() {
               </div>
               
               {/* Corner markers - bottom */}
-              <div className="absolute bottom-0 left-0 w-6 h-6 border-l-2 border-b-2 border-accent/60 rounded-bl-md" />
-              <div className="absolute bottom-0 right-0 w-6 h-6 border-r-2 border-b-2 border-accent/60 rounded-br-md" />
+                <div className="absolute bottom-0 left-0 w-6 h-6 border-l-2 border-b-2 border-accent/60 rounded-bl-md" />
+                <div className="absolute bottom-0 right-0 w-6 h-6 border-r-2 border-b-2 border-accent/60 rounded-br-md" />
+              </div>
             </div>
           )}
         </DialogContent>
