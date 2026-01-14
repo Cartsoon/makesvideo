@@ -316,24 +316,42 @@ export default function AssistantPage() {
     const formattedNote = `[${timestamp}]\n${content}`;
     
     if (activeNote?.id) {
+      // Add to existing active note
       const separator = activeNoteContent.length > 0 ? "\n\n---\n\n" : "";
       const updatedNotes = activeNoteContent + separator + formattedNote;
       setActiveNoteContent(updatedNotes);
       setNotesSaved(false);
-      saveNotesMutation.mutate({ noteId: activeNote.id, content: updatedNotes });
-      toast({
-        title: language === "ru" ? "Добавлено в заметки" : "Added to notes",
-        description: activeNote.title,
-      });
-    } else {
-      const defaultTitle = language === "ru" ? "Заметки от " + format(new Date(), "dd.MM.yyyy") : "Notes from " + format(new Date(), "MM/dd/yyyy");
+      // Immediately save to server
       try {
+        await apiRequest("PATCH", `/api/assistant/notes/${activeNote.id}`, { content: updatedNotes });
+        setNotesSaved(true);
+        queryClient.invalidateQueries({ queryKey: ["/api/assistant/notes"] });
+        toast({
+          title: language === "ru" ? "Добавлено в заметки" : "Added to notes",
+          description: activeNote.title,
+        });
+      } catch (error) {
+        toast({
+          title: language === "ru" ? "Ошибка сохранения" : "Save error",
+          variant: "destructive",
+        });
+      }
+    } else {
+      // Create new note, save content, and activate it
+      const defaultTitle = language === "ru" ? "Избранное " + format(new Date(), "dd.MM.yyyy") : "Favorites " + format(new Date(), "MM/dd/yyyy");
+      try {
+        // Create new note
         const response = await apiRequest("POST", "/api/assistant/notes", { title: defaultTitle });
         const newNote = await response.json();
+        // Save content to the new note
         await apiRequest("PATCH", `/api/assistant/notes/${newNote.id}`, { content: formattedNote });
+        // Activate the new note
+        await apiRequest("POST", `/api/assistant/notes/${newNote.id}/activate`);
+        // Refresh queries
         queryClient.invalidateQueries({ queryKey: ["/api/assistant/notes"] });
         queryClient.invalidateQueries({ queryKey: ["/api/assistant/notes/active"] });
         setActiveNoteContent(formattedNote);
+        setShowNotesList(false);
         toast({
           title: language === "ru" ? "Создана новая заметка" : "New note created",
           description: defaultTitle,
@@ -346,7 +364,7 @@ export default function AssistantPage() {
         });
       }
     }
-  }, [activeNote, activeNoteContent, language, saveNotesMutation, toast]);
+  }, [activeNote, activeNoteContent, language, toast]);
 
   const feedbackReasonLabels: Record<FeedbackReason, { ru: string; en: string }> = {
     too_generic: { ru: "Слишком общий", en: "Too generic" },
