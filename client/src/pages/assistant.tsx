@@ -310,13 +310,14 @@ export default function AssistantPage() {
     },
   });
 
-  // Add message content to notes (creates new note if none active)
+  // Add message content to notes (creates new note if viewing list, adds to current if note is open)
   const addToNotes = useCallback(async (content: string) => {
     const timestamp = format(new Date(), "dd.MM.yyyy HH:mm", { locale: language === "ru" ? ru : enUS });
     const formattedNote = `[${timestamp}]\n${content}`;
     
-    if (activeNote?.id) {
-      // Add to existing active note
+    // If a note is currently OPEN (not just active, but user is viewing/editing it)
+    if (activeNote?.id && !showNotesList) {
+      // Add to the currently open note
       const separator = activeNoteContent.length > 0 ? "\n\n---\n\n" : "";
       const updatedNotes = activeNoteContent + separator + formattedNote;
       setActiveNoteContent(updatedNotes);
@@ -337,8 +338,8 @@ export default function AssistantPage() {
         });
       }
     } else {
-      // Create new note, save content, and activate it
-      const defaultTitle = language === "ru" ? "Избранное " + format(new Date(), "dd.MM.yyyy") : "Favorites " + format(new Date(), "MM/dd/yyyy");
+      // User is viewing list OR no active note - create a new note
+      const defaultTitle = language === "ru" ? "Избранное " + format(new Date(), "dd.MM.yyyy HH:mm") : "Favorites " + format(new Date(), "MM/dd/yyyy HH:mm");
       try {
         // Create new note
         const response = await apiRequest("POST", "/api/assistant/notes", { title: defaultTitle });
@@ -364,7 +365,7 @@ export default function AssistantPage() {
         });
       }
     }
-  }, [activeNote, activeNoteContent, language, toast]);
+  }, [activeNote, activeNoteContent, language, toast, showNotesList]);
 
   const feedbackReasonLabels: Record<FeedbackReason, { ru: string; en: string }> = {
     too_generic: { ru: "Слишком общий", en: "Too generic" },
