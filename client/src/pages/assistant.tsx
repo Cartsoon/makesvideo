@@ -1908,7 +1908,14 @@ export default function AssistantPage() {
             </div>
             
             <div className="flex-1 min-h-0 overflow-hidden">
-              {showNotesList && !isCreatingNote ? (
+              {isCreatingNote ? (
+                <div className="flex flex-col items-center justify-center h-full text-center p-4">
+                  <StickyNote className="h-12 w-12 text-amber-500/30 mb-4" />
+                  <p className="text-sm text-muted-foreground">
+                    {language === "ru" ? "Введите название заметки выше" : "Enter note title above"}
+                  </p>
+                </div>
+              ) : showNotesList ? (
                 <ScrollArea className="h-full">
                   <div className="p-2 space-y-1 max-w-full">
                     {allNotes.length === 0 ? (
